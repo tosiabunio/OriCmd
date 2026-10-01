@@ -267,6 +267,13 @@ enum DebugAutomation {
                             + " | cursor: \(panel.listView.currentItem?.name ?? "")"
                             + " | tabs: \(panel.panelView.tabBar.titles.joined(separator: ", "))"
                     }
+                    // The Name and Ext texts of each cursor row, as Full view shows them.
+                    let names = zip(["left", "right"], main.panels).map { side, panel in
+                        let shown = panel.listView.cursorNameAndExtension
+                        return "\(side): name: \(shown?.name ?? "") | ext: \(shown?.ext ?? "")"
+                    }
+                    try? names.joined(separator: "\n").write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-names.txt"),
+                                                               atomically: true, encoding: .utf8)
                     try? lines.joined(separator: "\n").write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-panels.txt"),
                                                             atomically: true, encoding: .utf8)
                 }
