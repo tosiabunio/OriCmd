@@ -41,6 +41,16 @@
         }
       }
     },
+    "%@ fork": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "форк %@"
+          }
+        }
+      }
+    },
     "%@ k / %@ k in %lld / %lld file(s), %lld / %lld dir(s)": {
       "localizations": {
         "ru": {
@@ -5627,6 +5637,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "двоичное сравнение"
+          }
+        }
+      }
+    },
+    "build %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "сборка %@"
           }
         }
       }
