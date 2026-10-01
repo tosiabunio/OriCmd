@@ -31,6 +31,7 @@ enum Settings {
         static let copySkipUnreadable = "CopySkipUnreadable"
         static let copyOverwriteLocked = "CopyOverwriteLocked"
         static let rightButton = "RightMouseButton"
+        static let extensionDisplay = "ExtensionDisplay"
     }
 
     static let defaultFontSize: CGFloat = 12
@@ -74,6 +75,19 @@ enum Settings {
     static var rightButton: RightButton {
         get { AppDefaults.store.string(forKey: Key.rightButton).flatMap(RightButton.init) ?? .menu }
         set { set(newValue.rawValue, Key.rightButton) }
+    }
+
+    /// Where Full view shows file extensions.
+    enum ExtensionDisplay: String {
+        /// In the Ext column, apart from the name, as in Total Commander.
+        case column
+        /// After the name, as in the Finder; the Ext column title still sorts by them.
+        case withName
+    }
+
+    static var extensionDisplay: ExtensionDisplay {
+        get { AppDefaults.store.string(forKey: Key.extensionDisplay).flatMap(ExtensionDisplay.init) ?? .column }
+        set { set(newValue.rawValue, Key.extensionDisplay) }
     }
 
     static var showsCommandLine: Bool {

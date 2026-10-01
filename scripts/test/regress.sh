@@ -702,6 +702,21 @@ check "app button: no menu under a sheet" "[ -f build/shots/reg-appsheet-menu.tx
 # folder of a file (the file selected), a folder's contents, an archive's contents; in an
 # archive, the same archive folder.
 panels() { cat build/shots/reg-$1-panels.txt 2>/dev/null; }
+
+# File extensions in Full view: in their own column (the default) or after the name,
+# where a long name is cut short before its extension and Ctrl+F4 still sorts by them.
+names() { cat build/shots/reg-$1-names.txt 2>/dev/null; }
+withname() { defaults write ru.themmag.OriCmd.tests ExtensionDisplay withName; }
+scripts/test/mkdata.sh
+touch "$L/a-very-long-report-name-that-will-not-fit-in-the-name-column-at-all.pdf"
+run extcolumn "alt+n wait text:otes escape"
+check "extensions in their own column" "names extcolumn | grep -qx 'left: name: notes | ext: md'"
+withname; run extname "alt+n wait text:otes escape"
+check "extensions after the name" "names extname | grep -qx 'left: name: notes.md | ext: '"
+withname; run extlong "alt+a wait text:-very escape"
+check "a long name is cut short before its extension" "names extlong | grep -qx 'left: name: a-very-long-report-.*….pdf | ext: '"
+withname; run extsort "ctrl+f4 wait home down down down down"
+check "Ctrl+F4 sorts by extension with extensions after the name" "panels extsort | grep -q '^left\\*: .* | cursor: Makefile |'"
 scripts/test/mkdata.sh
 run xfile "alt+r wait text:eadme escape ctrl+shift+right wait wait"
 check "Ctrl+Shift+Right on a file: its folder, the file selected" "panels xfile | grep -q '^right: .*/left | cursor: readme.txt'"

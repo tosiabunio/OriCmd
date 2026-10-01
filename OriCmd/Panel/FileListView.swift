@@ -544,14 +544,10 @@ final class FileListView: NSView {
         // Sizes and dates stay regular: in bold they would not fit their columns.
         let numberFont = Theme.panelNumberFont
 
-        let nameRect = layout.rect(for: .name, y: y, height: rowHeight)
-        drawIcon(for: item, in: nameRect)
-        let name = Settings.panelName(item.baseName, isFolder: item.isFolder)
-        drawText(name, in: nameRect.divided(atDistance: 20, from: .minXEdge).remainder,
-                 font: textFont, color: color)
-
-        drawText(item.fileExtension, in: layout.rect(for: .ext, y: y, height: rowHeight),
-                 font: textFont, color: color)
+        drawIcon(for: item, in: layout.rect(for: .name, y: y, height: rowHeight))
+        let shown = nameAndExtension(of: item, layout: layout, y: y, font: textFont)
+        drawText(shown.name, in: shown.nameRect, font: textFont, color: color)
+        drawText(shown.ext, in: layout.rect(for: .ext, y: y, height: rowHeight), font: textFont, color: color)
 
         let size: String
         if item.isFolder, let folderSize = folderSizes[item.name] {
@@ -586,6 +582,44 @@ final class FileListView: NSView {
         }
 
         drawInactiveCursorFrame(row, in: rect)
+    }
+
+    /// What Full view shows in the Name and Ext columns of an item, and where the name
+    /// goes: with extensions after names (see Settings) it takes the Ext column too.
+    private func nameAndExtension(of item: FileItem, layout: ColumnLayout, y: CGFloat,
+                                  font: NSFont) -> (name: String, ext: String, nameRect: NSRect) {
+        let nameRect = layout.rect(for: .name, y: y, height: rowHeight).divided(atDistance: 20, from: .minXEdge).remainder
+        guard Settings.extensionDisplay == .withName else {
+            return (Settings.panelName(item.baseName, isFolder: item.isFolder), item.fileExtension, nameRect)
+        }
+        let wideRect = nameRect.union(layout.rect(for: .ext, y: y, height: rowHeight))
+        // drawText leaves 4 points on each side.
+        let name = item.isFolder ? Settings.panelName(item.name, isFolder: true) : Self.fittedName(item, width: wideRect.width - 8, font: font)
+        return (name, "", wideRect)
+    }
+
+    /// The whole name, or when it does not fit, its base name cut short before the
+    /// extension ("a-long-repo….pdf"): sorted by extension, the extensions stay readable.
+    private static func fittedName(_ item: FileItem, width: CGFloat, font: NSFont) -> String {
+        func fits(_ text: String) -> Bool { (text as NSString).size(withAttributes: [.font: font]).width <= width }
+        let ext = item.fileExtension
+        guard !ext.isEmpty, !fits(item.name) else { return item.name }
+        let base = Array(item.baseName)
+        var low = 0
+        var high = base.count
+        while low < high {
+            let middle = (low + high + 1) / 2
+            if fits(String(base[..<middle]) + "…." + ext) { low = middle } else { high = middle - 1 }
+        }
+        return String(base[..<low]) + "…." + ext
+    }
+
+    /// The Name and Ext texts of the cursor row in Full view (for test runs).
+    var cursorNameAndExtension: (name: String, ext: String)? {
+        guard let item = currentItem else { return nil }
+        let shown = nameAndExtension(of: item, layout: ColumnLayout(width: bounds.width), y: 0,
+                                     font: Theme.font(marked: marked.contains(item.name)))
+        return (shown.name, shown.ext)
     }
 
     private func drawText(_ text: String, in rect: NSRect, font: NSFont, color: NSColor,

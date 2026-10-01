@@ -238,6 +238,15 @@ private final class PanelsPane: SettingsPane {
         row(String(localized: "Button bar:"), button(String(localized: "Customize Toolbar…"), #selector(customizeToolbar(_:))))
         note(String(localized: "Optional columns (kind, created, dimensions, duration, tags) are chosen by right-clicking a panel's column headers."))
 
+        section(String(localized: "File list"))
+        let extensions = NSPopUpButton()
+        extensions.addItems(withTitles: [String(localized: "In their own column"), String(localized: "After the name")])
+        extensions.selectItem(at: Settings.extensionDisplay == .column ? 0 : 1)
+        extensions.target = self
+        extensions.action = #selector(extensionDisplayChanged(_:))
+        row(String(localized: "File extensions:"), extensions)
+        note(String(localized: "Full view. After the name, the Ext column title still sorts by extension; a long name is cut short before its extension."))
+
         section(String(localized: "Mouse"))
         let rightButton = NSPopUpButton()
         rightButton.addItems(withTitles: [
@@ -249,6 +258,10 @@ private final class PanelsPane: SettingsPane {
         rightButton.action = #selector(rightButtonChanged(_:))
         row(String(localized: "Right button:"), rightButton)
         note(String(localized: "Marking: a click marks or unmarks a file, a drag over files makes them all as the first one became; hold the button still for the context menu. On [..] and with Control-click the menu opens at once."))
+    }
+
+    @objc private func extensionDisplayChanged(_ sender: NSPopUpButton) {
+        Settings.extensionDisplay = sender.indexOfSelectedItem == 0 ? .column : .withName
     }
 
     @objc private func rightButtonChanged(_ sender: NSPopUpButton) {
@@ -592,10 +605,15 @@ private final class PanelPreview: NSView {
             if row.isCursor { color = row.isMarked ? Theme.markedCursorText : Theme.cursorText }
             let textY = rect.minY + (rowHeight - (font.ascender - font.descender)) / 2 - 1
             let textFont = Theme.font(marked: row.isMarked)
-            draw(Settings.panelName(row.name, isFolder: row.isFolder), in: NSRect(x: 6, y: textY, width: nameWidth - 10, height: rowHeight),
-                 font: textFont, color: color, alignment: .left)
-            draw(row.ext, in: NSRect(x: nameWidth, y: textY, width: 48, height: rowHeight), font: textFont, color: color,
-                 alignment: .left)
+            if Settings.extensionDisplay == .withName {
+                draw(row.isFolder ? Settings.panelName(row.name, isFolder: true) : fileName, in: NSRect(x: 6, y: textY, width: nameWidth + 38, height: rowHeight),
+                     font: textFont, color: color, alignment: .left)
+            } else {
+                draw(Settings.panelName(row.name, isFolder: row.isFolder), in: NSRect(x: 6, y: textY, width: nameWidth - 10, height: rowHeight),
+                     font: textFont, color: color, alignment: .left)
+                draw(row.ext, in: NSRect(x: nameWidth, y: textY, width: 48, height: rowHeight), font: textFont, color: color,
+                     alignment: .left)
+            }
             draw(row.size, in: NSRect(x: nameWidth + 50, y: textY, width: 130, height: rowHeight),
                  font: Theme.panelNumberFont, color: color, alignment: .right)
         }

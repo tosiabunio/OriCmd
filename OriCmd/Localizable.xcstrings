@@ -371,6 +371,16 @@
         }
       }
     },
+    "After the name": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "После имени"
+          }
+        }
+      }
+    },
     "Algorithm for the checksum file:": {
       "localizations": {
         "ru": {
@@ -2131,6 +2141,26 @@
         }
       }
     },
+    "File extensions:": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Расширения файлов:"
+          }
+        }
+      }
+    },
+    "File list": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Список файлов"
+          }
+        }
+      }
+    },
     "File mask, e.g. *.txt;*.md": {
       "localizations": {
         "ru": {
@@ -2361,6 +2391,16 @@
         }
       }
     },
+    "Full view. After the name, the Ext column title still sorts by extension; a long name is cut short before its extension.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подробный вид. Расширения после имени: заголовок колонки «Тип» по-прежнему сортирует по расширению; длинное имя сокращается перед расширением."
+          }
+        }
+      }
+    },
     "Function key buttons (F3 View … F8 Delete)": {
       "localizations": {
         "ru": {
@@ -2537,6 +2577,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Импортировано клавиш: %1$lld, пропущено: %2$lld"
+          }
+        }
+      }
+    },
+    "In their own column": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В отдельной колонке"
           }
         }
       }
