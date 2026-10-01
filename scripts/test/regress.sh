@@ -133,6 +133,11 @@ run crumbmenupick "pathclick wait cmd+a text:$PWD/$long enter wait wait crumbmen
 check "a parent chosen from … goes there" "shown crumbmenupick 'left*: /$first | cursor: $second |'"
 run crumbend "pathend wait cmd+a text:$PWD/$L/alpha enter wait wait"
 check "a click right of the path still makes it editable" "shown crumbend 'left*: $PWD/$L/alpha |'"
+# Only the empty area below the last row is drawn (as when a menu closes over it): nothing
+# to draw there, and the app goes on (a backwards range of rows trapped).
+scripts/test/mkdata.sh
+run drawbelow "tab wait drawbelow wait"
+check "a redraw below the last row does not stop the app" "[ -f build/shots/reg-drawbelow-panels.txt ]"
 
 scripts/test/mkdata.sh
 run renamef2 "alt+n wait text:otes escape f2 wait text:by-f2 enter wait"
