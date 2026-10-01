@@ -61,6 +61,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// The standard About panel; a fork's build says above the credits whose fork it
+    /// is and which of its builds (numbered by scripts/install-local.sh).
+    @objc func showAbout(_ sender: Any?) {
+        var options: [NSApplication.AboutPanelOptionKey: Any] = [:]
+        if let line = Self.forkLine,
+           let url = Bundle.main.url(forResource: "Credits", withExtension: "rtf"),
+           let credits = try? NSMutableAttributedString(url: url, options: [:], documentAttributes: nil) {
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = .center
+            credits.insert(NSAttributedString(string: line + "\n\n", attributes: [
+                .font: NSFont.boldSystemFont(ofSize: NSFont.smallSystemFontSize),
+                .foregroundColor: NSColor.labelColor,
+                .paragraphStyle: paragraph,
+            ]), at: 0)
+            options[.credits] = credits
+        }
+        NSApp.orderFrontStandardAboutPanel(options: options)
+    }
+
+    /// "tosiabunio fork · build 23 (e89bcaa)", or nil when the build is no fork's.
+    static var forkLine: String? {
+        let info = Bundle.main.infoDictionary ?? [:]
+        guard let fork = info["OriCmdFork"] as? String, !fork.isEmpty else { return nil }
+        var line = String(localized: "\(fork) fork")
+        if let build = info["OriCmdForkBuild"] as? String, !build.isEmpty {
+            line += " · " + String(localized: "build \(build)")
+        }
+        if let commit = info["OriCmdForkCommit"] as? String, !commit.isEmpty {
+            line += " (\(commit))"
+        }
+        return line
+    }
+
     @objc func checkForUpdates(_ sender: Any?) {
         Updater.check(interactive: true, window: mainWindowController?.window)
     }
