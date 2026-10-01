@@ -357,7 +357,7 @@ final class FileListView: NSView {
     }
 
     private func displayName(_ item: FileItem) -> String {
-        item.isFolder ? "[\(item.name)]" : item.name
+        Settings.panelName(item.name, isFolder: item.isFolder)
     }
 
     private func scrollCursorToVisible() {
@@ -546,7 +546,7 @@ final class FileListView: NSView {
 
         let nameRect = layout.rect(for: .name, y: y, height: rowHeight)
         drawIcon(for: item, in: nameRect)
-        let name = item.isFolder ? "[\(item.baseName)]" : item.baseName
+        let name = Settings.panelName(item.baseName, isFolder: item.isFolder)
         drawText(name, in: nameRect.divided(atDistance: 20, from: .minXEdge).remainder,
                  font: textFont, color: color)
 

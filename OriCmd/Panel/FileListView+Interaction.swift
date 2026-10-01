@@ -71,7 +71,7 @@ extension FileListView: NSDraggingSource {
     }
 
     private func dragImage(for item: FileItem) -> NSImage {
-        let name = item.isFolder ? "[\(item.name)]" : item.name
+        let name = Settings.panelName(item.name, isFolder: item.isFolder)
         let attributes: [NSAttributedString.Key: Any] = [.font: Theme.panelFont, .foregroundColor: Theme.panelText]
         let width = min((name as NSString).size(withAttributes: attributes).width + 28, 320)
         let height = Theme.rowHeight

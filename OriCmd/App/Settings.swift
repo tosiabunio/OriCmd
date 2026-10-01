@@ -19,6 +19,7 @@ enum Settings {
         static let commandLine = "ShowCommandLine"
         static let functionKeys = "ShowFunctionKeys"
         static let driveButtons = "ShowDriveButtons"
+        static let folderBrackets = "ShowFolderBrackets"
         static let confirmTrash = "ConfirmMoveToTrash"
         static let extraColumns = "ExtraColumns"
         static let checkUpdates = "CheckForUpdates"
@@ -88,6 +89,17 @@ enum Settings {
     static var showsDriveButtons: Bool {
         get { bool(Key.driveButtons, default: true) }
         set { set(newValue, Key.driveButtons) }
+    }
+
+    /// Folder names in square brackets, as in Total Commander.
+    static var showsFolderBrackets: Bool {
+        get { bool(Key.folderBrackets, default: true) }
+        set { set(newValue, Key.folderBrackets) }
+    }
+
+    /// `name` as the panels show it: a folder's in square brackets, unless turned off.
+    static func panelName(_ name: String, isFolder: Bool) -> String {
+        isFolder && showsFolderBrackets ? "[\(name)]" : name
     }
 
     /// Optional metadata columns shown in Full view, in this order.

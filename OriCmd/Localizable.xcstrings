@@ -2281,6 +2281,16 @@
         }
       }
     },
+    "Folder names in [brackets]": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Имена папок в [скобках]"
+          }
+        }
+      }
+    },
     "Font": {
       "localizations": {
         "ru": {
