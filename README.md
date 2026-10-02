@@ -127,6 +127,7 @@ layout `Ctrl+D`, `Ctrl+B`, `Ctrl+U` etc. work just like with the English one.
 | `Ctrl+F1` / `Ctrl+F2` (`⌘1` / `⌘2`) | Brief / Full view |
 | `Ctrl+Shift+F1` (`⌘4`) | Thumbnails (Quick Look previews) |
 | Right-click on the column headers | Optional columns: kind, date created, picture dimensions, duration, Finder tags (sortable like the others) |
+| Settings → Panels → File list → Sizes | Short sizes as the Finder counts them (`1,3 MB`; the default) or every byte, as Total Commander shows them; in the panels, the status line, the free space and when synchronizing |
 | `Ctrl+F8` (`⌘3`) | Directory tree; the other panel shows the chosen folder |
 | `Shift+F2` | Compare directories: mark unique and newer files in both panels |
 | Commands → Synchronous Directory Changes | Entering a subfolder or going up in one panel is repeated in the other (if it has such a folder) |

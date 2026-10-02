@@ -231,7 +231,7 @@ final class SyncWindowController: NSWindowController {
     private func describe(_ file: ComparedFile?) -> (size: String, date: String) {
         guard let file else { return ("", "") }
         if file.isFolder { return ("<DIR>", "") }
-        return (file.size.formatted(.number.grouping(.automatic)), Self.dateFormatter.string(from: file.modified))
+        return (Settings.formattedSize(file.size), Self.dateFormatter.string(from: file.modified))
     }
 }
 

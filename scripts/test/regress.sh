@@ -103,6 +103,15 @@ scripts/test/mkdata.sh
 run pathfile "pathclick wait cmd+a text:$PWD/$L/notes.md enter wait f5 wait enter wait wait"
 check "a file typed into the path bar is selected in its folder" "[ -f $R/notes.md ]"
 
+# Sizes: short as the Finder counts them (the default), or every byte (Settings → Panels),
+# in the Size column, the status line and the free space.
+scripts/test/mkdata.sh
+run sizeshort "alt+i wait text:mage escape sizes"
+check "sizes are short by default" "grep -q '^size: [0-9][0-9,.]* KB$' build/shots/reg-sizeshort-sizes.txt && grep -q '^status: .* / [0-9,.]* [KMGT]*B in ' build/shots/reg-sizeshort-sizes.txt && grep -q '^free: .*B of .*B free$' build/shots/reg-sizeshort-sizes.txt"
+defaults write ru.themmag.OriCmd.tests SizeDisplay exact
+run sizeexact "alt+i wait text:mage escape sizes"
+check "exact sizes show every byte" "[ \"\$(grep '^size:' build/shots/reg-sizeexact-sizes.txt | tr -cd 0-9)\" = \"\$(stat -f %z $L/image.png)\" ] && grep -q '^free: .* k of .* k free$' build/shots/reg-sizeexact-sizes.txt"
+
 scripts/test/mkdata.sh
 run renamef2 "alt+n wait text:otes escape f2 wait text:by-f2 enter wait"
 check "F2 renames in place (the extension kept)" "[ -f $L/by-f2.md ] && [ ! -f $L/notes.md ]"

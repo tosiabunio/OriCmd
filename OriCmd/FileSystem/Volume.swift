@@ -58,8 +58,14 @@ nonisolated struct VolumeSpace {
         self.total = Int64(total)
     }
 
-    /// "12 345 678 k of 487 654 321 k free", as Total Commander shows it.
-    var summary: String {
+    /// "1,08 TB of 2 TB free" with units as the Finder counts them, or every kilobyte as
+    /// Total Commander shows it: "12 345 678 k of 487 654 321 k free".
+    func summary(short: Bool) -> String {
+        if short {
+            let free = Settings.shortSize(available)
+            let all = Settings.shortSize(total)
+            return String(localized: "\(free) of \(all) free")
+        }
         let free = (available / 1024).formatted(.number.grouping(.automatic))
         let all = (total / 1024).formatted(.number.grouping(.automatic))
         return String(localized: "\(free) k of \(all) k free")

@@ -194,6 +194,9 @@ final class FilePanelController: NSViewController {
         }
     }
 
+    /// The size display the status line and the free space were written in.
+    private var shownSizeDisplay = Settings.sizeDisplay
+
     /// Whether the quick search box currently edits the quick filter.
     private var quickSearchFilters = false
 
@@ -277,6 +280,11 @@ final class FilePanelController: NSViewController {
     /// Font or other appearance settings changed.
     func settingsDidChange() {
         panelView.setDriveBarVisible(Settings.showsDriveButtons)
+        if Settings.sizeDisplay != shownSizeDisplay {
+            shownSizeDisplay = Settings.sizeDisplay
+            updateStatus()
+            panelView.freeSpaceLabel.stringValue = VolumeSpace(for: directory)?.summary(short: shownSizeDisplay == .short) ?? ""
+        }
         // Setting the font clears the terminal's selection: only when it changed.
         for terminal in terminals where terminal.font != TerminalPane.font {
             terminal.font = TerminalPane.font
@@ -352,7 +360,7 @@ final class FilePanelController: NSViewController {
         let entries: [FileItem]
         let sortOrder: SortOrder
         let volumes: [Volume]
-        let freeSpace: String
+        let freeSpace: VolumeSpace?
     }
 
     @concurrent
@@ -367,7 +375,7 @@ final class FilePanelController: NSViewController {
             entries = sortOrder.sorted(entries)
             try Task.checkCancellation()
             return .success(Listing(entries: entries, sortOrder: sortOrder, volumes: Volume.mounted(),
-                                    freeSpace: VolumeSpace(for: directory)?.summary ?? ""))
+                                    freeSpace: VolumeSpace(for: directory)))
         } catch {
             return .failure(error)
         }
@@ -1585,14 +1593,19 @@ final class FilePanelController: NSViewController {
         let markedFolderBytes = folders.filter { marked.contains($0.name) }.reduce(Int64(0)) { $0 + (sizes[$1.name] ?? 0) }
         let folderBytes = folders.reduce(Int64(0)) { $0 + (sizes[$1.name] ?? 0) }
 
-        func kilobytes(_ files: [FileItem], plus extra: Int64) -> String {
-            let bytes = files.reduce(extra) { $0 + $1.size }
-            return ((bytes + 1023) / 1024).formatted(.number.grouping(.automatic))
+        let markedBytes = markedFiles.reduce(markedFolderBytes) { $0 + $1.size }
+        let totalBytes = files.reduce(folderBytes) { $0 + $1.size }
+        if Settings.sizeDisplay == .short {
+            let markedSize = Settings.formattedSize(markedBytes)
+            let totalSize = Settings.formattedSize(totalBytes)
+            panelView.statusLabel.stringValue = String(localized:
+                "\(markedSize) / \(totalSize) in \(markedFiles.count) / \(files.count) file(s), \(markedFolderCount) / \(folders.count) dir(s)")
+        } else {
+            let markedSize = ((markedBytes + 1023) / 1024).formatted(.number.grouping(.automatic))
+            let totalSize = ((totalBytes + 1023) / 1024).formatted(.number.grouping(.automatic))
+            panelView.statusLabel.stringValue = String(localized:
+                "\(markedSize) k / \(totalSize) k in \(markedFiles.count) / \(files.count) file(s), \(markedFolderCount) / \(folders.count) dir(s)")
         }
-        let markedSize = kilobytes(markedFiles, plus: markedFolderBytes)
-        let totalSize = kilobytes(files, plus: folderBytes)
-        panelView.statusLabel.stringValue = String(localized:
-            "\(markedSize) k / \(totalSize) k in \(markedFiles.count) / \(files.count) file(s), \(markedFolderCount) / \(folders.count) dir(s)")
     }
 
     private func askForMask(marking: Bool) {
