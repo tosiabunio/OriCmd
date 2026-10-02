@@ -91,6 +91,16 @@
         }
       }
     },
+    "%@ of %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ из %2$@"
+          }
+        }
+      }
+    },
     "%@ of %@ free": {
       "localizations": {
         "ru": {
@@ -141,12 +151,116 @@
         }
       }
     },
+    "%lld files": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld file"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld files"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld файла"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld файлов"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld файл"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld файла"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld files/folders": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
             "value": "объектов: %lld"
+          }
+        }
+      }
+    },
+    "%lld folders": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld folder"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld folders"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld папки"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld папок"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld папка"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld папки"
+                }
+              }
+            }
           }
         }
       }
@@ -167,6 +281,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Будет переименовано файлов: %1$lld из %2$lld"
+          }
+        }
+      }
+    },
+    "%lld of %lld selected": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выбрано %1$lld из %2$lld"
           }
         }
       }
@@ -517,6 +641,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Применить"
+          }
+        }
+      }
+    },
+    "As in Total Commander (35 k / 1 234 k in 2 / 12 file(s), 0 / 3 dir(s))": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Как в Total Commander (35 Кб из 1 234 Кб, файлов: 2 из 12, папок: 0 из 3)"
+          }
+        }
+      }
+    },
+    "As in the Finder (2 of 15 selected · 35 KB of 1,2 MB)": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Как в Finder (выбрано 2 из 15 · 35 КБ из 1,2 МБ)"
           }
         }
       }
@@ -2027,6 +2171,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Извлечь «%@»"
+          }
+        }
+      }
+    },
+    "Empty folder": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пустая папка"
           }
         }
       }
@@ -4957,6 +5111,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Меню «Запуск»:"
+          }
+        }
+      }
+    },
+    "Status line:": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Строка состояния:"
           }
         }
       }

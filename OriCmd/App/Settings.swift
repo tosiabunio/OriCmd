@@ -36,6 +36,7 @@ enum Settings {
         static let rightButton = "RightMouseButton"
         static let extensionDisplay = "ExtensionDisplay"
         static let sizeDisplay = "SizeDisplay"
+        static let plainStatus = "PlainStatusLine"
     }
 
     static let defaultFontSize: CGFloat = 12
@@ -106,6 +107,13 @@ enum Settings {
     static var sizeDisplay: SizeDisplay {
         get { AppDefaults.store.string(forKey: Key.sizeDisplay).flatMap(SizeDisplay.init) ?? .short }
         set { set(newValue.rawValue, Key.sizeDisplay) }
+    }
+
+    /// The status line says "2 of 15 selected · 35 KB of 1,2 MB", as the Finder would,
+    /// rather than "35 k / 1 234 k in 2 / 12 file(s), 0 / 3 dir(s)".
+    static var plainStatusLine: Bool {
+        get { bool(Key.plainStatus, default: true) }
+        set { set(newValue, Key.plainStatus) }
     }
 
     /// A size as the panels show it (see `sizeDisplay`).

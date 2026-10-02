@@ -146,6 +146,7 @@ check "a folder's tag color is read with the listing" "grep -qx 6 build/shots/re
 # Sizes: short as the Finder counts them (the default), or every byte (Settings → Panels),
 # in the Size column, the status line and the free space.
 scripts/test/mkdata.sh
+defaults write ru.themmag.OriCmd.tests PlainStatusLine -bool false
 run sizeshort "alt+i wait text:mage escape sizes"
 check "sizes are short by default" "grep -q '^size: [0-9][0-9,.]* KB$' build/shots/reg-sizeshort-sizes.txt && grep -q '^status: 0 B / [0-9,.]* [KMGT]*B in ' build/shots/reg-sizeshort-sizes.txt && grep -q '^free: .*B of .*B free$' build/shots/reg-sizeshort-sizes.txt"
 defaults write ru.themmag.OriCmd.tests SizeDisplay exact
@@ -159,6 +160,15 @@ check "the compact path bar names the volume and lists the volumes, the current 
 defaults write ru.themmag.OriCmd.tests CompactPanelHeader -bool false
 run crumbclassic "crumb:$T wait wait volumemenu"
 check "in the classic header the path bar names no volume, and its parents go there" "grep -qx 'no volume button' build/shots/reg-crumbclassic-menu.txt && shown crumbclassic 'left*: $PWD/build/testdata | cursor: left |'"
+
+# The status line as the Finder words it (the default), with the sizes as chosen.
+run statusplain "sizes"
+check "the status line counts files and folders" "grep -q '^status: [0-9]* files, [0-9]* folders · [0-9,.]* [KM]B$' build/shots/reg-statusplain-sizes.txt"
+run statusmarked "alt+i wait text:mage escape space sizes"
+check "the status line says how many of all are selected" "grep -q '^status: 1 of [0-9]* selected · [0-9,.]* KB of [0-9,.]* [KM]B$' build/shots/reg-statusmarked-sizes.txt"
+defaults write ru.themmag.OriCmd.tests SizeDisplay exact
+run statusexact "alt+i wait text:mage escape space sizes"
+check "the status line shows every byte with exact sizes" "[ \"\$(sed -n 's/^status: 1 of [0-9]* selected · \\(.*\\) B of .* B$/\\1/p' build/shots/reg-statusexact-sizes.txt | tr -cd 0-9)\" = \"\$(stat -f %z $L/image.png)\" ]"
 
 scripts/test/mkdata.sh
 run renamef2 "alt+n wait text:otes escape f2 wait text:by-f2 enter wait"
