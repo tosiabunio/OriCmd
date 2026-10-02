@@ -278,6 +278,7 @@ final class FilePanelController: NSViewController {
     /// Font or other appearance settings changed.
     func settingsDidChange() {
         panelView.setDriveBarVisible(Settings.showsDriveButtons)
+        panelView.setCompactHeader(Settings.compactPanelHeader)
         // Setting the font clears the terminal's selection: only when it changed.
         for terminal in terminals where terminal.font != TerminalPane.font {
             terminal.font = TerminalPane.font
@@ -888,6 +889,7 @@ final class FilePanelController: NSViewController {
         pathParts = text == shown ? parts : []
         panelView.pathBar.path = shown
         panelView.pathBar.crumbs = pathParts.dropLast().map { PathBar.Crumb(range: $0.range, name: $0.name) }
+        panelView.showsVolume = remote == nil
     }
 
     /// A click on a part of the path bar: goes there, the cursor on the folder it came from.

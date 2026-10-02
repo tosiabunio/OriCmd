@@ -233,6 +233,9 @@ private final class PanelsPane: SettingsPane {
         row(nil, checkbox(String(localized: "Function key buttons (F3 View … F8 Delete)"), Settings.showsFunctionKeys,
                           #selector(functionKeysChanged(_:))))
         row(nil, checkbox(String(localized: "Drive buttons"), Settings.showsDriveButtons, #selector(driveButtonsChanged(_:))))
+        row(String(localized: "Panel header:"), checkbox(String(localized: "Compact: the volume and free space in the path bar"),
+                                                         Settings.compactPanelHeader, #selector(compactHeaderChanged(_:))))
+        note(String(localized: "Without the row of the volume selector and the / and .. buttons: a click on the volume lists the others, a click on a folder of the path goes there. The mask (*.*) shows only when it filters."))
         row(String(localized: "Button bar:"), button(String(localized: "Customize Toolbar…"), #selector(customizeToolbar(_:))))
         note(String(localized: "Optional columns (kind, created, dimensions, duration, tags) are chosen by right-clicking a panel's column headers."))
 
@@ -292,6 +295,7 @@ private final class PanelsPane: SettingsPane {
     @objc private func commandLineChanged(_ sender: NSButton) { Settings.showsCommandLine = sender.state == .on }
     @objc private func functionKeysChanged(_ sender: NSButton) { Settings.showsFunctionKeys = sender.state == .on }
     @objc private func driveButtonsChanged(_ sender: NSButton) { Settings.showsDriveButtons = sender.state == .on }
+    @objc private func compactHeaderChanged(_ sender: NSButton) { Settings.compactPanelHeader = sender.state == .on }
 
     @objc private func customizeToolbar(_ sender: Any?) {
         NSApp.windows.first { $0.windowController is MainWindowController }?.runToolbarCustomizationPalette(sender)

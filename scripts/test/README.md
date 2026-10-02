@@ -20,7 +20,8 @@ real keyboard and mouse, so working elsewhere meanwhile changes nothing.
   refused); `<name>-highlighter.txt` counts the services killed and the texts sent. `rightmouse:click:N`, `hold:N`, `drag:N-M` and `ctrlclick:N`
   play the right button on panel rows. `crumb:N` / `othercrumb:N` click part N of the active / other
   panel's path (`/` is 0), `pathend` clicks right of it, and `crumbmenu` writes the
-  parents a long path puts away into `…` to `<name>-menu.txt` (`crumbmenu:N` chooses one).
+  parents a long path puts away into `…` to `<name>-menu.txt` (`crumbmenu:N` chooses one). `volumemenu` writes
+  the volume menu of the compact path bar there (`✓ ` before the current volume).
   Modifiers: `cmd+`, `shift+`, `alt+`, `ctrl+`, `num+`; `ru+` types the key as the
   Russian layout would (`ru+ctrl+d` sends "в" with the D key code).
 - `regress.sh` — plays the main file operations and checks the results on disk.

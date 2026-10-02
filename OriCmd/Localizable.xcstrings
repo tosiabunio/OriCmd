@@ -1141,6 +1141,16 @@
         }
       }
     },
+    "Compact: the volume and free space in the path bar": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Компактный: том и свободное место в строке пути"
+          }
+        }
+      }
+    },
     "Compare": {
       "localizations": {
         "ru": {
@@ -3601,6 +3611,16 @@
         }
       }
     },
+    "Panel header:": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заголовок панели:"
+          }
+        }
+      }
+    },
     "Panels": {
       "localizations": {
         "ru": {
@@ -5531,6 +5551,16 @@
         }
       }
     },
+    "Volume": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Том"
+          }
+        }
+      }
+    },
     "Which program opens, views (F3) or edits (F4) files of a given type.": {
       "localizations": {
         "ru": {
@@ -5547,6 +5577,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Окно"
+          }
+        }
+      }
+    },
+    "Without the row of the volume selector and the / and .. buttons: a click on the volume lists the others, a click on a folder of the path goes there. The mask (*.*) shows only when it filters.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Без строки с выбором тома и кнопками / и ..: щелчок по тому открывает список других, щелчок по папке пути переходит туда. Маска (*.*) показывается, только когда она фильтрует."
           }
         }
       }

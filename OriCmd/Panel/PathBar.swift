@@ -3,7 +3,8 @@ import AppKit
 /// The current path line above a file list, e.g. "/Users/me/*.*".
 /// Highlighted when its panel is the active one. A click on a parent folder in it
 /// goes there; a click on the current folder, the mask or right of them makes it
-/// editable.
+/// editable. In the compact header (Settings) it also holds the volume, which a
+/// click chooses, and its free space; the mask shows only when it filters.
 final class PathBar: NSView {
     var path = "" {
         didSet { layoutDidChange() }
@@ -35,7 +36,26 @@ final class PathBar: NSView {
         didSet { layoutDidChange() }
     }
 
+    /// The volume of the folder shown, as a button at the start (compact header only).
+    var volume: (name: String, icon: NSImage)? {
+        didSet { layoutDidChange() }
+    }
+
+    /// "… free", shown at the end when the whole path fits beside it (compact header only).
+    var freeSpace = "" {
+        didSet { layoutDidChange() }
+    }
+
+    /// Leaves room at the end for the spinner of a folder being read (compact header only).
+    var isLoading = false {
+        didSet { if isLoading != oldValue { layoutDidChange() } }
+    }
+
+    private var isCompact: Bool { Settings.compactPanelHeader }
+
     var onClick: (() -> Void)?
+    /// A click on the volume: the menu of volumes.
+    var onVolumeClick: (() -> Void)?
     /// A click on a crumb, or its choice in the menu of those put away into "…".
     var onCrumbClick: ((Int) -> Void)?
     /// The text to edit when the bar is clicked (the path without the mask).
@@ -52,6 +72,7 @@ final class PathBar: NSView {
         case crumb(Int)
         /// The "…" standing for parents that did not fit.
         case ellipsis
+        case volume
     }
 
     /// Underlined under the mouse.
@@ -65,7 +86,7 @@ final class PathBar: NSView {
     var isEditing: Bool { field != nil }
 
     override var isFlipped: Bool { true }
-    override var intrinsicContentSize: NSSize { NSSize(width: NSView.noIntrinsicMetric, height: 18) }
+    override var intrinsicContentSize: NSSize { NSSize(width: NSView.noIntrinsicMetric, height: isCompact ? 22 : 18) }
 
     private var attributes: [NSAttributedString.Key: Any] {
         let paragraph = NSMutableParagraphStyle()
@@ -87,17 +108,63 @@ final class PathBar: NSView {
         var shift = 0
         var ellipsis: NSRect?
         var crumbRects: [Int: NSRect] = [:]
+        /// Where the path is drawn, between the volume and what is at the end.
+        var textX: CGFloat = 4
+        var textWidth: CGFloat = 0
+        var volume: NSRect?
+        var filter: NSRect?
+        var freeSpace: NSRect?
     }
+
+    private static let chipFont = NSFont.systemFont(ofSize: 11)
+    private static let chipIconSize: CGFloat = 14
+    private static let spinnerRoom: CGFloat = 22
+
+    private var chipAttributes: [NSAttributedString.Key: Any] {
+        [.font: Self.chipFont, .foregroundColor: isActive ? Theme.activeHeaderText : Theme.inactiveHeaderText]
+    }
+
+    /// The width of the volume button: icon, name and a chevron.
+    private func volumeWidth(_ name: String) -> CGFloat {
+        6 + Self.chipIconSize + 4 + ceil((name as NSString).size(withAttributes: chipAttributes).width) + 4 + 8 + 6
+    }
+
+    /// The width of the filter chip: a funnel and the mask.
+    private var filterWidth: CGFloat {
+        6 + 12 + 3 + ceil((mask as NSString).size(withAttributes: chipAttributes).width) + 6
+    }
+
+    /// Whether the mask filters anything (it is shown in the compact header only then).
+    private var filters: Bool { showsMask && mask != "*.*" }
 
     /// Leading parents give way to "…" until the rest fits, as Total Commander cuts a
     /// long path at its start; when even the current folder does not fit, its start
-    /// is cut too.
+    /// is cut too. The free space gives way first.
     private func makeLayout() -> Layout {
         let attributes = attributes
         func width(_ text: String) -> CGFloat { (text as NSString).size(withAttributes: attributes).width }
-        let full = showsMask ? (path.hasSuffix("/") ? path : path + "/") + mask : path
-        let available = bounds.width - 8
+        let full = showsMask && !isCompact ? (path.hasSuffix("/") ? path : path + "/") + mask : path
         var layout = Layout(text: full)
+        var leading: CGFloat = 4, trailing = bounds.maxX - 4
+        var volumeRect: NSRect?, filterRect: NSRect?, freeRect: NSRect?
+        if isCompact {
+            let chipHeight = bounds.height - 4
+            if let volume {
+                volumeRect = NSRect(x: 2, y: 2, width: volumeWidth(volume.name), height: chipHeight)
+                leading = volumeRect!.maxX + 6
+            }
+            if isLoading { trailing -= Self.spinnerRoom }
+            if filters {
+                filterRect = NSRect(x: trailing - filterWidth, y: 2, width: filterWidth, height: chipHeight)
+                trailing = filterRect!.minX - 6
+            }
+            let freeWidth = ceil((freeSpace as NSString).size(withAttributes: chipAttributes).width)
+            if !freeSpace.isEmpty, !isLoading, width(full) <= trailing - leading - freeWidth - 12 {
+                freeRect = NSRect(x: trailing - freeWidth, y: 0, width: freeWidth, height: bounds.height)
+                trailing = freeRect!.minX - 12
+            }
+        }
+        let available = max(trailing - leading, 0)
         if width(full) > available, !crumbs.isEmpty {
             for hidden in 1...crumbs.count {
                 let end = NSMaxRange(crumbs[hidden - 1].range)
@@ -106,14 +173,19 @@ final class PathBar: NSView {
                 layout = Layout(text: ellipsis + rest, firstShown: hidden, shift: (ellipsis as NSString).length - end)
                 if width(layout.text) <= available { break }
             }
-            layout.ellipsis = NSRect(x: 0, y: 0, width: 4 + width("…"), height: bounds.height)
+            layout.ellipsis = NSRect(x: leading - 4, y: 0, width: 4 + width("…"), height: bounds.height)
         }
+        layout.textX = leading
+        layout.textWidth = available
+        layout.volume = volumeRect
+        layout.filter = filterRect
+        layout.freeSpace = freeRect
         guard width(layout.text) <= available else { return layout }
         let text = layout.text as NSString
         for index in layout.firstShown..<crumbs.count {
             let range = NSRange(location: crumbs[index].range.location + layout.shift, length: crumbs[index].range.length)
             guard range.location >= 0, NSMaxRange(range) <= text.length else { continue }
-            layout.crumbRects[index] = NSRect(x: 4 + width(text.substring(to: range.location)), y: 0,
+            layout.crumbRects[index] = NSRect(x: leading + width(text.substring(to: range.location)), y: 0,
                                               width: width(text.substring(with: range)), height: bounds.height)
         }
         return layout
@@ -121,15 +193,20 @@ final class PathBar: NSView {
 
     private func link(at point: NSPoint, in layout: Layout) -> Link? {
         guard !isEditing else { return nil }
+        if let volume = layout.volume, volume.contains(point) { return .volume }
         if let ellipsis = layout.ellipsis, ellipsis.contains(point) { return .ellipsis }
         return layout.crumbRects.first { $0.value.contains(point) }.map { .crumb($0.key) }
     }
+
+    /// Where the volume button is, if it is shown (the volume menu opens under it).
+    var volumeRect: NSRect? { makeLayout().volume }
 
     override func draw(_ dirtyRect: NSRect) {
         (isActive ? Theme.activeHeaderBackground : Theme.inactiveHeaderBackground).setFill()
         bounds.fill()
 
         let layout = makeLayout()
+        drawAccessories(layout)
         let text = NSMutableAttributedString(string: layout.text, attributes: attributes)
         switch hovered {
         case .crumb(let index) where layout.crumbRects[index] != nil:
@@ -142,7 +219,46 @@ final class PathBar: NSView {
             break
         }
         let height = text.size().height
-        text.draw(in: NSRect(x: 4, y: (bounds.height - height) / 2, width: bounds.width - 8, height: height))
+        text.draw(in: NSRect(x: layout.textX, y: (bounds.height - height) / 2, width: layout.textWidth, height: height))
+    }
+
+    /// The volume button, the filter chip and the free space of the compact header.
+    private func drawAccessories(_ layout: Layout) {
+        let textColor = isActive ? Theme.activeHeaderText : Theme.inactiveHeaderText
+        let chipFill = isActive ? NSColor.white.withAlphaComponent(0.18) : NSColor.quaternaryLabelColor
+        let textHeight = ceil(Self.chipFont.ascender - Self.chipFont.descender)
+        func symbol(_ name: String, size: CGFloat, in rect: NSRect) {
+            let configuration = NSImage.SymbolConfiguration(pointSize: size, weight: .semibold)
+                .applying(NSImage.SymbolConfiguration(paletteColors: [textColor.withAlphaComponent(0.8)]))
+            guard let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
+                .withSymbolConfiguration(configuration) else { return }
+            image.draw(in: NSRect(x: rect.midX - image.size.width / 2, y: rect.midY - image.size.height / 2,
+                                  width: image.size.width, height: image.size.height))
+        }
+
+        if let rect = layout.volume, let volume {
+            (hovered == .volume ? chipFill.withAlphaComponent(chipFill.alphaComponent * 1.8) : chipFill).setFill()
+            NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4).fill()
+            volume.icon.draw(in: NSRect(x: rect.minX + 6, y: rect.midY - Self.chipIconSize / 2,
+                                        width: Self.chipIconSize, height: Self.chipIconSize),
+                             from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+            let nameX = rect.minX + 6 + Self.chipIconSize + 4
+            (volume.name as NSString).draw(
+                with: NSRect(x: nameX, y: rect.midY - textHeight / 2, width: rect.maxX - nameX - 18, height: textHeight),
+                options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: chipAttributes)
+            symbol("chevron.down", size: 7, in: NSRect(x: rect.maxX - 14, y: rect.minY, width: 8, height: rect.height))
+        }
+        if let rect = layout.filter {
+            chipFill.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2).fill()
+            symbol("line.3.horizontal.decrease", size: 8, in: NSRect(x: rect.minX + 6, y: rect.minY, width: 12, height: rect.height))
+            (mask as NSString).draw(at: NSPoint(x: rect.minX + 21, y: rect.midY - textHeight / 2), withAttributes: chipAttributes)
+        }
+        if let rect = layout.freeSpace {
+            var attributes = chipAttributes
+            attributes[.foregroundColor] = textColor.withAlphaComponent(0.7)
+            (freeSpace as NSString).draw(at: NSPoint(x: rect.minX, y: rect.midY - textHeight / 2), withAttributes: attributes)
+        }
     }
 
     /// The menu of the parents put away into "…", from the root, each as its whole path.
@@ -190,7 +306,7 @@ final class PathBar: NSView {
     override func resetCursorRects() {
         guard !isEditing else { return }
         let layout = makeLayout()
-        for rect in Array(layout.crumbRects.values) + [layout.ellipsis].compactMap(\.self) {
+        for rect in Array(layout.crumbRects.values) + [layout.ellipsis, layout.volume].compactMap(\.self) {
             addCursorRect(rect, cursor: .pointingHand)
         }
     }
@@ -212,7 +328,9 @@ final class PathBar: NSView {
         case .crumb(let index):
             onCrumbClick?(index)
         case .ellipsis:
-            hiddenCrumbsMenu()?.popUp(positioning: nil, at: NSPoint(x: 0, y: bounds.maxY), in: self)
+            hiddenCrumbsMenu()?.popUp(positioning: nil, at: NSPoint(x: makeLayout().textX - 4, y: bounds.maxY), in: self)
+        case .volume:
+            onVolumeClick?()
         case nil:
             beginEditing()
         }
@@ -239,7 +357,21 @@ final class PathBar: NSView {
             }
             return element
         }
-        return (super.accessibilityChildren() ?? []) + buttons
+        var volumeButton: [CrumbElement] = []
+        if let frame = layout.volume, let volume {
+            let element = CrumbElement()
+            element.setAccessibilityRole(.popUpButton)
+            element.setAccessibilityLabel(String(localized: "Volume"))
+            element.setAccessibilityValue(volume.name)
+            element.setAccessibilityParent(self)
+            element.setAccessibilityFrameInParentSpace(frame)
+            element.press = { [weak self] in
+                self?.onClick?()
+                self?.onVolumeClick?()
+            }
+            volumeButton.append(element)
+        }
+        return (super.accessibilityChildren() ?? []) + volumeButton + buttons
     }
 
     func beginEditing() {
