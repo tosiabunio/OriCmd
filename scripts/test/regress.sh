@@ -815,6 +815,13 @@ check "a tab dragged along its bar changes places" "panels taborder | grep -q '^
 run tabclose "cmd+t wait alt+a wait text:lpha enter wait tabclose:0 wait"
 check "a tab's close button closes it" "panels tabclose | grep -q '^left\*: .*/left/alpha |.*tabs: alpha$'"
 
+# The middle button (the mouse wheel) closes the tab it is clicked on, the current one
+# or another.
+run tabmiddle "cmd+t wait alt+a wait text:lpha enter wait tabmiddleclick:0 wait wait"
+check "a middle click closes another tab" "panels tabmiddle | grep -q '^left\*: .*/left/alpha |.*tabs: alpha$'"
+run tabmiddlecurrent "cmd+t wait alt+a wait text:lpha enter wait tabmiddleclick:1 wait wait"
+check "a middle click closes the current tab" "panels tabmiddlecurrent | grep -q '^left\*: .*/left |.*tabs: left$'"
+
 # Ctrl+PgDn never starts a file: it opens it as an archive whatever its name (a zip
 # named .bin or .docx, an archive inside an archive named .dat); a file that is none
 # stays as it is, without a word.

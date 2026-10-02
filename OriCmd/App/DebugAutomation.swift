@@ -10,7 +10,7 @@ import WebKit
 ///   `down shift+down f7 text:New enter wait`, or commands like `cmd:cm_SyncDirs`,
 ///   `menu` (writes the context menu to `<snapshot>-menu.txt`), `sizes` (the cursor row's Size, the status line and the free space, to `<snapshot>-sizes.txt`), `drawbelow` (draws only a strip below the last row), `tagcolor` (the tag color read for the cursor's item, to `<snapshot>-tagcolor.txt`), `contextmenu` (the same, opened for real, with what AppKit adds), `menupick:Title|N` (item N of its submenu Title chosen), `servicedata` (what a service gets for the selected files, to `<snapshot>-services.txt`), `drop:/path`, `drive:/path` (a drive
 ///   button), `drivemenu:/path` / `drivemenu:/path|Item_Title` (a drive button's context menu),
-///   `droptab:left:1:right:0` (a tab dropped on a tab bar), `wheel:N` (a mouse wheel over a 3D model), `tabbardoubleclick` (the empty end of the tab bar), `pathclick` (the path bar), `crumb:N` / `othercrumb:N` (a parent folder in the active / other panel's path bar), `pathend` (right of the path), `crumbmenu` / `crumbmenu:N` (the parents put away into "…"), `colorpreset:N` (Settings → Colors), `rightmouse:click:N` / `hold:N` / `drag:N-M` / `ctrlclick:N` (the right button on rows), `textmenu` (the frontmost text's context menu), `promise:/path` (the file on the
+///   `droptab:left:1:right:0` (a tab dropped on a tab bar), `wheel:N` (a mouse wheel over a 3D model), `tabbardoubleclick` (the empty end of the tab bar), `tabmiddleclick:N` (the middle button on the active panel's tab N), `pathclick` (the path bar), `crumb:N` / `othercrumb:N` (a parent folder in the active / other panel's path bar), `pathend` (right of the path), `crumbmenu` / `crumbmenu:N` (the parents put away into "…"), `colorpreset:N` (Settings → Colors), `rightmouse:click:N` / `hold:N` / `drag:N-M` / `ctrlclick:N` (the right button on rows), `textmenu` (the frontmost text's context menu), `promise:/path` (the file on the
 ///   clipboard as a promise, plus a placeholder of zeros), `lazyfile:/path` (as Microsoft Remote Desktop
 ///   does: a placeholder written only when read through file coordination), `click:Button_Title`,
 ///   `dropapp:/path/App.app` (onto the toolbar), `clickapp:App_Name`, `rightclickapp:App_Name|Menu_Item`.
@@ -301,6 +301,24 @@ enum DebugAutomation {
                     } else if let snapshot {
                         try? (menu?.items.map(\.title) ?? []).joined(separator: "\n")
                             .write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-menu.txt"), atomically: true, encoding: .utf8)
+                    }
+                } else if token.hasPrefix("tabmiddleclick:"), let tab = Int(token.dropFirst(15)),
+                          let main = window.contentViewController as? MainViewController,
+                          let center = main.activePanel.panelView.tabBar.center(ofTab: tab) {
+                    // The middle button (the mouse wheel) pressed and let go on a tab of the
+                    // active panel's tab bar.
+                    let bar = main.activePanel.panelView.tabBar
+                    let point = bar.convert(center, to: nil)
+                    for type in [NSEvent.EventType.otherMouseDown, .otherMouseUp] {
+                        // AppKit makes no other-button events of its own: the button number
+                        // is set through Quartz.
+                        guard let cgEvent = NSEvent.mouseEvent(
+                            with: type, location: point, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                            windowNumber: window.windowNumber, context: nil, eventNumber: harnessEventNumber, clickCount: 1,
+                            pressure: type == .otherMouseDown ? 1 : 0)?.cgEvent else { continue }
+                        cgEvent.setIntegerValueField(.mouseEventButtonNumber, value: 2)
+                        guard let event = NSEvent(cgEvent: cgEvent) else { continue }
+                        type == .otherMouseDown ? bar.otherMouseDown(with: event) : bar.otherMouseUp(with: event)
                     }
                 } else if token.hasPrefix("lazyfile:") {
                     offerLazyFile(URL(filePath: String(token.dropFirst(9))))
