@@ -712,6 +712,8 @@ run tabcopy "droptab:left:0:right:1 wait wait"
 check "a panel's only tab dragged to the other panel is copied" "panels tabcopy | grep -q '^left: .*tabs: left$' && panels tabcopy | grep -q '^right\*: .*tabs: right, left$'"
 run taborder "cmd+t wait alt+a wait text:lpha enter wait droptab:left:1:left:0 wait wait"
 check "a tab dragged along its bar changes places" "panels taborder | grep -q '^left\*: .*/left/alpha |.*tabs: alpha, left$'"
+run tabclose "cmd+t wait alt+a wait text:lpha enter wait tabclose:0 wait"
+check "a tab's close button closes it" "panels tabclose | grep -q '^left\*: .*/left/alpha |.*tabs: alpha$'"
 
 # Ctrl+PgDn never starts a file: it opens it as an archive whatever its name (a zip
 # named .bin or .docx, an archive inside an archive named .dat); a file that is none

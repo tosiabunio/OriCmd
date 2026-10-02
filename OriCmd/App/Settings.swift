@@ -19,6 +19,7 @@ enum Settings {
         static let commandLine = "ShowCommandLine"
         static let functionKeys = "ShowFunctionKeys"
         static let driveButtons = "ShowDriveButtons"
+        static let macStyleTabs = "MacStyleTabs"
         static let confirmTrash = "ConfirmMoveToTrash"
         static let extraColumns = "ExtraColumns"
         static let checkUpdates = "CheckForUpdates"
@@ -88,6 +89,13 @@ enum Settings {
     static var showsDriveButtons: Bool {
         get { bool(Key.driveButtons, default: true) }
         set { set(newValue, Key.driveButtons) }
+    }
+
+    /// Folder tabs drawn as Mac tabs (an icon, a close button under the mouse), or
+    /// as flat Total Commander tabs.
+    static var macStyleTabs: Bool {
+        get { bool(Key.macStyleTabs, default: true) }
+        set { set(newValue, Key.macStyleTabs) }
     }
 
     /// Optional metadata columns shown in Full view, in this order.

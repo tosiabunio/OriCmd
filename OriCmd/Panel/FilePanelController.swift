@@ -104,6 +104,29 @@ final class FilePanelController: NSViewController {
             }
             return directory.path == "/" ? "/" : directory.lastPathComponent
         }
+
+        /// The folder's own icon (Downloads, Desktop, an app's folder…) on the startup
+        /// disk; elsewhere a plain folder, as asking a network volume can be slow.
+        var icon: NSImage {
+            if remote != nil {
+                return Self.symbol("network")
+            }
+            let path = directory.path
+            guard !path.hasPrefix("/Volumes/") else { return Self.folderIcon }
+            if let icon = Self.icons[path] { return icon }
+            var isFolder: ObjCBool = false
+            let icon = FileManager.default.fileExists(atPath: path, isDirectory: &isFolder) && isFolder.boolValue
+                ? NSWorkspace.shared.icon(forFile: path) : Self.folderIcon
+            Self.icons[path] = icon
+            return icon
+        }
+
+        private static var icons: [String: NSImage] = [:]
+        private static let folderIcon = NSWorkspace.shared.icon(for: .folder)
+
+        private static func symbol(_ name: String) -> NSImage {
+            NSImage(systemSymbolName: name, accessibilityDescription: nil) ?? folderIcon
+        }
     }
 
     private static let historyLimit = 50
@@ -284,6 +307,7 @@ final class FilePanelController: NSViewController {
         listView.settingsDidChange()
         panelView.pathBar.needsDisplay = true
         panelView.headerView.needsDisplay = true
+        updateTabBar()
     }
 
     func focus() {
@@ -1355,8 +1379,8 @@ final class FilePanelController: NSViewController {
 
     /// The active tab's title follows the panel (a server folder, too).
     private func updateTabBar() {
-        let titles = tabs.indices.map { $0 == activeTabIndex ? currentTab().title : tabs[$0].title }
-        panelView.setTabs(titles, identifiers: tabs.map(\.id), selected: activeTabIndex,
+        let shown = tabs.indices.map { $0 == activeTabIndex ? currentTab() : tabs[$0] }
+        panelView.setTabs(shown.map(\.title), icons: shown.map(\.icon), identifiers: tabs.map(\.id), selected: activeTabIndex,
                           visible: tabs.count > 1 || alwaysShowsTabBar)
     }
 

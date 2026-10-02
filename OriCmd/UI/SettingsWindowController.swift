@@ -233,6 +233,8 @@ private final class PanelsPane: SettingsPane {
         row(nil, checkbox(String(localized: "Function key buttons (F3 View … F8 Delete)"), Settings.showsFunctionKeys,
                           #selector(functionKeysChanged(_:))))
         row(nil, checkbox(String(localized: "Drive buttons"), Settings.showsDriveButtons, #selector(driveButtonsChanged(_:))))
+        row(String(localized: "Folder tabs:"), checkbox(String(localized: "Mac style, with icons and close buttons"), Settings.macStyleTabs,
+                                                        #selector(macStyleTabsChanged(_:))))
         row(String(localized: "Button bar:"), button(String(localized: "Customize Toolbar…"), #selector(customizeToolbar(_:))))
         note(String(localized: "Optional columns (kind, created, dimensions, duration, tags) are chosen by right-clicking a panel's column headers."))
 
@@ -292,6 +294,7 @@ private final class PanelsPane: SettingsPane {
     @objc private func commandLineChanged(_ sender: NSButton) { Settings.showsCommandLine = sender.state == .on }
     @objc private func functionKeysChanged(_ sender: NSButton) { Settings.showsFunctionKeys = sender.state == .on }
     @objc private func driveButtonsChanged(_ sender: NSButton) { Settings.showsDriveButtons = sender.state == .on }
+    @objc private func macStyleTabsChanged(_ sender: NSButton) { Settings.macStyleTabs = sender.state == .on }
 
     @objc private func customizeToolbar(_ sender: Any?) {
         NSApp.windows.first { $0.windowController is MainWindowController }?.runToolbarCustomizationPalette(sender)

@@ -1,6 +1,7 @@
 import AppKit
 
-/// Folder tabs above a panel's path bar, drawn as flat TC-style tabs.
+/// Folder tabs above a panel's path bar: Mac-style tabs with an icon and a close
+/// button under the mouse, or flat TC-style ones (as chosen in Settings).
 /// Click selects a tab, double click closes it; a tab dragged to another place of
 /// the bar, or to the other panel's, goes there.
 final class FolderTabBar: NSView, NSDraggingSource {
@@ -8,9 +9,14 @@ final class FolderTabBar: NSView, NSDraggingSource {
     static let pasteboardType = NSPasteboard.PasteboardType("ru.themmag.OriCmd.tab")
 
     private static let maximumTabWidth: CGFloat = 180
-    static let height: CGFloat = 20
+    static var height: CGFloat { Settings.macStyleTabs ? 24 : 20 }
 
     var titles: [String] = [] {
+        didSet { needsDisplay = true }
+    }
+
+    /// The tabs' icons, in the order of `titles` (Mac-style tabs only).
+    var icons: [NSImage] = [] {
         didSet { needsDisplay = true }
     }
 
@@ -37,6 +43,14 @@ final class FolderTabBar: NSView, NSDraggingSource {
     private var dropIndex: Int? {
         didSet { if dropIndex != oldValue { needsDisplay = true } }
     }
+    /// The tab under the mouse, which shows its close button.
+    private var hoveredIndex: Int? {
+        didSet { if hoveredIndex != oldValue { needsDisplay = true } }
+    }
+    /// The mouse is over the hovered tab's close button.
+    private var closeHovered = false {
+        didSet { if closeHovered != oldValue { needsDisplay = true } }
+    }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -57,16 +71,31 @@ final class FolderTabBar: NSView, NSDraggingSource {
         return [.font: Theme.chromeFont, .foregroundColor: Theme.chromeText, .paragraphStyle: paragraph]
     }
 
+    private static let iconSize: CGFloat = 14
+    private static let closeSize: CGFloat = 14
+
     private func tabRects() -> [NSRect] {
-        var x: CGFloat = 2
+        let macStyle = Settings.macStyleTabs
+        // An icon and a close button on either side of the title.
+        let extra: CGFloat = macStyle ? 2 * (Self.closeSize + 10) : 20
+        var x: CGFloat = macStyle ? 4 : 2
         return titles.map { title in
-            let width = min((title as NSString).size(withAttributes: attributes).width + 20, Self.maximumTabWidth)
+            let width = min((title as NSString).size(withAttributes: attributes).width + extra, Self.maximumTabWidth)
             defer { x += width + 1 }
-            return NSRect(x: x, y: 2, width: width, height: bounds.height - 2)
+            return NSRect(x: x, y: macStyle ? 3 : 2, width: width, height: bounds.height - (macStyle ? 3 : 2))
         }
     }
 
+    /// Where the close button of the tab in `rect` is: at its right end.
+    private func closeRect(in rect: NSRect) -> NSRect {
+        NSRect(x: rect.maxX - Self.closeSize - 5, y: rect.midY - Self.closeSize / 2, width: Self.closeSize, height: Self.closeSize)
+    }
+
     override func draw(_ dirtyRect: NSRect) {
+        if Settings.macStyleTabs {
+            drawMacStyle()
+            return
+        }
         Theme.chromeBackground.setFill()
         bounds.fill()
         for (index, rect) in tabRects().enumerated() {
@@ -96,6 +125,137 @@ final class FolderTabBar: NSView, NSDraggingSource {
         }
     }
 
+    /// The selected tab is a card joined to the file list below it; the others are
+    /// plain titles split by thin lines, with a soft background under the mouse.
+    private func drawMacStyle() {
+        Theme.chromeBackground.setFill()
+        bounds.fill()
+        let rects = tabRects()
+        Theme.separator.setFill()
+        NSRect(x: 0, y: bounds.height - 1, width: bounds.width, height: 1).fill()
+
+        for (index, rect) in rects.enumerated() {
+            let selected = index == selectedIndex, hovered = index == hoveredIndex
+            if selected {
+                let card = Self.topRoundedPath(NSRect(x: rect.minX + 0.5, y: rect.minY + 0.5, width: rect.width - 1, height: rect.height),
+                                               radius: 5)
+                Theme.panelBackground.setFill()
+                card.fill()
+                Theme.separator.setStroke()
+                card.lineWidth = 1
+                card.stroke()
+                // The card is open towards the list.
+                Theme.panelBackground.setFill()
+                NSRect(x: rect.minX + 1, y: bounds.height - 1, width: rect.width - 2, height: 1).fill()
+            } else if hovered {
+                NSColor.quaternaryLabelColor.setFill()
+                NSBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 1).offsetBy(dx: 0, dy: -1), xRadius: 5, yRadius: 5).fill()
+            }
+            // Thin lines between tabs that are neither selected nor under the mouse.
+            if index > 0, !selected, !hovered, index - 1 != selectedIndex, index - 1 != hoveredIndex {
+                Theme.separator.setFill()
+                NSRect(x: rect.minX - 1, y: rect.midY - 6, width: 1, height: 12).fill()
+            }
+
+            let textColor = selected ? NSColor.labelColor : NSColor.secondaryLabelColor
+            var attributes = attributes
+            attributes[.foregroundColor] = textColor
+            let title = titles[index] as NSString
+            let textHeight = ceil(Theme.chromeFont.ascender - Theme.chromeFont.descender)
+            let space = rect.insetBy(dx: Self.closeSize + 10, dy: 0)
+            let titleWidth = min(title.size(withAttributes: attributes).width, space.width)
+            // The icon goes just before the centred title.
+            if icons.indices.contains(index) {
+                let iconX = max(space.midX - titleWidth / 2 - Self.iconSize - 4, rect.minX + 6)
+                icons[index].draw(in: NSRect(x: iconX, y: rect.midY - Self.iconSize / 2, width: Self.iconSize, height: Self.iconSize),
+                                  from: .zero, operation: .sourceOver, fraction: selected ? 1 : 0.85,
+                                  respectFlipped: true, hints: nil)
+            }
+            title.draw(with: NSRect(x: space.minX, y: rect.midY - textHeight / 2, width: space.width, height: textHeight),
+                       options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: attributes)
+
+            if hovered {
+                let close = closeRect(in: rect)
+                if closeHovered {
+                    NSColor.tertiaryLabelColor.setFill()
+                    NSBezierPath(roundedRect: close, xRadius: 3, yRadius: 3).fill()
+                }
+                let configuration = NSImage.SymbolConfiguration(pointSize: 8, weight: .bold)
+                    .applying(NSImage.SymbolConfiguration(paletteColors: [NSColor.secondaryLabelColor]))
+                if let image = NSImage(systemSymbolName: "xmark", accessibilityDescription: String(localized: "Close Tab"))?
+                    .withSymbolConfiguration(configuration) {
+                    image.draw(in: NSRect(x: close.midX - image.size.width / 2, y: close.midY - image.size.height / 2,
+                                          width: image.size.width, height: image.size.height))
+                }
+            }
+        }
+        if let dropIndex {
+            let x = dropIndex < rects.count ? rects[dropIndex].minX - 1 : (rects.last?.maxX ?? 4) + 1
+            NSColor.controlAccentColor.setFill()
+            NSRect(x: x - 1, y: 3, width: 2, height: bounds.height - 4).fill()
+        }
+    }
+
+    /// A rectangle with rounded top corners (the view is flipped: the top is minY).
+    private static func topRoundedPath(_ rect: NSRect, radius: CGFloat) -> NSBezierPath {
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: rect.minX, y: rect.maxY))
+        path.line(to: NSPoint(x: rect.minX, y: rect.minY + radius))
+        path.appendArc(withCenter: NSPoint(x: rect.minX + radius, y: rect.minY + radius), radius: radius,
+                       startAngle: 180, endAngle: 270)
+        path.line(to: NSPoint(x: rect.maxX - radius, y: rect.minY))
+        path.appendArc(withCenter: NSPoint(x: rect.maxX - radius, y: rect.minY + radius), radius: radius,
+                       startAngle: 270, endAngle: 360)
+        path.line(to: NSPoint(x: rect.maxX, y: rect.maxY))
+        return path
+    }
+
+    // MARK: - Mouse
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+                                       owner: self))
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        updateHover(at: convert(event.locationInWindow, from: nil))
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        updateHover(at: convert(event.locationInWindow, from: nil))
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        hoveredIndex = nil
+        closeHovered = false
+    }
+
+    private func updateHover(at point: NSPoint) {
+        guard Settings.macStyleTabs else { return }
+        let rects = tabRects()
+        hoveredIndex = rects.firstIndex { $0.contains(point) }
+        closeHovered = hoveredIndex.map { closeRect(in: rects[$0]).contains(point) } ?? false
+    }
+
+    /// The tab whose close button is at `point`.
+    private func closeButtonIndex(at point: NSPoint) -> Int? {
+        guard Settings.macStyleTabs else { return nil }
+        return tabRects().firstIndex { closeRect(in: $0).contains(point) }
+    }
+
+    /// Where the tab's close button is (for the tests).
+    func closeButtonRect(_ index: Int) -> NSRect? {
+        let rects = tabRects()
+        return rects.indices.contains(index) ? closeRect(in: rects[index]) : nil
+    }
+
+    /// Shows the tab as under the mouse (for the tests' snapshots).
+    func hover(_ index: Int) {
+        hoveredIndex = index
+    }
+
     override func menu(for event: NSEvent) -> NSMenu? {
         let point = convert(event.locationInWindow, from: nil)
         guard let index = tabRects().firstIndex(where: { $0.contains(point) }) else { return nil }
@@ -105,6 +265,11 @@ final class FolderTabBar: NSView, NSDraggingSource {
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         pressed = nil
+        if let index = closeButtonIndex(at: point) {
+            hoveredIndex = nil
+            onClose?(index)
+            return
+        }
         guard let index = tabRects().firstIndex(where: { $0.contains(point) }) else {
             if event.clickCount == 2 { onNewTab?() }
             return

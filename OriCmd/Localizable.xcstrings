@@ -2281,6 +2281,16 @@
         }
       }
     },
+    "Folder tabs:": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вкладки папок:"
+          }
+        }
+      }
+    },
     "Font": {
       "localizations": {
         "ru": {
@@ -2757,6 +2767,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Защищённый"
+          }
+        }
+      }
+    },
+    "Mac style, with icons and close buttons": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В стиле Mac, со значками и кнопками закрытия"
           }
         }
       }
