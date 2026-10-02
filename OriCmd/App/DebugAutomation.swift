@@ -237,6 +237,22 @@ enum DebugAutomation {
                     // A click on the active panel's path bar (it becomes editable).
                     main.activePanel.panelView.pathBar.onClick?()
                     main.activePanel.panelView.pathBar.beginEditing()
+                } else if token.hasPrefix("tabhover:"), let index = Int(token.dropFirst(9)),
+                          let main = window.contentViewController as? MainViewController {
+                    // Shows the active panel's tab as under the mouse (its close button).
+                    main.activePanel.panelView.tabBar.hover(index)
+                } else if token.hasPrefix("tabclose:"), let index = Int(token.dropFirst(9)),
+                          let main = window.contentViewController as? MainViewController {
+                    // A click on the close button of the active panel's tab.
+                    let bar = main.activePanel.panelView.tabBar
+                    guard let rect = bar.closeButtonRect(index) else { continue }
+                    let point = bar.convert(NSPoint(x: rect.midX, y: rect.midY), to: nil)
+                    if let event = NSEvent.mouseEvent(with: .leftMouseDown, location: point, modifierFlags: [],
+                                                      timestamp: ProcessInfo.processInfo.systemUptime,
+                                                      windowNumber: window.windowNumber, context: nil, eventNumber: harnessEventNumber,
+                                                      clickCount: 1, pressure: 1) {
+                        bar.mouseDown(with: event)
+                    }
                 } else if token == "tabbardoubleclick", let main = window.contentViewController as? MainViewController {
                     // A double click on the empty end of the active panel's tab bar.
                     let bar = main.activePanel.panelView.tabBar

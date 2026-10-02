@@ -237,6 +237,8 @@ private final class PanelsPane: SettingsPane {
         row(nil, checkbox(String(localized: "Drive buttons"), Settings.showsDriveButtons, #selector(driveButtonsChanged(_:))))
         row(nil, checkbox(String(localized: "Folder names in [brackets]"), Settings.showsFolderBrackets,
                           #selector(folderBracketsChanged(_:))))
+        row(String(localized: "Folder tabs:"), checkbox(String(localized: "Mac style, with icons and close buttons"), Settings.macStyleTabs,
+                                                        #selector(macStyleTabsChanged(_:))))
         row(String(localized: "Button bar:"), button(String(localized: "Customize Toolbar…"), #selector(customizeToolbar(_:))))
         note(String(localized: "Optional columns (kind, created, dimensions, duration, tags) are chosen by right-clicking a panel's column headers."))
 
@@ -322,6 +324,7 @@ private final class PanelsPane: SettingsPane {
     @objc private func functionKeyCapsChanged(_ sender: NSButton) { Settings.showsFunctionKeyCaps = sender.state == .on }
     @objc private func driveButtonsChanged(_ sender: NSButton) { Settings.showsDriveButtons = sender.state == .on }
     @objc private func folderBracketsChanged(_ sender: NSButton) { Settings.showsFolderBrackets = sender.state == .on }
+    @objc private func macStyleTabsChanged(_ sender: NSButton) { Settings.macStyleTabs = sender.state == .on }
 
     @objc private func customizeToolbar(_ sender: Any?) {
         NSApp.windows.first { $0.windowController is MainWindowController }?.runToolbarCustomizationPalette(sender)

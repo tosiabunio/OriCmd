@@ -21,6 +21,8 @@ real keyboard and mouse, so working elsewhere meanwhile changes nothing.
   play the right button on panel rows. `crumb:N` / `othercrumb:N` click part N of the active / other
   panel's path (`/` is 0), `pathend` clicks right of it, and `crumbmenu` writes the
   parents a long path puts away into `…` to `<name>-menu.txt` (`crumbmenu:N` chooses one).
+  `tabhover:N` shows the active panel's tab N as under the mouse (its close button),
+  `tabclose:N` clicks that button.
   Modifiers: `cmd+`, `shift+`, `alt+`, `ctrl+`, `num+`; `ru+` types the key as the
   Russian layout would (`ru+ctrl+d` sends "в" with the D key code).
 - `regress.sh` — plays the main file operations and checks the results on disk.

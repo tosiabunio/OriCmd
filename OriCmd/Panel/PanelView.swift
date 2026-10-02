@@ -186,8 +186,9 @@ final class PanelView: NSView {
     }
 
     /// Shows the folder tabs (the bar is hidden when `visible` is false).
-    func setTabs(_ titles: [String], identifiers: [UUID], selected: Int, visible: Bool) {
+    func setTabs(_ titles: [String], icons: [NSImage], identifiers: [UUID], selected: Int, visible: Bool) {
         tabBar.titles = titles
+        tabBar.icons = icons
         tabBar.identifiers = identifiers
         tabBar.selectedIndex = selected
         tabBar.isHidden = !visible
