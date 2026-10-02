@@ -285,6 +285,7 @@ final class FilePanelController: NSViewController {
             updateStatus()
             panelView.freeSpaceLabel.stringValue = VolumeSpace(for: directory)?.summary(short: shownSizeDisplay == .short) ?? ""
         }
+        updateStatus()
         // Setting the font clears the terminal's selection: only when it changed.
         for terminal in terminals where terminal.font != TerminalPane.font {
             terminal.font = TerminalPane.font
@@ -1580,7 +1581,9 @@ final class FilePanelController: NSViewController {
         updateStatus()
     }
 
-    /// "0 k / 1 234 k in 0 / 12 file(s), 0 / 3 dir(s)"
+    /// "12 files, 3 folders · 1,2 MB" or "2 of 15 selected · 35 KB of 1,2 MB", as the
+    /// Finder words it; or "0 k / 1 234 k in 0 / 12 file(s), 0 / 3 dir(s)", as Total
+    /// Commander does (Settings).
     private func updateStatus() {
         let entries = listView.items.filter { !$0.isParent }
         let marked = listView.marked
@@ -1595,7 +1598,11 @@ final class FilePanelController: NSViewController {
 
         let markedBytes = markedFiles.reduce(markedFolderBytes) { $0 + $1.size }
         let totalBytes = files.reduce(folderBytes) { $0 + $1.size }
-        if Settings.sizeDisplay == .short {
+        if Settings.plainStatusLine {
+            panelView.statusLabel.stringValue = Self.plainStatus(
+                files: files.count, folders: folders.count, marked: markedFiles.count + markedFolderCount,
+                markedBytes: markedBytes, totalBytes: totalBytes)
+        } else if Settings.sizeDisplay == .short {
             let markedSize = Settings.formattedSize(markedBytes)
             let totalSize = Settings.formattedSize(totalBytes)
             panelView.statusLabel.stringValue = String(localized:
@@ -1606,6 +1613,22 @@ final class FilePanelController: NSViewController {
             panelView.statusLabel.stringValue = String(localized:
                 "\(markedSize) k / \(totalSize) k in \(markedFiles.count) / \(files.count) file(s), \(markedFolderCount) / \(folders.count) dir(s)")
         }
+    }
+
+    private static func plainStatus(files: Int, folders: Int, marked: Int, markedBytes: Int64, totalBytes: Int64) -> String {
+        func size(_ bytes: Int64) -> String {
+            Settings.sizeDisplay == .short ? Settings.shortSize(bytes) : String(localized: "\(bytes.formatted()) B")
+        }
+        if marked > 0 {
+            let count = String(localized: "\(marked) of \(files + folders) selected")
+            return count + " · " + String(localized: "\(size(markedBytes)) of \(size(totalBytes))")
+        }
+        guard files > 0 || folders > 0 else { return String(localized: "Empty folder") }
+        var counts: [String] = []
+        if files > 0 { counts.append(String(localized: "\(files) files")) }
+        if folders > 0 { counts.append(String(localized: "\(folders) folders")) }
+        let summary = counts.joined(separator: ", ")
+        return files > 0 || totalBytes > 0 ? summary + " · " + size(totalBytes) : summary
     }
 
     private func askForMask(marking: Bool) {

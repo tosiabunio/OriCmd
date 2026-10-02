@@ -244,6 +244,13 @@ private final class PanelsPane: SettingsPane {
         sizes.action = #selector(sizeDisplayChanged(_:))
         row(String(localized: "Sizes:"), sizes)
         note(String(localized: "Short sizes count as the Finder does (1 KB = 1000 bytes), in the panels, the status line, the free space and when synchronizing folders."))
+        let status = NSPopUpButton()
+        status.addItems(withTitles: [String(localized: "As in the Finder (2 of 15 selected · 35 KB of 1,2 MB)"),
+                                     String(localized: "As in Total Commander (35 k / 1 234 k in 2 / 12 file(s), 0 / 3 dir(s))")])
+        status.selectItem(at: Settings.plainStatusLine ? 0 : 1)
+        status.target = self
+        status.action = #selector(statusLineChanged(_:))
+        row(String(localized: "Status line:"), status)
 
         section(String(localized: "Mouse"))
         let rightButton = NSPopUpButton()
@@ -257,6 +264,8 @@ private final class PanelsPane: SettingsPane {
         row(String(localized: "Right button:"), rightButton)
         note(String(localized: "Marking: a click marks or unmarks a file, a drag over files makes them all as the first one became; hold the button still for the context menu. On [..] and with Control-click the menu opens at once."))
     }
+
+    @objc private func statusLineChanged(_ sender: NSPopUpButton) { Settings.plainStatusLine = sender.indexOfSelectedItem == 0 }
 
     @objc private func sizeDisplayChanged(_ sender: NSPopUpButton) {
         Settings.sizeDisplay = sender.indexOfSelectedItem == 0 ? .short : .exact

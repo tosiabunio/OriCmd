@@ -106,11 +106,21 @@ check "a file typed into the path bar is selected in its folder" "[ -f $R/notes.
 # Sizes: short as the Finder counts them (the default), or every byte (Settings → Panels),
 # in the Size column, the status line and the free space.
 scripts/test/mkdata.sh
+defaults write ru.themmag.OriCmd.tests PlainStatusLine -bool false
 run sizeshort "alt+i wait text:mage escape sizes"
 check "sizes are short by default" "grep -q '^size: [0-9][0-9,.]* KB$' build/shots/reg-sizeshort-sizes.txt && grep -q '^status: 0 B / [0-9,.]* [KMGT]*B in ' build/shots/reg-sizeshort-sizes.txt && grep -q '^free: .*B of .*B free$' build/shots/reg-sizeshort-sizes.txt"
 defaults write ru.themmag.OriCmd.tests SizeDisplay exact
 run sizeexact "alt+i wait text:mage escape sizes"
 check "exact sizes show every byte" "[ \"\$(grep '^size:' build/shots/reg-sizeexact-sizes.txt | tr -cd 0-9)\" = \"\$(stat -f %z $L/image.png)\" ] && grep -q '^free: .* k of .* k free$' build/shots/reg-sizeexact-sizes.txt"
+
+# The status line as the Finder words it (the default), with the sizes as chosen.
+run statusplain "sizes"
+check "the status line counts files and folders" "grep -q '^status: [0-9]* files, [0-9]* folders · [0-9,.]* [KM]B$' build/shots/reg-statusplain-sizes.txt"
+run statusmarked "alt+i wait text:mage escape space sizes"
+check "the status line says how many of all are selected" "grep -q '^status: 1 of [0-9]* selected · [0-9,.]* KB of [0-9,.]* [KM]B$' build/shots/reg-statusmarked-sizes.txt"
+defaults write ru.themmag.OriCmd.tests SizeDisplay exact
+run statusexact "alt+i wait text:mage escape space sizes"
+check "the status line shows every byte with exact sizes" "[ \"\$(sed -n 's/^status: 1 of [0-9]* selected · \\(.*\\) B of .* B$/\\1/p' build/shots/reg-statusexact-sizes.txt | tr -cd 0-9)\" = \"\$(stat -f %z $L/image.png)\" ]"
 
 scripts/test/mkdata.sh
 run renamef2 "alt+n wait text:otes escape f2 wait text:by-f2 enter wait"
