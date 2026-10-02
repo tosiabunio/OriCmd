@@ -32,6 +32,7 @@ enum Settings {
         static let copyOverwriteLocked = "CopyOverwriteLocked"
         static let rightButton = "RightMouseButton"
         static let extensionDisplay = "ExtensionDisplay"
+        static let sizeDisplay = "SizeDisplay"
     }
 
     static let defaultFontSize: CGFloat = 12
@@ -89,6 +90,38 @@ enum Settings {
         get { AppDefaults.store.string(forKey: Key.extensionDisplay).flatMap(ExtensionDisplay.init) ?? .column }
         set { set(newValue.rawValue, Key.extensionDisplay) }
     }
+
+    /// How sizes are shown: in the panels, the status line, the free space and when
+    /// synchronizing folders.
+    enum SizeDisplay: String {
+        /// With units, as the Finder counts them: "1,3 MB" (1 kB = 1000 bytes).
+        case short
+        /// Every byte, as Total Commander shows them: "1 298 765".
+        case exact
+    }
+
+    static var sizeDisplay: SizeDisplay {
+        get { AppDefaults.store.string(forKey: Key.sizeDisplay).flatMap(SizeDisplay.init) ?? .short }
+        set { set(newValue.rawValue, Key.sizeDisplay) }
+    }
+
+    /// A size as the panels show it (see `sizeDisplay`).
+    static func formattedSize(_ bytes: Int64) -> String {
+        sizeDisplay == .short ? shortSize(bytes) : bytes.formatted(.number.grouping(.automatic))
+    }
+
+    /// "1,3 MB", as the Finder counts (1 kB = 1000 bytes); "0 KB" rather than "Zero KB".
+    nonisolated static func shortSize(_ bytes: Int64) -> String {
+        byteFormatter.string(fromByteCount: bytes)
+    }
+
+    /// Formatters format from any thread.
+    nonisolated(unsafe) private static let byteFormatter: ByteCountFormatter = {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        formatter.allowsNonnumericFormatting = false
+        return formatter
+    }()
 
     static var showsCommandLine: Bool {
         get { bool(Key.commandLine, default: true) }

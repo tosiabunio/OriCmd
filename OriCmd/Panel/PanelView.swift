@@ -204,7 +204,7 @@ final class PanelView: NSView {
     }
 
     /// `freeSpace` is computed here when not given (it can be slow on network volumes).
-    func show(directory: URL, volumes: [Volume], freeSpace: String? = nil) {
+    func show(directory: URL, volumes: [Volume], freeSpace: VolumeSpace? = nil) {
         if volumes != self.volumes || driveBar.drives.isEmpty {
             driveBar.drives = DriveBar.drives(for: volumes)
         }
@@ -217,7 +217,7 @@ final class PanelView: NSView {
            let index = volumes.firstIndex(of: current) {
             volumeButton.selectItem(at: index)
         }
-        freeSpaceLabel.stringValue = freeSpace ?? VolumeSpace(for: directory)?.summary ?? ""
+        freeSpaceLabel.stringValue = (freeSpace ?? VolumeSpace(for: directory))?.summary(short: Settings.sizeDisplay == .short) ?? ""
     }
 
     @objc private func volumeChanged(_ sender: NSPopUpButton) {

@@ -246,6 +246,13 @@ private final class PanelsPane: SettingsPane {
         extensions.action = #selector(extensionDisplayChanged(_:))
         row(String(localized: "File extensions:"), extensions)
         note(String(localized: "Full view. After the name, the Ext column title still sorts by extension; a long name is cut short before its extension."))
+        let sizes = NSPopUpButton()
+        sizes.addItems(withTitles: [String(localized: "Short (KB, MB, GB)"), String(localized: "Exact (12 345 678)")])
+        sizes.selectItem(at: Settings.sizeDisplay == .short ? 0 : 1)
+        sizes.target = self
+        sizes.action = #selector(sizeDisplayChanged(_:))
+        row(String(localized: "Sizes:"), sizes)
+        note(String(localized: "Short sizes count as the Finder does (1 KB = 1000 bytes), in the panels, the status line, the free space and when synchronizing folders."))
 
         section(String(localized: "Mouse"))
         let rightButton = NSPopUpButton()
@@ -262,6 +269,10 @@ private final class PanelsPane: SettingsPane {
 
     @objc private func extensionDisplayChanged(_ sender: NSPopUpButton) {
         Settings.extensionDisplay = sender.indexOfSelectedItem == 0 ? .column : .withName
+    }
+
+    @objc private func sizeDisplayChanged(_ sender: NSPopUpButton) {
+        Settings.sizeDisplay = sender.indexOfSelectedItem == 0 ? .short : .exact
     }
 
     @objc private func rightButtonChanged(_ sender: NSPopUpButton) {
@@ -523,22 +534,23 @@ private final class PanelPreview: NSView {
     private struct Row {
         let name: String
         let ext: String
-        let size: String
+        /// Nil for folders.
+        let bytes: Int64?
         var isFolder = false
         var isMarked = false
         var isCursor = false
     }
 
     private let rows = [
-        Row(name: "..", ext: "", size: "<DIR>", isFolder: true),
-        Row(name: "Documents", ext: "", size: "<DIR>", isFolder: true),
-        Row(name: "notes", ext: "md", size: "12 345", isMarked: true),
-        Row(name: "readme", ext: "txt", size: "4 096", isCursor: true),
-        Row(name: "archive", ext: "zip", size: "88 000"),
-        Row(name: "photo", ext: "jpg", size: "2 048 000"),
-        Row(name: "movie", ext: "mp4", size: "9 876 543"),
-        Row(name: "report", ext: "pdf", size: "310 000", isMarked: true),
-        Row(name: "script", ext: "sh", size: "1 024"),
+        Row(name: "..", ext: "", bytes: nil, isFolder: true),
+        Row(name: "Documents", ext: "", bytes: nil, isFolder: true),
+        Row(name: "notes", ext: "md", bytes: 12_345, isMarked: true),
+        Row(name: "readme", ext: "txt", bytes: 4_096, isCursor: true),
+        Row(name: "archive", ext: "zip", bytes: 88_000),
+        Row(name: "photo", ext: "jpg", bytes: 2_048_000),
+        Row(name: "movie", ext: "mp4", bytes: 9_876_543),
+        Row(name: "report", ext: "pdf", bytes: 310_000, isMarked: true),
+        Row(name: "script", ext: "sh", bytes: 1_024),
     ]
 
     override init(frame: NSRect) {
@@ -614,7 +626,7 @@ private final class PanelPreview: NSView {
                 draw(row.ext, in: NSRect(x: nameWidth, y: textY, width: 48, height: rowHeight), font: textFont, color: color,
                      alignment: .left)
             }
-            draw(row.size, in: NSRect(x: nameWidth + 50, y: textY, width: 130, height: rowHeight),
+            draw(row.bytes.map(Settings.formattedSize) ?? "<DIR>", in: NSRect(x: nameWidth + 50, y: textY, width: 130, height: rowHeight),
                  font: Theme.panelNumberFont, color: color, alignment: .right)
         }
         Theme.separator.setStroke()

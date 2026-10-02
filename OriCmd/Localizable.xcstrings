@@ -21,6 +21,16 @@
         }
       }
     },
+    "%@ / %@ in %lld / %lld file(s), %lld / %lld dir(s)": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ из %2$@, файлов: %3$lld из %4$lld, папок: %5$lld из %6$lld"
+          }
+        }
+      }
+    },
     "%@ already exists. Replace?": {
       "localizations": {
         "ru": {
@@ -67,6 +77,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ Кб из %2$@ Кб свободно"
+          }
+        }
+      }
+    },
+    "%@ of %@ free": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ из %2$@ свободно"
           }
         }
       }
@@ -2017,6 +2037,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Всё, кроме .git, node_modules, .DS_Store"
+          }
+        }
+      }
+    },
+    "Exact (12 345 678)": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Точно (12 345 678)"
           }
         }
       }
@@ -4551,6 +4581,26 @@
         }
       }
     },
+    "Short (KB, MB, GB)": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кратко (КБ, МБ, ГБ)"
+          }
+        }
+      }
+    },
+    "Short sizes count as the Finder does (1 KB = 1000 bytes), in the panels, the status line, the free space and when synchronizing folders.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Краткие размеры считаются как в Finder (1 КБ = 1000 байт): в панелях, строке состояния, свободном месте и при синхронизации папок."
+          }
+        }
+      }
+    },
     "Shortcuts": {
       "localizations": {
         "ru": {
@@ -4707,6 +4757,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Размер"
+          }
+        }
+      }
+    },
+    "Sizes:": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Размеры:"
           }
         }
       }

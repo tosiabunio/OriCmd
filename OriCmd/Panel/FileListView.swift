@@ -554,17 +554,7 @@ final class FileListView: NSView {
         drawText(shown.name, in: shown.nameRect, font: textFont, color: color)
         drawText(shown.ext, in: layout.rect(for: .ext, y: y, height: rowHeight), font: textFont, color: color)
 
-        let size: String
-        if item.isFolder, let folderSize = folderSizes[item.name] {
-            size = folderSize.formatted(.number.grouping(.automatic))
-        } else if item.isFolder {
-            size = "<DIR>"
-        } else if item.isPackage {
-            size = "<PKG>"
-        } else {
-            size = item.size.formatted(.number.grouping(.automatic))
-        }
-        drawText(size, in: layout.rect(for: .size, y: y, height: rowHeight),
+        drawText(sizeText(of: item), in: layout.rect(for: .size, y: y, height: rowHeight),
                  font: numberFont, color: color, alignment: .right)
 
         if !item.isParent {
@@ -625,6 +615,18 @@ final class FileListView: NSView {
         let shown = nameAndExtension(of: item, layout: ColumnLayout(width: bounds.width), y: 0,
                                      font: Theme.font(marked: marked.contains(item.name)))
         return (shown.name, shown.ext)
+    }
+
+    /// What the Size column shows for an item.
+    func sizeText(of item: FileItem) -> String {
+        if item.isFolder, let folderSize = folderSizes[item.name] {
+            return Settings.formattedSize(folderSize)
+        } else if item.isFolder {
+            return "<DIR>"
+        } else if item.isPackage {
+            return "<PKG>"
+        }
+        return Settings.formattedSize(item.size)
     }
 
     private func drawText(_ text: String, in rect: NSRect, font: NSFont, color: NSColor,
