@@ -1,7 +1,8 @@
 import AppKit
 
 /// The row of flat function key buttons at the bottom of the window
-/// ("F3 View", "F4 Edit", … ), drawn as equal-width cells.
+/// ("F3 View", "F4 Edit", … ), drawn as equal-width cells, with the keys as key
+/// caps when so chosen in Settings.
 final class FunctionKeyBar: NSView {
     struct Item {
         let key: String
@@ -36,11 +37,16 @@ final class FunctionKeyBar: NSView {
             .font: Theme.chromeFont,
             .foregroundColor: Theme.chromeText,
         ]
+        let keyCaps = Settings.showsFunctionKeyCaps
         for (index, item) in items.enumerated() {
             let cell = cellRect(at: index)
             if index == pressedIndex {
                 NSColor.controlAccentColor.withAlphaComponent(0.25).setFill()
                 cell.fill()
+            }
+            if keyCaps {
+                drawKeyCap(item, in: cell, attributes: attributes)
+                continue
             }
             let label = "\(item.key) \(item.title)" as NSString
             let size = label.size(withAttributes: attributes)
@@ -55,6 +61,36 @@ final class FunctionKeyBar: NSView {
         }
         Theme.separator.setFill()
         NSRect(x: 0, y: 0, width: bounds.width, height: 1).fill()
+    }
+
+    private static let keyCapFont = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .medium)
+
+    /// The key in a small rounded key, then the title, both centred in the cell.
+    private func drawKeyCap(_ item: Item, in cell: NSRect, attributes: [NSAttributedString.Key: Any]) {
+        let keyAttributes: [NSAttributedString.Key: Any] = [
+            .font: Self.keyCapFont,
+            .foregroundColor: NSColor.secondaryLabelColor,
+        ]
+        let key = item.key as NSString, title = item.title as NSString
+        let keySize = key.size(withAttributes: keyAttributes)
+        let titleSize = title.size(withAttributes: attributes)
+        let capWidth = max(ceil(keySize.width) + 8, 18), capHeight: CGFloat = 15, gap: CGFloat = 5
+        let total = capWidth + gap + titleSize.width
+        let x = (cell.midX - total / 2).rounded()
+        let cap = NSRect(x: x, y: (cell.midY - capHeight / 2).rounded() + 0.5, width: capWidth, height: capHeight)
+
+        let path = NSBezierPath(roundedRect: cap.insetBy(dx: 0.5, dy: 0), xRadius: 3.5, yRadius: 3.5)
+        NSColor.quaternaryLabelColor.setFill()
+        path.fill()
+        NSColor.tertiaryLabelColor.setStroke()
+        path.lineWidth = 0.5
+        path.stroke()
+        // Key caps are a little deeper at the bottom.
+        NSColor.tertiaryLabelColor.setFill()
+        NSRect(x: cap.minX + 2.5, y: cap.maxY - 0.5, width: cap.width - 5, height: 0.5).fill()
+
+        key.draw(at: NSPoint(x: cap.midX - keySize.width / 2, y: cap.midY - keySize.height / 2), withAttributes: keyAttributes)
+        title.draw(at: NSPoint(x: cap.maxX + gap, y: cell.midY - titleSize.height / 2), withAttributes: attributes)
     }
 
     override func mouseDown(with event: NSEvent) {

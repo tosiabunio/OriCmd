@@ -132,6 +132,7 @@ final class MainViewController: NSViewController {
         commandLineHeight.constant = Settings.showsCommandLine ? CommandLineView.height : 0
         functionKeyBar.isHidden = !Settings.showsFunctionKeys
         functionKeyBarHeight.constant = Settings.showsFunctionKeys ? 22 : 0
+        functionKeyBar.needsDisplay = true
     }
 
     override func viewDidAppear() {

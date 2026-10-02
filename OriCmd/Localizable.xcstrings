@@ -2361,6 +2361,16 @@
         }
       }
     },
+    "Function keys drawn as key caps": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Функциональные клавиши в виде клавиш клавиатуры"
+          }
+        }
+      }
+    },
     "General": {
       "localizations": {
         "ru": {
