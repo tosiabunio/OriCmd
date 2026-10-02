@@ -147,7 +147,7 @@ check "a folder's tag color is read with the listing" "grep -qx 6 build/shots/re
 # in the Size column, the status line and the free space.
 scripts/test/mkdata.sh
 run sizeshort "alt+i wait text:mage escape sizes"
-check "sizes are short by default" "grep -q '^size: [0-9][0-9,.]* KB$' build/shots/reg-sizeshort-sizes.txt && grep -q '^status: .* / [0-9,.]* [KMGT]*B in ' build/shots/reg-sizeshort-sizes.txt && grep -q '^free: .*B of .*B free$' build/shots/reg-sizeshort-sizes.txt"
+check "sizes are short by default" "grep -q '^size: [0-9][0-9,.]* KB$' build/shots/reg-sizeshort-sizes.txt && grep -q '^status: 0 B / [0-9,.]* [KMGT]*B in ' build/shots/reg-sizeshort-sizes.txt && grep -q '^free: .*B of .*B free$' build/shots/reg-sizeshort-sizes.txt"
 defaults write ru.themmag.OriCmd.tests SizeDisplay exact
 run sizeexact "alt+i wait text:mage escape sizes"
 check "exact sizes show every byte" "[ \"\$(grep '^size:' build/shots/reg-sizeexact-sizes.txt | tr -cd 0-9)\" = \"\$(stat -f %z $L/image.png)\" ] && grep -q '^free: .* k of .* k free$' build/shots/reg-sizeexact-sizes.txt"

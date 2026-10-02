@@ -110,9 +110,11 @@ enum Settings {
         sizeDisplay == .short ? shortSize(bytes) : bytes.formatted(.number.grouping(.automatic))
     }
 
-    /// "1,3 MB", as the Finder counts (1 kB = 1000 bytes); "0 KB" rather than "Zero KB".
+    /// "1,3 MB", as the Finder counts (1 kB = 1000 bytes); below a kilobyte "512 B", as
+    /// the other units are abbreviated, not "512 bytes" (nor "Zero KB").
     nonisolated static func shortSize(_ bytes: Int64) -> String {
-        byteFormatter.string(fromByteCount: bytes)
+        if bytes < 1000 { return String(localized: "\(bytes.formatted()) B") }
+        return byteFormatter.string(fromByteCount: bytes)
     }
 
     /// Formatters format from any thread.

@@ -31,6 +31,16 @@
         }
       }
     },
+    "%@ B": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Б"
+          }
+        }
+      }
+    },
     "%@ already exists. Replace?": {
       "localizations": {
         "ru": {
