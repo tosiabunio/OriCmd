@@ -13,7 +13,8 @@ keep working as always.
 
 - **Panels:** tabs, history, directory hotlist, tree, filters, quick search, an
   editable path with `Tab` completion; full and brief views, thumbnails, optional
-  columns, file colors by mask and ready-made colors for color vision deficiencies.
+  columns, file colors by mask, folders in the color of their Finder tags, and
+  ready-made colors for color vision deficiencies.
 - **Copy and move:** queue and background operations, file type filter, name
   masks, overwrite modes, verification after copying.
 - **Archives as folders:** zip, tar, 7z and more — browse, extract, pack and

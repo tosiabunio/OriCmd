@@ -13,6 +13,8 @@ nonisolated struct FileItem: Hashable, Sendable {
     let size: Int64
     let modified: Date
     let mode: mode_t
+    /// The Finder's color of a folder, from its color tags (a label number, 0: none).
+    var tagColor = 0
 
     /// The `[..]` entry that leads to the parent directory.
     static func parent(of directory: URL) -> FileItem {

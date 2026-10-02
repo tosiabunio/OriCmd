@@ -145,7 +145,8 @@ extension DirectoryTreePanel: NSOutlineViewDataSource, NSOutlineViewDelegate {
         let cell = outlineView.makeView(withIdentifier: Self.cellIdentifier, owner: self) as? NSTableCellView
             ?? makeCell()
         cell.textField?.stringValue = (item as? Node)?.name ?? ""
-        cell.imageView?.image = NSWorkspace.shared.icon(for: .folder)
+        let tagColor = (item as? Node).flatMap { try? $0.url.resourceValues(forKeys: [.labelNumberKey]).labelNumber } ?? 0
+        cell.imageView?.image = FileIcons.folder(tagColor: tagColor, size: NSSize(width: 16, height: 16))
         return cell
     }
 

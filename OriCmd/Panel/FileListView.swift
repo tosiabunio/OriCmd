@@ -508,7 +508,8 @@ final class FileListView: NSView {
         let imageArea = NSRect(x: rect.minX + (rect.width - size) / 2, y: rect.minY + 6, width: size, height: size)
         let image: NSImage
         if item.isParent || item.isFolder {
-            image = item.isParent ? FileIcons.icon(for: item) : NSWorkspace.shared.icon(for: .folder)
+            image = item.isParent ? FileIcons.icon(for: item)
+                : FileIcons.folder(tagColor: item.tagColor, size: NSSize(width: size, height: size))
         } else {
             image = ThumbnailCache.shared.thumbnail(for: item.url, size: size) { [weak self] in
                 self?.setNeedsDisplay(rect)
