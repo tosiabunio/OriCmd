@@ -27,7 +27,10 @@ final class FunctionKeyBar: NSView {
     private var pressedIndex: Int?
 
     override var isFlipped: Bool { true }
-    override var intrinsicContentSize: NSSize { NSSize(width: NSView.noIntrinsicMetric, height: 22) }
+    /// Key caps get some room above and below.
+    static var height: CGFloat { Settings.showsFunctionKeyCaps ? 28 : 22 }
+
+    override var intrinsicContentSize: NSSize { NSSize(width: NSView.noIntrinsicMetric, height: Self.height) }
 
     override func draw(_ dirtyRect: NSRect) {
         Theme.chromeBackground.setFill()
@@ -74,12 +77,12 @@ final class FunctionKeyBar: NSView {
         let key = item.key as NSString, title = item.title as NSString
         let keySize = key.size(withAttributes: keyAttributes)
         let titleSize = title.size(withAttributes: attributes)
-        let capWidth = max(ceil(keySize.width) + 8, 18), capHeight: CGFloat = 15, gap: CGFloat = 5
+        let capWidth = max(ceil(keySize.width) + 14, 24), capHeight: CGFloat = 18, gap: CGFloat = 7
         let total = capWidth + gap + titleSize.width
         let x = (cell.midX - total / 2).rounded()
         let cap = NSRect(x: x, y: (cell.midY - capHeight / 2).rounded() + 0.5, width: capWidth, height: capHeight)
 
-        let path = NSBezierPath(roundedRect: cap.insetBy(dx: 0.5, dy: 0), xRadius: 3.5, yRadius: 3.5)
+        let path = NSBezierPath(roundedRect: cap.insetBy(dx: 0.5, dy: 0), xRadius: 4, yRadius: 4)
         NSColor.quaternaryLabelColor.setFill()
         path.fill()
         NSColor.tertiaryLabelColor.setStroke()

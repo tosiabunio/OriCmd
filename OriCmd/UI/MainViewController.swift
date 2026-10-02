@@ -94,7 +94,7 @@ final class MainViewController: NSViewController {
             root.addSubview(view)
         }
         commandLineHeight = commandLine.view.heightAnchor.constraint(equalToConstant: CommandLineView.height)
-        functionKeyBarHeight = functionKeyBar.heightAnchor.constraint(equalToConstant: 22)
+        functionKeyBarHeight = functionKeyBar.heightAnchor.constraint(equalToConstant: FunctionKeyBar.height)
         NSLayoutConstraint.activate([
             commandLineHeight,
             functionKeyBarHeight,
@@ -131,7 +131,7 @@ final class MainViewController: NSViewController {
         commandLine.view.isHidden = !Settings.showsCommandLine
         commandLineHeight.constant = Settings.showsCommandLine ? CommandLineView.height : 0
         functionKeyBar.isHidden = !Settings.showsFunctionKeys
-        functionKeyBarHeight.constant = Settings.showsFunctionKeys ? 22 : 0
+        functionKeyBarHeight.constant = Settings.showsFunctionKeys ? FunctionKeyBar.height : 0
         functionKeyBar.needsDisplay = true
     }
 
