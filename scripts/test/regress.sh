@@ -138,6 +138,11 @@ check "a click right of the path still makes it editable" "shown crumbend 'left*
 scripts/test/mkdata.sh
 run drawbelow "tab wait drawbelow wait"
 check "a redraw below the last row does not stop the app" "[ -f build/shots/reg-drawbelow-panels.txt ]"
+# Folders are drawn in the color of their Finder tags: the color is read with the listing.
+scripts/test/mkdata.sh
+swift -e 'import Foundation; var u = URL(fileURLWithPath: CommandLine.arguments[1]); var v = URLResourceValues(); v.labelNumber = 6; try! u.setResourceValues(v)' $L/alpha 2>/dev/null
+run tagcolor "alt+a wait text:lpha escape tagcolor alt+b wait text:eta escape wait"
+check "a folder's tag color is read with the listing" "grep -qx 6 build/shots/reg-tagcolor-tagcolor.txt"
 
 scripts/test/mkdata.sh
 run renamef2 "alt+n wait text:otes escape f2 wait text:by-f2 enter wait"

@@ -36,16 +36,20 @@ enum DirectoryListing {
                 + TimeInterval(info.st_mtimespec.tv_nsec) / 1_000_000_000
         )
 
+        let url = URL(filePath: path, directoryHint: isDirectory ? .isDirectory : .notDirectory)
+        // Folders are drawn in the color of their tags, as the Finder draws them.
+        let tagColor = isDirectory && !isPackage ? (try? url.resourceValues(forKeys: [.labelNumberKey]).labelNumber) ?? 0 : 0
         return FileItem(
             name: name,
-            url: URL(filePath: path, directoryHint: isDirectory ? .isDirectory : .notDirectory),
+            url: url,
             isDirectory: isDirectory,
             isPackage: isPackage,
             isSymlink: isSymlink,
             isHidden: fileName.hasPrefix(".") || info.st_flags & UInt32(UF_HIDDEN) != 0,
             size: Int64(info.st_size),
             modified: modified,
-            mode: info.st_mode
+            mode: info.st_mode,
+            tagColor: tagColor
         )
     }
 

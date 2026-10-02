@@ -8,7 +8,7 @@ import WebKit
 /// - `ORICMD_LEFT`, `ORICMD_RIGHT`: initial panel directories.
 /// - `ORICMD_KEYS`: space separated keystrokes played after launch, e.g.
 ///   `down shift+down f7 text:New enter wait`, or commands like `cmd:cm_SyncDirs`,
-///   `menu` (writes the context menu to `<snapshot>-menu.txt`), `drawbelow` (draws only a strip below the last row), `contextmenu` (the same, opened for real, with what AppKit adds), `menupick:Title|N` (item N of its submenu Title chosen), `servicedata` (what a service gets for the selected files, to `<snapshot>-services.txt`), `drop:/path`, `drive:/path` (a drive
+///   `menu` (writes the context menu to `<snapshot>-menu.txt`), `drawbelow` (draws only a strip below the last row), `tagcolor` (the tag color read for the cursor's item, to `<snapshot>-tagcolor.txt`), `contextmenu` (the same, opened for real, with what AppKit adds), `menupick:Title|N` (item N of its submenu Title chosen), `servicedata` (what a service gets for the selected files, to `<snapshot>-services.txt`), `drop:/path`, `drive:/path` (a drive
 ///   button), `drivemenu:/path` / `drivemenu:/path|Item_Title` (a drive button's context menu),
 ///   `droptab:left:1:right:0` (a tab dropped on a tab bar), `wheel:N` (a mouse wheel over a 3D model), `tabbardoubleclick` (the empty end of the tab bar), `pathclick` (the path bar), `crumb:N` / `othercrumb:N` (a parent folder in the active / other panel's path bar), `pathend` (right of the path), `crumbmenu` / `crumbmenu:N` (the parents put away into "…"), `colorpreset:N` (Settings → Colors), `rightmouse:click:N` / `hold:N` / `drag:N-M` / `ctrlclick:N` (the right button on rows), `textmenu` (the frontmost text's context menu), `promise:/path` (the file on the
 ///   clipboard as a promise, plus a placeholder of zeros), `lazyfile:/path` (as Microsoft Remote Desktop
@@ -111,6 +111,10 @@ enum DebugAutomation {
                     try? lines.joined(separator: "\n")
                         .write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-services.txt"), atomically: true, encoding: .utf8)
                     board.releaseGlobally()
+                } else if token == "tagcolor", let list = window.firstResponder as? FileListView, let snapshot {
+                    // The tag color read for the cursor's item (a label number), to <snapshot>-tagcolor.txt.
+                    try? "\(list.currentItem?.tagColor ?? -1)"
+                        .write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-tagcolor.txt"), atomically: true, encoding: .utf8)
                 } else if token == "textmenu", let snapshot, let text = textView(in: topmost(window).contentView),
                           let event = NSEvent.mouseEvent(
                             with: .rightMouseDown, location: text.convert(NSPoint(x: 20, y: 10), to: nil), modifierFlags: [],

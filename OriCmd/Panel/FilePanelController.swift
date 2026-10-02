@@ -2478,7 +2478,8 @@ extension FilePanelController: NSMenuItemValidation {
             }
         }
         MetadataCache.shared.forget(change.urls, column: .tags)
-        listView.needsDisplay = true
+        // Read again: folders are drawn in their tags' color, read with the listing.
+        reread()
     }
 
     // MARK: - Drive buttons
