@@ -151,6 +151,14 @@ check "sizes are short by default" "grep -q '^size: [0-9][0-9,.]* KB$' build/sho
 defaults write ru.themmag.OriCmd.tests SizeDisplay exact
 run sizeexact "alt+i wait text:mage escape sizes"
 check "exact sizes show every byte" "[ \"\$(grep '^size:' build/shots/reg-sizeexact-sizes.txt | tr -cd 0-9)\" = \"\$(stat -f %z $L/image.png)\" ] && grep -q '^free: .* k of .* k free$' build/shots/reg-sizeexact-sizes.txt"
+# The compact header (the default) names the volume in the path bar; the classic one
+# has its own row for it, and the parents in the path bar work in both.
+startup=$(diskutil info / | sed -n 's/^ *Volume Name: *//p')
+run volmenu "volumemenu"
+check "the compact path bar names the volume and lists the volumes, the current one checked" "grep -qx 'volume button' build/shots/reg-volmenu-menu.txt && grep -qxF '✓ $startup' build/shots/reg-volmenu-menu.txt"
+defaults write ru.themmag.OriCmd.tests CompactPanelHeader -bool false
+run crumbclassic "crumb:$T wait wait volumemenu"
+check "in the classic header the path bar names no volume, and its parents go there" "grep -qx 'no volume button' build/shots/reg-crumbclassic-menu.txt && shown crumbclassic 'left*: $PWD/build/testdata | cursor: left |'"
 
 scripts/test/mkdata.sh
 run renamef2 "alt+n wait text:otes escape f2 wait text:by-f2 enter wait"

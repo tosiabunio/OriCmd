@@ -22,6 +22,7 @@ enum Settings {
         static let driveButtons = "ShowDriveButtons"
         static let folderBrackets = "ShowFolderBrackets"
         static let macStyleTabs = "MacStyleTabs"
+        static let compactHeader = "CompactPanelHeader"
         static let confirmTrash = "ConfirmMoveToTrash"
         static let extraColumns = "ExtraColumns"
         static let checkUpdates = "CheckForUpdates"
@@ -165,6 +166,13 @@ enum Settings {
     static var macStyleTabs: Bool {
         get { bool(Key.macStyleTabs, default: true) }
         set { set(newValue, Key.macStyleTabs) }
+    }
+
+    /// The panel's volume and free space are shown in its path bar, without the row of
+    /// the volume selector and the / and .. buttons; the mask only when it filters.
+    static var compactPanelHeader: Bool {
+        get { bool(Key.compactHeader, default: true) }
+        set { set(newValue, Key.compactHeader) }
     }
 
     /// Optional metadata columns shown in Full view, in this order.

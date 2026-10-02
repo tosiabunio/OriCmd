@@ -2,7 +2,8 @@ import AppKit
 
 /// One of the two file panels, laid out top to bottom like in Total Commander:
 /// volume selector with free space, path bar, file list, status line, and the
-/// terminal of a server when one is connected.
+/// terminal of a server when one is connected. The compact header (Settings) puts
+/// the volume and its free space into the path bar instead.
 final class PanelView: NSView {
     let driveBar = DriveBar()
     let volumeButton = NSPopUpButton(frame: .zero, pullsDown: false)
@@ -37,6 +38,10 @@ final class PanelView: NSView {
     private var headerHeight: NSLayoutConstraint!
     private var driveBarHeight: NSLayoutConstraint!
     private var terminalHeight: NSLayoutConstraint!
+    /// The tab bar and the spinner go under the volume row, or the spinner into the
+    /// path bar when the header is compact.
+    private var classicConstraints: [NSLayoutConstraint] = []
+    private var compactConstraints: [NSLayoutConstraint] = []
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -112,13 +117,10 @@ final class PanelView: NSView {
             parentButton.centerYAnchor.constraint(equalTo: volumeButton.centerYAnchor),
             parentButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
             parentButton.widthAnchor.constraint(equalToConstant: 24),
-            loadingIndicator.centerYAnchor.constraint(equalTo: volumeButton.centerYAnchor),
-            loadingIndicator.trailingAnchor.constraint(equalTo: rootButton.leadingAnchor, constant: -6),
             rootButton.centerYAnchor.constraint(equalTo: volumeButton.centerYAnchor),
             rootButton.trailingAnchor.constraint(equalTo: parentButton.leadingAnchor, constant: -2),
             rootButton.widthAnchor.constraint(equalToConstant: 24),
 
-            tabBar.topAnchor.constraint(equalTo: volumeButton.bottomAnchor, constant: 3),
             tabBar.leadingAnchor.constraint(equalTo: leadingAnchor),
             tabBar.trailingAnchor.constraint(equalTo: trailingAnchor),
             tabBarHeight,
@@ -152,6 +154,31 @@ final class PanelView: NSView {
             quickSearchField.widthAnchor.constraint(equalToConstant: 200),
             quickSearchField.centerYAnchor.constraint(equalTo: statusLabel.centerYAnchor),
         ])
+        classicConstraints = [
+            tabBar.topAnchor.constraint(equalTo: volumeButton.bottomAnchor, constant: 3),
+            loadingIndicator.centerYAnchor.constraint(equalTo: volumeButton.centerYAnchor),
+            loadingIndicator.trailingAnchor.constraint(equalTo: rootButton.leadingAnchor, constant: -6),
+        ]
+        compactConstraints = [
+            tabBar.topAnchor.constraint(equalTo: driveBar.bottomAnchor),
+            loadingIndicator.centerYAnchor.constraint(equalTo: pathBar.centerYAnchor),
+            loadingIndicator.trailingAnchor.constraint(equalTo: pathBar.trailingAnchor, constant: -4),
+        ]
+        pathBar.onVolumeClick = { [weak self] in self?.showVolumeMenu() }
+        setCompactHeader(Settings.compactPanelHeader)
+    }
+
+    /// The compact header has no volume row: the path bar shows the volume and its
+    /// free space, and its parents replace the / and .. buttons.
+    func setCompactHeader(_ compact: Bool) {
+        for view in [volumeButton, freeSpaceLabel, rootButton, parentButton] as [NSView] {
+            view.isHidden = compact
+        }
+        NSLayoutConstraint.deactivate(compact ? classicConstraints : compactConstraints)
+        NSLayoutConstraint.activate(compact ? compactConstraints : classicConstraints)
+        pathBar.invalidateIntrinsicContentSize()
+        pathBar.needsDisplay = true
+        updatePathBarVolume()
     }
 
     @available(*, unavailable)
@@ -197,6 +224,7 @@ final class PanelView: NSView {
 
     /// Updates the header for `directory`: path, current volume and free space.
     func setLoading(_ loading: Bool) {
+        pathBar.isLoading = loading
         if loading {
             loadingIndicator.startAnimation(nil)
         } else {
@@ -219,6 +247,49 @@ final class PanelView: NSView {
             volumeButton.selectItem(at: index)
         }
         freeSpaceLabel.stringValue = (freeSpace ?? VolumeSpace(for: directory))?.summary(short: Settings.sizeDisplay == .short) ?? ""
+        currentVolume = Volume.containing(directory, in: volumes)
+    }
+
+    /// The volume of the folder shown, which the compact path bar names.
+    private var currentVolume: Volume? {
+        didSet { updatePathBarVolume() }
+    }
+
+    /// Whether the path bar names the volume (not for a server, whose path is no local one).
+    var showsVolume = true {
+        didSet { if showsVolume != oldValue { updatePathBarVolume() } }
+    }
+
+    private func updatePathBarVolume() {
+        let compact = Settings.compactPanelHeader && showsVolume
+        pathBar.volume = compact ? currentVolume.map { ($0.name, DriveBar.icon(for: $0.url)) } : nil
+        pathBar.freeSpace = compact ? freeSpaceLabel.stringValue : ""
+    }
+
+    /// The mounted volumes, the current one checked, as the volume selector lists them.
+    func volumeMenu() -> NSMenu {
+        let menu = NSMenu()
+        for (index, volume) in volumes.enumerated() {
+            let item = NSMenuItem(title: volume.name, action: #selector(volumeChosen(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = index
+            let icon = DriveBar.icon(for: volume.url).copy() as? NSImage
+            icon?.size = NSSize(width: 16, height: 16)
+            item.image = icon
+            item.state = volume == currentVolume ? .on : .off
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    private func showVolumeMenu() {
+        let rect = pathBar.volumeRect ?? pathBar.bounds
+        volumeMenu().popUp(positioning: nil, at: NSPoint(x: rect.minX, y: rect.maxY + 2), in: pathBar)
+    }
+
+    @objc private func volumeChosen(_ sender: NSMenuItem) {
+        guard volumes.indices.contains(sender.tag) else { return }
+        onVolumeSelected?(volumes[sender.tag])
     }
 
     @objc private func volumeChanged(_ sender: NSPopUpButton) {

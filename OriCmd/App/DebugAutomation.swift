@@ -253,6 +253,15 @@ enum DebugAutomation {
                                                       clickCount: 1, pressure: 1) {
                         bar.mouseDown(with: event)
                     }
+                } else if token == "volumemenu", let snapshot, let main = window.contentViewController as? MainViewController {
+                    // The volume menu of the active panel's compact path bar, written to
+                    // <snapshot>-menu.txt ("✓ " before the current volume).
+                    let bar = main.activePanel.panelView.pathBar
+                    let menu = main.activePanel.panelView.volumeMenu()
+                    let shown = bar.volumeRect == nil ? "no volume button" : "volume button"
+                    try? ([shown] + menu.items.map { ($0.state == .on ? "✓ " : "") + $0.title }).joined(separator: "\n")
+                        .write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-menu.txt"),
+                               atomically: true, encoding: .utf8)
                 } else if token == "tabbardoubleclick", let main = window.contentViewController as? MainViewController {
                     // A double click on the empty end of the active panel's tab bar.
                     let bar = main.activePanel.panelView.tabBar

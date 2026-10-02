@@ -375,6 +375,11 @@ there, with the cursor on the folder you came from (in archives and on servers t
 When the path is too long, its start gives way to `…`, which lists the folders left
 out.
 
+By default the path bar also holds the volume, before the path (a click lists the
+volumes), and its free space at the end when there is room; the mask shows there only
+when a filter is on. This replaces the row with the volume selector and the `/` and
+`..` buttons, which Settings → Panels → Window → "Panel header" can bring back.
+
 A click on the current folder, the mask or right of the path makes it editable:
 type a folder (or a file: it is shown selected; an archive opens), a folder on the
 server or in the archive shown, or another server's address, and press `Enter`;

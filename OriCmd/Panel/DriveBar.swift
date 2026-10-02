@@ -59,7 +59,7 @@ final class DriveBar: NSView {
     /// for its icon can take a while.
     private static var icons: [URL: NSImage] = [:]
 
-    private static func icon(for url: URL) -> NSImage {
+    static func icon(for url: URL) -> NSImage {
         if let icon = icons[url] { return icon }
         let icon = NSWorkspace.shared.icon(forFile: url.path)
         icons[url] = icon

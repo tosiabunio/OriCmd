@@ -239,6 +239,9 @@ private final class PanelsPane: SettingsPane {
                           #selector(folderBracketsChanged(_:))))
         row(String(localized: "Folder tabs:"), checkbox(String(localized: "Mac style, with icons and close buttons"), Settings.macStyleTabs,
                                                         #selector(macStyleTabsChanged(_:))))
+        row(String(localized: "Panel header:"), checkbox(String(localized: "Compact: the volume and free space in the path bar"),
+                                                         Settings.compactPanelHeader, #selector(compactHeaderChanged(_:))))
+        note(String(localized: "Without the row of the volume selector and the / and .. buttons: a click on the volume lists the others, a click on a folder of the path goes there. The mask (*.*) shows only when it filters."))
         row(String(localized: "Button bar:"), button(String(localized: "Customize Toolbar…"), #selector(customizeToolbar(_:))))
         note(String(localized: "Optional columns (kind, created, dimensions, duration, tags) are chosen by right-clicking a panel's column headers."))
 
@@ -325,6 +328,7 @@ private final class PanelsPane: SettingsPane {
     @objc private func driveButtonsChanged(_ sender: NSButton) { Settings.showsDriveButtons = sender.state == .on }
     @objc private func folderBracketsChanged(_ sender: NSButton) { Settings.showsFolderBrackets = sender.state == .on }
     @objc private func macStyleTabsChanged(_ sender: NSButton) { Settings.macStyleTabs = sender.state == .on }
+    @objc private func compactHeaderChanged(_ sender: NSButton) { Settings.compactPanelHeader = sender.state == .on }
 
     @objc private func customizeToolbar(_ sender: Any?) {
         NSApp.windows.first { $0.windowController is MainWindowController }?.runToolbarCustomizationPalette(sender)
