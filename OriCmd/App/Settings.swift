@@ -18,6 +18,7 @@ enum Settings {
         static let quickSearch = "QuickSearchMode"
         static let commandLine = "ShowCommandLine"
         static let functionKeys = "ShowFunctionKeys"
+        static let functionKeyCaps = "FunctionKeyCaps"
         static let driveButtons = "ShowDriveButtons"
         static let folderBrackets = "ShowFolderBrackets"
         static let confirmTrash = "ConfirmMoveToTrash"
@@ -133,6 +134,13 @@ enum Settings {
     static var showsFunctionKeys: Bool {
         get { bool(Key.functionKeys, default: true) }
         set { set(newValue, Key.functionKeys) }
+    }
+
+    /// The function key buttons show their keys as key caps ("F5" in a small key,
+    /// then "Copy"), rather than as plain text ("F5 Copy").
+    static var showsFunctionKeyCaps: Bool {
+        get { bool(Key.functionKeyCaps, default: true) }
+        set { set(newValue, Key.functionKeyCaps) }
     }
 
     static var showsDriveButtons: Bool {
