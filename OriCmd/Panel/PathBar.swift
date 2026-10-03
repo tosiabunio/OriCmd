@@ -4,7 +4,8 @@ import AppKit
 /// Highlighted when its panel is the active one. A click on a parent folder in it
 /// goes there; a click on the current folder, the mask or right of them makes it
 /// editable. In the compact header (Settings) it also holds the volume, which a
-/// click chooses, and its free space; the mask shows only when it filters.
+/// click chooses, and its free space, which opens drive information; the mask shows
+/// only when it filters.
 final class PathBar: NSView {
     var path = "" {
         didSet { layoutDidChange() }
@@ -64,6 +65,8 @@ final class PathBar: NSView {
     var onClick: (() -> Void)?
     /// A click on the volume: the menu of volumes.
     var onVolumeClick: (() -> Void)?
+    /// A click on the free and total capacity: information about the current volume.
+    var onDriveInformation: (() -> Void)?
     /// A click on a crumb, or its choice in the menu of those put away into "…".
     var onCrumbClick: ((Int) -> Void)?
     /// The text to edit when the bar is clicked (the path without the mask).
@@ -81,12 +84,16 @@ final class PathBar: NSView {
         /// The "…" standing for parents that did not fit.
         case ellipsis
         case volume
+        case driveInformation
         case clearFilter
     }
 
     /// Underlined under the mouse.
     private var hovered: Link? {
-        didSet { if hovered != oldValue { needsDisplay = true } }
+        didSet {
+            toolTip = hovered == .driveInformation ? String(localized: "Drive Information") : filterSummary
+            if hovered != oldValue { needsDisplay = true }
+        }
     }
     /// Tab cycling: the text before it began, its candidates, the one shown (-1: their
     /// common start) and the text shown.
@@ -207,12 +214,14 @@ final class PathBar: NSView {
         guard !isEditing else { return nil }
         if let clear = clearRect(in: layout), clear.contains(point) { return .clearFilter }
         if let volume = layout.volume, volume.contains(point) { return .volume }
+        if let freeSpace = layout.freeSpace, freeSpace.contains(point) { return .driveInformation }
         if let ellipsis = layout.ellipsis, ellipsis.contains(point) { return .ellipsis }
         return layout.crumbRects.first { $0.value.contains(point) }.map { .crumb($0.key) }
     }
 
     /// Where the volume button is, if it is shown (the volume menu opens under it).
     var volumeRect: NSRect? { makeLayout().volume }
+    var freeSpaceRect: NSRect? { makeLayout().freeSpace }
 
     private func clearRect(in layout: Layout) -> NSRect? {
         guard filterSummary != nil, let rect = layout.filter else { return nil }
@@ -293,6 +302,7 @@ final class PathBar: NSView {
         if let rect = layout.freeSpace {
             var attributes = chipAttributes
             attributes[.foregroundColor] = textColor.withAlphaComponent(0.7)
+            if hovered == .driveInformation { attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue }
             (freeSpace as NSString).draw(at: NSPoint(x: rect.minX, y: rect.midY - textHeight / 2), withAttributes: attributes)
         }
     }
@@ -342,7 +352,7 @@ final class PathBar: NSView {
     override func resetCursorRects() {
         guard !isEditing else { return }
         let layout = makeLayout()
-        for rect in Array(layout.crumbRects.values) + [layout.ellipsis, layout.volume, clearRect(in: layout)].compactMap(\.self) {
+        for rect in Array(layout.crumbRects.values) + [layout.ellipsis, layout.volume, layout.freeSpace, clearRect(in: layout)].compactMap(\.self) {
             addCursorRect(rect, cursor: .pointingHand)
         }
     }
@@ -355,8 +365,8 @@ final class PathBar: NSView {
         hovered = nil
     }
 
-    /// A click on a parent goes there, on "…" lists the parents put away; elsewhere it
-    /// turns the path into a field (Enter goes there, Esc cancels, Tab completes).
+    /// A click follows a parent or header action; elsewhere it turns the path into
+    /// a field (Enter goes there, Esc cancels, Tab completes).
     override func mouseDown(with event: NSEvent) {
         let link = link(at: convert(event.locationInWindow, from: nil), in: makeLayout())
         onClick?()
@@ -367,6 +377,8 @@ final class PathBar: NSView {
             hiddenCrumbsMenu()?.popUp(positioning: nil, at: NSPoint(x: makeLayout().textX - 4, y: bounds.maxY), in: self)
         case .volume:
             onVolumeClick?()
+        case .driveInformation:
+            onDriveInformation?()
         case .clearFilter:
             onClearFilters?()
         case nil:
@@ -419,6 +431,19 @@ final class PathBar: NSView {
             element.press = { [weak self] in
                 self?.onClick?()
                 self?.onClearFilters?()
+            }
+            volumeButton.append(element)
+        }
+        if let frame = layout.freeSpace, !isEditing {
+            let element = CrumbElement()
+            element.setAccessibilityRole(.button)
+            element.setAccessibilityLabel(String(localized: "Drive Information"))
+            element.setAccessibilityValue(freeSpace)
+            element.setAccessibilityParent(self)
+            element.setAccessibilityFrameInParentSpace(frame)
+            element.press = { [weak self] in
+                self?.onClick?()
+                self?.onDriveInformation?()
             }
             volumeButton.append(element)
         }

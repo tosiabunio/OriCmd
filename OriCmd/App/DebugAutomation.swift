@@ -74,6 +74,16 @@ enum DebugAutomation {
         environment[left ? "ORICMD_LEFT" : "ORICMD_RIGHT"].map { URL(filePath: $0) }
     }
 
+    /// Test runs record information requests without opening Finder windows.
+    static func recordInformationRequest(_ urls: [URL]) -> Bool {
+        guard isTestRun, let snapshot = environment["ORICMD_SNAPSHOT"] else { return false }
+        let path = snapshot.replacingOccurrences(of: ".png", with: "-info.txt")
+        let previous = (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""
+        try? (previous + urls.map(\.path).joined(separator: "\n") + "\n")
+            .write(toFile: path, atomically: true, encoding: .utf8)
+        return true
+    }
+
     static func run(in window: NSWindow) {
         var keys = environment["ORICMD_KEYS"]?.split(separator: " ").map(String.init) ?? []
         if !keys.isEmpty && (initialDirectory(left: true) == nil || initialDirectory(left: false) == nil) {
@@ -179,7 +189,7 @@ enum DebugAutomation {
                     let panel = main.activePanel
                     let lines = ["size: " + (panel.listView.currentItem.map(panel.listView.sizeText(of:)) ?? ""),
                                  "status: " + panel.panelView.statusLabel.stringValue,
-                                 "free: " + panel.panelView.freeSpaceLabel.stringValue]
+                                 "free: " + panel.panelView.freeSpaceButton.title]
                     try? lines.joined(separator: "\n")
                         .write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-sizes.txt"), atomically: true, encoding: .utf8)
                 } else if token == "textmenu", let snapshot, let text = textView(in: topmost(window).contentView),
@@ -323,6 +333,37 @@ enum DebugAutomation {
                                                       clickCount: 1, pressure: 1) {
                         bar.mouseDown(with: event)
                     }
+                } else if token.hasPrefix("drivespace:") || token.hasPrefix("otherdrivespace:") || token == "axdrivespace",
+                          let snapshot, let main = window.contentViewController as? MainViewController {
+                    let panel = token.hasPrefix("other") ? main.panels.first { $0 !== main.activePanel } : main.activePanel
+                    guard let panel else { continue }
+                    let bar = panel.panelView.pathBar
+                    var pressed = false
+                    if token == "axdrivespace" {
+                        if Settings.compactPanelHeader {
+                            let button = (bar.accessibilityChildren() ?? []).compactMap { $0 as? NSAccessibilityElement }
+                                .first { $0.accessibilityLabel() == String(localized: "Drive Information") }
+                            pressed = button?.accessibilityPerformPress() ?? false
+                        } else {
+                            pressed = panel.panelView.freeSpaceButton.accessibilityPerformPress()
+                        }
+                    } else if Settings.compactPanelHeader, let rect = bar.freeSpaceRect {
+                        let x = rect.minX + rect.width * (token.hasSuffix(":total") ? 0.75 : 0.25)
+                        if let event = NSEvent.mouseEvent(with: .leftMouseDown,
+                            location: bar.convert(NSPoint(x: x, y: rect.midY), to: nil), modifierFlags: [],
+                            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                            context: nil, eventNumber: harnessEventNumber, clickCount: 1, pressure: 1) {
+                            bar.mouseDown(with: event)
+                            pressed = true
+                        }
+                    } else if !Settings.compactPanelHeader, panel.panelView.freeSpaceButton.isEnabled {
+                        panel.panelView.freeSpaceButton.performClick(nil)
+                        pressed = true
+                    }
+                    let path = snapshot.replacingOccurrences(of: ".png", with: "-drive-space.txt")
+                    let previous = (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""
+                    let line = "\(token): pressed=\(pressed), editing=\(bar.isEditing), active=\(main.activePanel === panel)\n"
+                    try? (previous + line).write(toFile: path, atomically: true, encoding: .utf8)
                 } else if token == "volumemenu", let snapshot, let main = window.contentViewController as? MainViewController {
                     // The volume menu of the active panel's compact path bar, written to
                     // <snapshot>-menu.txt ("✓ " before the current volume).

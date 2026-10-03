@@ -2249,6 +2249,16 @@
         }
       }
     },
+    "Drive Information": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Информация о диске"
+          }
+        }
+      }
+    },
     "Drive buttons": {
       "localizations": {
         "ru": {
