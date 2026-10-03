@@ -7,7 +7,7 @@ import AppKit
 final class PanelView: NSView {
     let driveBar = DriveBar()
     let volumeButton = NSPopUpButton(frame: .zero, pullsDown: false)
-    let freeSpaceLabel = NSTextField(labelWithString: "")
+    let freeSpaceButton: NSButton = DriveSpaceButton(title: "", target: nil, action: nil)
     /// Spins while a slow folder is being read.
     let loadingIndicator = NSProgressIndicator()
     let rootButton = NSButton(title: "/", target: nil, action: nil)
@@ -23,6 +23,7 @@ final class PanelView: NSView {
     let terminalPane = TerminalPane()
 
     var onVolumeSelected: ((Volume) -> Void)?
+    var onDriveInformation: ((Volume) -> Void)?
     var onGoToRoot: (() -> Void)?
     var onGoToParent: (() -> Void)?
 
@@ -51,10 +52,15 @@ final class PanelView: NSView {
         volumeButton.target = self
         volumeButton.action = #selector(volumeChanged(_:))
 
-        freeSpaceLabel.font = Theme.chromeFont
-        freeSpaceLabel.textColor = .secondaryLabelColor
-        freeSpaceLabel.lineBreakMode = .byTruncatingTail
-        freeSpaceLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        freeSpaceButton.isBordered = false
+        freeSpaceButton.font = Theme.chromeFont
+        freeSpaceButton.contentTintColor = .secondaryLabelColor
+        freeSpaceButton.alignment = .left
+        freeSpaceButton.cell?.lineBreakMode = .byTruncatingTail
+        freeSpaceButton.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        freeSpaceButton.setAccessibilityLabel(String(localized: "Drive Information"))
+        freeSpaceButton.target = self
+        freeSpaceButton.action = #selector(driveInformationClicked(_:))
 
         for (button, action) in [(rootButton, #selector(rootClicked(_:))), (parentButton, #selector(parentClicked(_:)))] {
             button.controlSize = .small
@@ -82,7 +88,7 @@ final class PanelView: NSView {
         loadingIndicator.controlSize = .small
         loadingIndicator.isDisplayedWhenStopped = false
 
-        let views: [NSView] = [driveBar, loadingIndicator, volumeButton, freeSpaceLabel, rootButton, parentButton, tabBar, pathBar, headerView,
+        let views: [NSView] = [driveBar, loadingIndicator, volumeButton, freeSpaceButton, rootButton, parentButton, tabBar, pathBar, headerView,
                                scrollView, statusLabel, quickSearchField, terminalPane]
         for view in views {
             view.translatesAutoresizingMaskIntoConstraints = false
@@ -110,9 +116,9 @@ final class PanelView: NSView {
             volumeButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
             volumeButton.widthAnchor.constraint(lessThanOrEqualToConstant: 180),
 
-            freeSpaceLabel.centerYAnchor.constraint(equalTo: volumeButton.centerYAnchor),
-            freeSpaceLabel.leadingAnchor.constraint(equalTo: volumeButton.trailingAnchor, constant: 6),
-            freeSpaceLabel.trailingAnchor.constraint(lessThanOrEqualTo: rootButton.leadingAnchor, constant: -6),
+            freeSpaceButton.centerYAnchor.constraint(equalTo: volumeButton.centerYAnchor),
+            freeSpaceButton.leadingAnchor.constraint(equalTo: volumeButton.trailingAnchor, constant: 6),
+            freeSpaceButton.trailingAnchor.constraint(lessThanOrEqualTo: rootButton.leadingAnchor, constant: -6),
 
             parentButton.centerYAnchor.constraint(equalTo: volumeButton.centerYAnchor),
             parentButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
@@ -165,13 +171,14 @@ final class PanelView: NSView {
             loadingIndicator.trailingAnchor.constraint(equalTo: pathBar.trailingAnchor, constant: -4),
         ]
         pathBar.onVolumeClick = { [weak self] in self?.showVolumeMenu() }
+        pathBar.onDriveInformation = { [weak self] in self?.driveInformationClicked(nil) }
         setCompactHeader(Settings.compactPanelHeader)
     }
 
     /// The compact header has no volume row: the path bar shows the volume and its
     /// free space, and its parents replace the / and .. buttons.
     func setCompactHeader(_ compact: Bool) {
-        for view in [volumeButton, freeSpaceLabel, rootButton, parentButton] as [NSView] {
+        for view in [volumeButton, freeSpaceButton, rootButton, parentButton] as [NSView] {
             view.isHidden = compact
         }
         NSLayoutConstraint.deactivate(compact ? classicConstraints : compactConstraints)
@@ -246,7 +253,7 @@ final class PanelView: NSView {
            let index = volumes.firstIndex(of: current) {
             volumeButton.selectItem(at: index)
         }
-        freeSpaceLabel.stringValue = (freeSpace ?? VolumeSpace(for: directory))?.summary(short: Settings.sizeDisplay == .short) ?? ""
+        freeSpaceButton.title = (freeSpace ?? VolumeSpace(for: directory))?.summary(short: Settings.sizeDisplay == .short) ?? ""
         currentVolume = Volume.containing(directory, in: volumes)
     }
 
@@ -263,7 +270,11 @@ final class PanelView: NSView {
     private func updatePathBarVolume() {
         let compact = Settings.compactPanelHeader && showsVolume
         pathBar.volume = compact ? currentVolume.map { ($0.name, DriveBar.icon(for: $0.url)) } : nil
-        pathBar.freeSpace = compact ? freeSpaceLabel.stringValue : ""
+        freeSpaceButton.isEnabled = showsVolume && currentVolume != nil && !freeSpaceButton.title.isEmpty
+        freeSpaceButton.toolTip = freeSpaceButton.isEnabled ? String(localized: "Drive Information") : nil
+        freeSpaceButton.setAccessibilityValue(freeSpaceButton.title)
+        window?.invalidateCursorRects(for: freeSpaceButton)
+        pathBar.freeSpace = compact && freeSpaceButton.isEnabled ? freeSpaceButton.title : ""
     }
 
     /// The mounted volumes, the current one checked, as the volume selector lists them.
@@ -301,7 +312,26 @@ final class PanelView: NSView {
         onGoToRoot?()
     }
 
+    @objc private func driveInformationClicked(_ sender: Any?) {
+        guard freeSpaceButton.isEnabled, let currentVolume else { return }
+        onDriveInformation?(currentVolume)
+    }
+
     @objc private func parentClicked(_ sender: Any?) {
         onGoToParent?()
+    }
+}
+
+/// The capacity readout keeps its plain appearance and behaves as a button.
+private final class DriveSpaceButton: NSButton {
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        if isEnabled { addCursorRect(bounds, cursor: .pointingHand) }
+    }
+
+    override func accessibilityPerformPress() -> Bool {
+        guard isEnabled, !isHiddenOrHasHiddenAncestor else { return false }
+        performClick(nil)
+        return true
     }
 }

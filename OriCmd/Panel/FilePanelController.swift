@@ -177,6 +177,10 @@ final class FilePanelController: NSViewController {
         panelView.onGoToRoot = { [weak self] in self?.goToRoot() }
         panelView.onGoToParent = { [weak self] in self?.goToParent() }
         panelView.onVolumeSelected = { [weak self] volume in self?.openDrive(volume.url) }
+        panelView.onDriveInformation = { [weak self] volume in
+            self?.focus()
+            self?.showInfo([volume.url])
+        }
         panelView.driveBar.onSelect = { [weak self] url in self?.openDrive(url) }
         panelView.driveBar.menuProvider = { [weak self] url in self?.driveMenu(for: url) }
         panelView.setDriveBarVisible(Settings.showsDriveButtons)
@@ -225,7 +229,7 @@ final class FilePanelController: NSViewController {
         if Settings.sizeDisplay != shownSizeDisplay {
             shownSizeDisplay = Settings.sizeDisplay
             updateStatus()
-            panelView.freeSpaceLabel.stringValue = VolumeSpace(for: directory)?.summary(short: shownSizeDisplay == .short) ?? ""
+            panelView.freeSpaceButton.title = VolumeSpace(for: directory)?.summary(short: shownSizeDisplay == .short) ?? ""
         }
         panelView.setCompactHeader(Settings.compactPanelHeader)
         updateStatus()
@@ -1815,6 +1819,9 @@ extension FilePanelController: NSMenuItemValidation {
     }
 
     private func showInfo(_ urls: [URL]) {
+        #if DEBUG
+        if DebugAutomation.recordInformationRequest(urls) { return }
+        #endif
         let filenames = NSPasteboard.PasteboardType("NSFilenamesPboardType")
         let pasteboard = NSPasteboard(name: NSPasteboard.Name("ru.themmag.OriCmd.ShowInfo"))
         pasteboard.declareTypes([filenames], owner: nil)

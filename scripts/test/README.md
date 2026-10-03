@@ -22,6 +22,11 @@ real keyboard and mouse, so working elsewhere meanwhile changes nothing.
   panel's path (`/` is 0), `pathend` clicks right of it, and `crumbmenu` writes the
   parents a long path puts away into `…` to `<name>-menu.txt` (`crumbmenu:N` chooses one). `volumemenu` writes
   the volume menu of the compact path bar there (`✓ ` before the current volume).
+  `drivespace:free` / `drivespace:total` click the capacity readout,
+  `otherdrivespace:free` clicks the inactive panel's readout, and `axdrivespace`
+  presses its accessible button. These write activation state to
+  `<name>-drive-space.txt` and the requested volume paths to `<name>-info.txt`;
+  test runs record Get Info requests instead of opening Finder windows.
   `tabhover:N` shows the active panel's tab N as under the mouse (its close button),
   `tabclose:N` clicks that button.
   Modifiers: `cmd+`, `shift+`, `alt+`, `ctrl+`, `num+`; `ru+` types the key as the

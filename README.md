@@ -395,6 +395,8 @@ By default the path bar also holds the volume, before the path (a click lists th
 volumes), and its free space at the end when there is room; the mask shows there only
 when a filter is on. This replaces the row with the volume selector and the `/` and
 `..` buttons, which Settings → Panels → Window → "Panel header" can bring back.
+Click the free-space or total-capacity readout in either header to open the current
+drive's information window in Finder.
 
 A click on the current folder, the mask or right of the path makes it editable:
 type a folder (or a file: it is shown selected; an archive opens), a folder on the
