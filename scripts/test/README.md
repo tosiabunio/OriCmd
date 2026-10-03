@@ -34,3 +34,9 @@ real keyboard and mouse, so working elsewhere meanwhile changes nothing.
   or adds Russian translations from a JSON file.
 
 Build the Debug app first (`xcodebuild … -derivedDataPath build/DerivedData build`).
+
+`accessibility.sh` exercises the file list's accessible rows in Full, Brief and
+Thumbnails views, selection, refresh identity and stale-row safety, then uses Pick
+and Press on disposable files and folders. `accessibilitycheck` writes its API
+checks to `<name>-accessibility.txt`; `accessibilitydump` writes row descriptions
+and selection there. `axpick:filename` selects a row and `axpress:filename` opens it.

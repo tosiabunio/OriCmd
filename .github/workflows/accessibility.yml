@@ -1,0 +1,34 @@
+name: File panel accessibility
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  accessibility:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build the background test app
+        run: |
+          mkdir -p build/logs
+          xcodebuild -project OriCmd.xcodeproj -scheme OriCmd -configuration Debug -derivedDataPath build/DerivedData build > build/logs/accessibility-build.log 2>&1
+      - name: Check accessible rows and actions
+        run: scripts/test/accessibility.sh
+      - name: Check localization
+        run: test "$(python3 scripts/test/loc.py)" = '[]'
+      - name: Save accessibility evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: accessibility-results
+          path: |
+            build/shots/accessibility*
+            build/logs/

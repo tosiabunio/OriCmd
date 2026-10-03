@@ -2315,6 +2315,16 @@
         }
       }
     },
+    "File": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Файл"
+          }
+        }
+      }
+    },
     "File Colors": {
       "localizations": {
         "ru": {
@@ -3935,6 +3945,16 @@
         }
       }
     },
+    "Parent folder": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Родительская папка"
+          }
+        }
+      }
+    },
     "Password for %@@%@:": {
       "localizations": {
         "ru": {
@@ -5161,6 +5181,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Поменять панели местами"
+          }
+        }
+      }
+    },
+    "Symbolic link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Символическая ссылка"
           }
         }
       }
