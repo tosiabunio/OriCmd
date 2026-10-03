@@ -292,6 +292,17 @@ enum DebugAutomation {
                 } else if token.hasPrefix("colorpreset:"), let index = Int(token.dropFirst(12)),
                           ColorSettings.Preset.allCases.indices.contains(index) {
                     ColorSettings.Preset.allCases[index].apply()
+                } else if token == "filterdump", let main = window.contentViewController as? MainViewController, let snapshot {
+                    let bar = main.activePanel.panelView.pathBar
+                    let report = bar.filterSummary ?? "No filters"
+                    try? report.write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-filters.txt"), atomically: true, encoding: .utf8)
+                } else if token == "clearfilters", let main = window.contentViewController as? MainViewController {
+                    let bar = main.activePanel.panelView.pathBar
+                    if let rect = bar.filterClearRect,
+                       let event = NSEvent.mouseEvent(with: .leftMouseDown,
+                           location: bar.convert(NSPoint(x: rect.midX, y: rect.midY), to: nil), modifierFlags: [],
+                           timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                           context: nil, eventNumber: harnessEventNumber, clickCount: 1, pressure: 1) { bar.mouseDown(with: event) }
                 } else if token == "pathclick", let main = window.contentViewController as? MainViewController {
                     // A click on the active panel's path bar (it becomes editable).
                     main.activePanel.panelView.pathBar.onClick?()

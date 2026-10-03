@@ -167,6 +167,12 @@ final class FilePanelController: NSViewController {
         panelView.pathBar.editableText = { [weak self] in self?.editablePath ?? "" }
         panelView.pathBar.onCommit = { [weak self] text in self?.go(to: text) }
         panelView.pathBar.onCrumbClick = { [weak self] index in self?.goToPathPart(index) }
+        panelView.pathBar.onClearFilters = { [weak self] in
+            guard let self else { return }
+            filterMask = nil
+            quickFilter = nil
+            endQuickSearch(openingItem: false)
+        }
         panelView.pathBar.completions = { [weak self] text in await self?.completions(for: text) ?? [] }
         panelView.onGoToRoot = { [weak self] in self?.goToRoot() }
         panelView.onGoToParent = { [weak self] in self?.goToParent() }
@@ -1027,12 +1033,20 @@ final class FilePanelController: NSViewController {
             }
         }
         var items = showsHidden ? entries : entries.filter { !$0.isHidden }
+        let unfilteredCount = items.count
         if let filterMask {
             items = items.filter { $0.isFolder || FileMask.matches($0.name, filterMask) }
         }
         if let quickFilter {
             items = items.filter { $0.name.localizedCaseInsensitiveContains(quickFilter) }
         }
+        var rules: [String] = []
+        if let quickFilter { rules.append(String(localized: "Text: \(quickFilter)")) }
+        if let filterMask { rules.append(String(localized: "Mask: \(filterMask)")) }
+        panelView.pathBar.filterCriteria = rules.joined(separator: " · ")
+        panelView.pathBar.filterCount = String(localized: "\(items.count) of \(unfilteredCount)")
+        panelView.pathBar.filterSummary = rules.isEmpty ? nil :
+            panelView.pathBar.filterCriteria + " · " + panelView.pathBar.filterCount
         if archive != nil || searchResults != nil || remote != nil || directory.path != "/" {
             items.insert(.parent(of: directory), at: 0)
         }

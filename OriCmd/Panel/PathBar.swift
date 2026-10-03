@@ -36,6 +36,14 @@ final class PathBar: NSView {
         didSet { layoutDidChange() }
     }
 
+    /// Both filtering rules and the number of matching entries, excluding the parent row.
+    var filterSummary: String? {
+        didSet { toolTip = filterSummary; layoutDidChange() }
+    }
+    var filterCriteria = ""
+    var filterCount = ""
+    var onClearFilters: (() -> Void)?
+
     /// The volume of the folder shown, as a button at the start (compact header only).
     var volume: (name: String, icon: NSImage)? {
         didSet { layoutDidChange() }
@@ -73,6 +81,7 @@ final class PathBar: NSView {
         /// The "…" standing for parents that did not fit.
         case ellipsis
         case volume
+        case clearFilter
     }
 
     /// Underlined under the mouse.
@@ -131,7 +140,7 @@ final class PathBar: NSView {
 
     /// The width of the filter chip: a funnel and the mask.
     private var filterWidth: CGFloat {
-        6 + 12 + 3 + ceil((mask as NSString).size(withAttributes: chipAttributes).width) + 6
+        6 + 12 + 3 + ceil(((filterSummary ?? mask) as NSString).size(withAttributes: chipAttributes).width) + (filterSummary == nil ? 6 : 24)
     }
 
     /// Whether the mask filters anything (it is shown in the compact header only then).
@@ -143,7 +152,7 @@ final class PathBar: NSView {
     private func makeLayout() -> Layout {
         let attributes = attributes
         func width(_ text: String) -> CGFloat { (text as NSString).size(withAttributes: attributes).width }
-        let full = showsMask && !isCompact ? (path.hasSuffix("/") ? path : path + "/") + mask : path
+        let full = showsMask && !isCompact && filterSummary == nil ? (path.hasSuffix("/") ? path : path + "/") + mask : path
         var layout = Layout(text: full)
         var leading: CGFloat = 4, trailing = bounds.maxX - 4
         var volumeRect: NSRect?, filterRect: NSRect?, freeRect: NSRect?
@@ -154,10 +163,13 @@ final class PathBar: NSView {
                 leading = volumeRect!.maxX + 6
             }
             if isLoading { trailing -= Self.spinnerRoom }
-            if filters {
-                filterRect = NSRect(x: trailing - filterWidth, y: 2, width: filterWidth, height: chipHeight)
-                trailing = filterRect!.minX - 6
-            }
+        }
+        if filterSummary != nil || (isCompact && filters) {
+            let chipWidth = min(filterWidth, max(60, min(bounds.width * 0.60, trailing - leading - 24)))
+            filterRect = NSRect(x: trailing - chipWidth, y: 1, width: chipWidth, height: bounds.height - 2)
+            trailing = filterRect!.minX - 6
+        }
+        if isCompact {
             let freeWidth = ceil((freeSpace as NSString).size(withAttributes: chipAttributes).width)
             if !freeSpace.isEmpty, !isLoading, width(full) <= trailing - leading - freeWidth - 12 {
                 freeRect = NSRect(x: trailing - freeWidth, y: 0, width: freeWidth, height: bounds.height)
@@ -193,6 +205,7 @@ final class PathBar: NSView {
 
     private func link(at point: NSPoint, in layout: Layout) -> Link? {
         guard !isEditing else { return nil }
+        if let clear = clearRect(in: layout), clear.contains(point) { return .clearFilter }
         if let volume = layout.volume, volume.contains(point) { return .volume }
         if let ellipsis = layout.ellipsis, ellipsis.contains(point) { return .ellipsis }
         return layout.crumbRects.first { $0.value.contains(point) }.map { .crumb($0.key) }
@@ -200,6 +213,13 @@ final class PathBar: NSView {
 
     /// Where the volume button is, if it is shown (the volume menu opens under it).
     var volumeRect: NSRect? { makeLayout().volume }
+
+    private func clearRect(in layout: Layout) -> NSRect? {
+        guard filterSummary != nil, let rect = layout.filter else { return nil }
+        return NSRect(x: rect.maxX - 22, y: rect.minY, width: 22, height: rect.height)
+    }
+
+    var filterClearRect: NSRect? { clearRect(in: makeLayout()) }
 
     override func draw(_ dirtyRect: NSRect) {
         (isActive ? Theme.activeHeaderBackground : Theme.inactiveHeaderBackground).setFill()
@@ -252,7 +272,23 @@ final class PathBar: NSView {
             chipFill.setFill()
             NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2).fill()
             symbol("line.3.horizontal.decrease", size: 8, in: NSRect(x: rect.minX + 6, y: rect.minY, width: 12, height: rect.height))
-            (mask as NSString).draw(at: NSPoint(x: rect.minX + 21, y: rect.midY - textHeight / 2), withAttributes: chipAttributes)
+            let clear = clearRect(in: layout)
+            let countWidth = filterSummary == nil ? 0 : ceil((filterCount as NSString).size(withAttributes: chipAttributes).width)
+            let countX = (clear?.minX ?? rect.maxX) - 4 - countWidth
+            ((filterSummary == nil ? mask : filterCriteria) as NSString).draw(
+                with: NSRect(x: rect.minX + 21, y: rect.midY - textHeight / 2,
+                             width: max(0, countX - rect.minX - 27), height: textHeight),
+                options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: chipAttributes)
+            if filterSummary != nil {
+                (filterCount as NSString).draw(at: NSPoint(x: countX, y: rect.midY - textHeight / 2), withAttributes: chipAttributes)
+            }
+            if let clear {
+                if hovered == .clearFilter {
+                    textColor.withAlphaComponent(0.15).setFill()
+                    NSBezierPath(ovalIn: clear.insetBy(dx: 3, dy: 1)).fill()
+                }
+                symbol("xmark", size: 8, in: clear)
+            }
         }
         if let rect = layout.freeSpace {
             var attributes = chipAttributes
@@ -306,7 +342,7 @@ final class PathBar: NSView {
     override func resetCursorRects() {
         guard !isEditing else { return }
         let layout = makeLayout()
-        for rect in Array(layout.crumbRects.values) + [layout.ellipsis, layout.volume].compactMap(\.self) {
+        for rect in Array(layout.crumbRects.values) + [layout.ellipsis, layout.volume, clearRect(in: layout)].compactMap(\.self) {
             addCursorRect(rect, cursor: .pointingHand)
         }
     }
@@ -331,6 +367,8 @@ final class PathBar: NSView {
             hiddenCrumbsMenu()?.popUp(positioning: nil, at: NSPoint(x: makeLayout().textX - 4, y: bounds.maxY), in: self)
         case .volume:
             onVolumeClick?()
+        case .clearFilter:
+            onClearFilters?()
         case nil:
             beginEditing()
         }
@@ -368,6 +406,19 @@ final class PathBar: NSView {
             element.press = { [weak self] in
                 self?.onClick?()
                 self?.onVolumeClick?()
+            }
+            volumeButton.append(element)
+        }
+        if let frame = clearRect(in: layout) {
+            let element = CrumbElement()
+            element.setAccessibilityRole(.button)
+            element.setAccessibilityLabel(String(localized: "Clear filters"))
+            element.setAccessibilityValue(filterSummary)
+            element.setAccessibilityParent(self)
+            element.setAccessibilityFrameInParentSpace(frame)
+            element.press = { [weak self] in
+                self?.onClick?()
+                self?.onClearFilters?()
             }
             volumeButton.append(element)
         }

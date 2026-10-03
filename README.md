@@ -16,6 +16,8 @@ Copy and move dialogs show the source, destination, affected names and whether m
 
 Marked items carry a checkmark on their icon in Full, Brief and Thumbnails views, so selection does not depend on text color. Disable it in Settings → Panels → Show checkmarks on marked items for the traditional appearance.
 
+Active filters appear in the path header with their match count and a clear button. Text and filename-mask rules are shown together; clearing restores all entries allowed by the hidden-file setting. Counts exclude the parent-folder row.
+
 ## Features
 
 - **Panels:** tabs, history, directory hotlist, tree, filters, quick search, a
