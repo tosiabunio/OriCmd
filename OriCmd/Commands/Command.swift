@@ -44,6 +44,7 @@ enum Command: String, CaseIterable {
     case exchangeSelection = "cm_ExchangeSelection"
 
     // Commands
+    case commandPalette = "cm_CommandPalette"
     case rereadSource = "cm_RereadSource"
     case exchange = "cm_Exchange"
     case leftEqualRight = "cm_LeftEqualRight"
@@ -93,7 +94,7 @@ enum Command: String, CaseIterable {
     case terminalChangeDir = "cm_TerminalChangeDir"
 
     /// Commands whose keys work while the terminal has the focus.
-    static let terminalCommands: [Command] = [.serverTerminal, .terminalChangeDir]
+    static let terminalCommands: [Command] = [.serverTerminal, .terminalChangeDir, .commandPalette]
 
     init?(selector: Selector) {
         self.init(rawValue: String(NSStringFromSelector(selector).dropLast()))
@@ -103,6 +104,7 @@ enum Command: String, CaseIterable {
 
     var title: String {
         switch self {
+        case .commandPalette: String(localized: "Run Command…")
         case .list: String(localized: "View")
         case .edit: String(localized: "Edit")
         case .copy: String(localized: "Copy…")
@@ -190,6 +192,7 @@ enum Command: String, CaseIterable {
     /// (Del, Backspace, arrows) are handled by the file list instead.
     var defaultShortcut: Shortcut? {
         switch self {
+        case .commandPalette: .cmd("p", .shift)
         case .list: .f(3)
         case .edit: .f(4)
         case .copy: .f(5)

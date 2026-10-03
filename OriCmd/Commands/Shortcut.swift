@@ -84,6 +84,18 @@ extension Shortcut {
         return prefix.isEmpty ? name : prefix + "+" + name
     }
 
+    /// The symbols used in macOS menus, reflecting the current binding.
+    var displayText: String {
+        var prefix = ""
+        if modifiers.contains(.control) { prefix += "⌃" }
+        if modifiers.contains(.option) { prefix += "⌥" }
+        if modifiers.contains(.shift) { prefix += "⇧" }
+        if modifiers.contains(.command) { prefix += "⌘" }
+        let name = text.split(separator: "+").last.map(String.init) ?? key.uppercased()
+        let glyphs = ["Up": "↑", "Down": "↓", "Left": "←", "Right": "→", "Tab": "⇥", "Enter": "↩", "Esc": "⎋", "Back": "⌫", "Del": "⌦", "Home": "↖", "End": "↘", "Pgup": "⇞", "Pgdn": "⇟"]
+        return prefix + (glyphs[name] ?? name)
+    }
+
     /// The shortcut a key press stands for (while recording one).
     init?(event: NSEvent) {
         let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])

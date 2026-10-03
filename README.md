@@ -12,6 +12,8 @@ keep working as always.
 Full, Brief and Thumbnails file panels expose file names, types, sizes, dates,
 selection and open actions through macOS accessibility, including VoiceOver.
 
+Commands → Run Command… (⇧⌘P) opens a searchable command palette. Search localized names or cm_* command names, use ↑/↓ and Return to run a command, or Esc to dismiss. Current shortcuts are shown, unavailable actions are disabled, and recent commands appear first on the next opening.
+
 ## Features
 
 - **Panels:** tabs, history, directory hotlist, tree, filters, quick search, a
