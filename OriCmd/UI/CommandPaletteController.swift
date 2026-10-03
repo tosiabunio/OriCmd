@@ -94,7 +94,8 @@ final class CommandPaletteController: NSObject, NSTableViewDataSource, NSTableVi
         }.sorted { a, b in
             @MainActor func rank(_ command: Command) -> Int {
                 if !query.isEmpty {
-                    if command.rawValue.caseInsensitiveCompare(query) == .orderedSame || command.title.caseInsensitiveCompare(query) == .orderedSame { return -2 }
+                    let title = command.title.trimmingCharacters(in: CharacterSet(charactersIn: "…."))
+                    if command.rawValue.caseInsensitiveCompare(query) == .orderedSame || title.caseInsensitiveCompare(query) == .orderedSame { return -2 }
                     return command.title.localizedLowercase.hasPrefix(query.localizedLowercase) ? -1 : 0
                 }
                 return recent.firstIndex(of: command.rawValue) ?? recent.count
