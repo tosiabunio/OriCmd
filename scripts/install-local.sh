@@ -1,8 +1,8 @@
 #!/bin/zsh
 # Builds this checkout as a Release app and installs it into /Applications as the next
 # build of the fork: the counter in the repository's .git folder goes up by one on
-# every install, and the About window shows it with the commit ("+" after it when the
-# checkout has changes not committed).
+# every install. About shows the calendar version and this local build number;
+# the commit stays in bundle metadata for diagnostics.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
