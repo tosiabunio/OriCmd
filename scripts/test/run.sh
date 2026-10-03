@@ -8,7 +8,7 @@ set -euo pipefail
 setopt nullglob extendedglob
 cd "$(dirname $0)/../.."
 mkdir -p build/shots
-name=${1:?usage: scripts/test/run.sh <name> "<keys>"}; keys=${2:?keys are required}
+name=${1:?usage: scripts/test/run.sh <name> "<keys>"}; keys=${2:-}
 [[ "$name" == [A-Za-z0-9_-]## ]] || { print -u2 "Invalid test name: $name"; exit 2; }
 # All worktrees share the test settings suite, so only one UI run may use it.
 lock=${TMPDIR:-/tmp}/oricmd-ui-tests.lock

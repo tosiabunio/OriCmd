@@ -41,8 +41,8 @@ print -- "$*" >> "$MOCK_DEFAULTS_LOG"
                        TMPDIR=str(temporary), MOCK_DEFAULTS_LOG=str(log))
     lock = temporary / "oricmd-ui-tests.lock"
 
-    def run(mode):
-        result = subprocess.run(["/bin/zsh", str(root / "scripts/test/run.sh"), name, "wait"],
+    def run(mode, keys="wait"):
+        result = subprocess.run(["/bin/zsh", str(root / "scripts/test/run.sh"), name, keys],
                                 env=dict(environment, MOCK_LAUNCH=mode), text=True, capture_output=True)
         return result
 
@@ -66,6 +66,10 @@ print -- "$*" >> "$MOCK_DEFAULTS_LOG"
         assert snapshot.read_bytes() == b'fresh snapshot' and marker.exists()
         assert not lock.exists()
         print("ok   completed runs save fresh results and release the lock")
+
+        result = run("complete", keys="")
+        assert result.returncode == 0, result.stderr
+        print("ok   snapshot-only runs accept an empty key sequence")
 
         previous = log.read_text()
         lock.mkdir()
