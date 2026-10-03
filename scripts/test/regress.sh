@@ -113,22 +113,22 @@ check "a file typed into the path bar is selected in its folder" "[ -f $R/notes.
 # folder it came from (in archives too, out of an inner archive back into the outer
 # one); "…" lists the parents a long path leaves out; right of the path edits it.
 # Parts are counted from "/" (0), so the test folder's depth decides their numbers.
-P=${#${(s:/:)PWD}}; T=$((P + 2)); first=${${(s:/:)PWD}[1]}; second=${${(s:/:)PWD}[2]}
+P=${#${(s:/:)PWD}}; breadcrumbDepth=$((P + 2)); first=${${(s:/:)PWD}[1]}; second=${${(s:/:)PWD}[2]}
 shown() { grep -qF "$2" build/shots/reg-$1-panels.txt; }
 scripts/test/mkdata.sh
-run crumbup "crumb:$T wait wait"
+run crumbup "crumb:$breadcrumbDepth wait wait"
 check "a parent in the path bar goes there, the cursor on the folder left" "shown crumbup 'left*: $PWD/build/testdata | cursor: left |'"
 run crumbroot "crumb:0 wait wait"
 check "/ in the path bar goes to the root" "shown crumbroot 'left*: / | cursor: $first |'"
-run crumbother "othercrumb:$T wait wait"
+run crumbother "othercrumb:$breadcrumbDepth wait wait"
 check "a parent in the other panel's path bar makes it active and goes there" "shown crumbother 'right*: $PWD/build/testdata | cursor: right |'"
 arc="alt+a wait text:rchive-test escape enter wait wait pathclick wait cmd+a text:$PWD/$L/archive-test.zip/beta/deep enter wait wait"
-run crumbarc "$arc crumb:$((T + 3)) wait wait"
+run crumbarc "$arc crumb:$((breadcrumbDepth + 3)) wait wait"
 check "a folder in an archive in the path bar goes there" "shown crumbarc 'left*: $PWD/$L/archive-test.zip/beta | cursor: deep |'"
-run crumbarcout "$arc crumb:$((T + 1)) wait wait"
+run crumbarcout "$arc crumb:$((breadcrumbDepth + 1)) wait wait"
 check "a folder before an archive in the path bar leaves it" "shown crumbarcout 'left*: $PWD/$L | cursor: archive-test.zip |'"
 nested
-run crumbnest "alt+o wait text:uter enter wait wait alt+i wait text:nner enter wait wait wait down enter wait crumb:$((T + 2)) wait wait"
+run crumbnest "alt+o wait text:uter enter wait wait alt+i wait text:nner enter wait wait wait down enter wait crumb:$((breadcrumbDepth + 2)) wait wait"
 check "the outer archive in the path bar goes back into it" "shown crumbnest 'left*: $PWD/$L/outer.zip | cursor: inner.zip |'"
 scripts/test/mkdata.sh
 long=$L/a-rather-long-folder-name-for-the-path-bar/another-quite-long-folder-name/and-a-third-level-folder
@@ -164,7 +164,7 @@ startup=$(diskutil info / | sed -n 's/^ *Volume Name: *//p')
 run volmenu "volumemenu"
 check "the compact path bar names the volume and lists the volumes, the current one checked" "grep -qx 'volume button' build/shots/reg-volmenu-menu.txt && grep -qxF '✓ $startup' build/shots/reg-volmenu-menu.txt"
 defaults write ru.themmag.OriCmd.tests CompactPanelHeader -bool false
-run crumbclassic "crumb:$T wait wait volumemenu"
+run crumbclassic "crumb:$breadcrumbDepth wait wait volumemenu"
 check "in the classic header the path bar names no volume, and its parents go there" "grep -qx 'no volume button' build/shots/reg-crumbclassic-menu.txt && shown crumbclassic 'left*: $PWD/build/testdata | cursor: left |'"
 
 # The status line as the Finder words it (the default), with the sizes as chosen.
@@ -1484,7 +1484,7 @@ scripts/test/mkdata.sh
 run pathserver "$(connect sftp://oritest$PWD/$L) wait pathclick wait cmd+a text:sftp://oritest$PWD/$L/alp tab wait wait enter wait wait f7 wait text:srvmade enter wait wait"
 check "the path bar completes and goes to server folders" "[ -d $L/alpha/srvmade ]"
 scripts/test/mkdata.sh
-run crumbserver "$(connect sftp://oritest$PWD/$L/alpha) crumb:$((T + 1)) wait wait wait"
+run crumbserver "$(connect sftp://oritest$PWD/$L/alpha) crumb:$((breadcrumbDepth + 1)) wait wait wait"
 check "a parent in the path bar goes there on a server" "shown crumbserver 'left*: sftp://oritest$PWD/$L | cursor: alpha |'"
 
 # ⌘K lists the servers connected to: ↓ in the address field picks the latest, Return connects.
