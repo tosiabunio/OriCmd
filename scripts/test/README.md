@@ -53,3 +53,9 @@ playback. Launch failures, crashes, missing snapshots and timeouts fail the
 regression run; the individual launcher logs are in `build/testlogs`. If a runner
 is killed with SIGKILL, remove the stale `oricmd-ui-tests.lock` folder in the
 user's temporary directory only after confirming no UI test is still running.
+
+`accessibility.sh` exercises the file list's accessible rows in Full, Brief and
+Thumbnails views, selection, refresh identity and stale-row safety, then uses Pick
+and Press on disposable files and folders. `accessibilitycheck` writes its API
+checks to `<name>-accessibility.txt`; `accessibilitydump` writes row descriptions
+and selection there. `axpick:filename` selects a row and `axpress:filename` opens it.

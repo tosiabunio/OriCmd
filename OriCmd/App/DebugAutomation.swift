@@ -21,6 +21,48 @@ import WebKit
 ///   terminal of the active panel as `<name>-terminal.png` and `.txt`.
 /// - `ORICMD_QUIT`: exit when done (even with a sheet open).
 enum DebugAutomation {
+    /// Calls the accessibility APIs against live panel geometry and state.
+    private static func checkAccessibility(of list: FileListView) -> String {
+        let items = list.items, cursor = list.cursor, marked = list.marked, mode = list.viewMode
+        defer {
+            list.reload(items: items, cursor: cursor)
+            list.setMarked(marked)
+            list.viewMode = mode
+        }
+        var lines: [String] = []
+        func check(_ condition: Bool, _ label: String) { lines.append((condition ? "ok   " : "FAIL ") + label) }
+        let rows = list.accessibilityFileRows()
+        check(list.accessibilityRole() == .list && list.accessibilityRowCount() == items.count,
+              "panel exposes a file list and its row count")
+        check(rows.count == items.count && zip(rows, items).allSatisfy { row, item in
+            row.accessibilityRole() == .row && row.accessibilityLabel() == (item.isParent ? String(localized: "Parent folder") : item.name)
+        }, "every file and folder has an accessible row")
+        for viewMode in [FileListView.ViewMode.full, .brief, .thumbnails] {
+            list.viewMode = viewMode
+            let visible = list.accessibilityVisibleChildren() as? [FileAccessibilityRow] ?? []
+            check(!visible.isEmpty && visible.allSatisfy { row in
+                let frame = row.accessibilityFrame()
+                return frame.width > 0 && frame.height > 0
+                    && list.accessibilityHitTest(NSPoint(x: frame.midX, y: frame.midY)) as? FileAccessibilityRow === row
+            }, "\(viewMode.rawValue) view exposes visible rows with matching screen frames")
+        }
+        let files = rows.filter { $0.item?.isParent == false }
+        if let row = files.first {
+            check(row.accessibilityPerformPick() && row.isAccessibilitySelected()
+                  && list.cursor == row.index && list.marked.isEmpty, "Pick selects and focuses the requested row")
+            if files.count >= 2 {
+                list.setAccessibilitySelectedRows(Array(files.prefix(2)))
+                check(list.accessibilitySelectedRows()?.count == 2 && list.marked.count == 2,
+                      "multiple accessible rows map to marked files")
+            }
+            list.reload(items: items, cursor: cursor)
+            check(list.accessibilityFileRows().contains { $0 === row }, "row identity survives a refresh")
+            list.reload(items: items.filter { FileAccessibilityRow.identity(of: $0) != row.identity }, cursor: 0)
+            check(!row.isAccessibilityElement() && !row.accessibilityPerformPress(), "removed rows cannot open a different file")
+        }
+        return lines.joined(separator: "\n")
+    }
+
     private static var environment: [String: String] { ProcessInfo.processInfo.environment }
 
     /// Keys to play or a snapshot to take: a test run, which stays in the background.
@@ -47,6 +89,23 @@ enum DebugAutomation {
             for token in keys {
                 if token == "wait" {
                     try? await Task.sleep(for: .milliseconds(700))
+                } else if token == "accessibilitycheck", let list = window.firstResponder as? FileListView, let snapshot {
+                    let report = checkAccessibility(of: list)
+                    try? report.write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-accessibility.txt"),
+                                      atomically: true, encoding: .utf8)
+                } else if token.hasPrefix("axpick:") || token.hasPrefix("axpress:"),
+                          let list = window.firstResponder as? FileListView {
+                    let name = String(token.dropFirst(token.hasPrefix("axpick:") ? 7 : 8))
+                    if let row = list.accessibilityFileRows().first(where: { $0.item?.name == name }) {
+                        if token.hasPrefix("axpick:") { _ = row.accessibilityPerformPick() }
+                        else { _ = row.accessibilityPerformPress() }
+                    }
+                } else if token == "accessibilitydump", let list = window.firstResponder as? FileListView, let snapshot {
+                    let lines = list.accessibilityFileRows().map { row in
+                        "\(row.accessibilityLabel() ?? "") | selected: \(row.isAccessibilitySelected()) | \(row.accessibilityValue() ?? "")"
+                    }
+                    try? lines.joined(separator: "\n").write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-accessibility.txt"),
+                                                           atomically: true, encoding: .utf8)
                 } else if token == "menu", let list = window.firstResponder as? FileListView,
                           let menu = list.delegate?.fileList(list, contextMenuFor: list.selectedEntries),
                           let snapshot = environment["ORICMD_SNAPSHOT"] {

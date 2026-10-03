@@ -48,11 +48,13 @@ final class FileListView: NSView {
             updateFrameSize()
             needsDisplay = true
             scrollCursorToVisible()
+            NSAccessibility.post(element: self, notification: .layoutChanged)
         }
     }
 
     private var briefColumnWidth: CGFloat = 160
 
+    var fileAccessibilityRows: [FileAccessibilityRow]?
     private(set) var items: [FileItem] = []
     private(set) var cursor = 0
     /// Names of marked entries, drawn in red.
@@ -101,6 +103,7 @@ final class FileListView: NSView {
 
     override func becomeFirstResponder() -> Bool {
         delegate?.fileListDidBecomeActive(self)
+        accessibilitySelectionChanged()
         return true
     }
 
@@ -119,6 +122,7 @@ final class FileListView: NSView {
         needsDisplay = true
         scrollCursorToVisible()
         delegate?.fileListCursorDidMove(self)
+        reloadAccessibilityRows()
     }
 
     var currentItem: FileItem? {
@@ -134,6 +138,7 @@ final class FileListView: NSView {
         setNeedsDisplay(rowRect(cursor))
         scrollCursorToVisible()
         delegate?.fileListCursorDidMove(self)
+        accessibilitySelectionChanged()
     }
 
     /// Font or other settings changed: re-measure rows and redraw.
@@ -226,6 +231,7 @@ final class FileListView: NSView {
         marked = names
         needsDisplay = true
         delegate?.fileListMarksDidChange(self)
+        accessibilitySelectionChanged()
     }
 
     private func toggleMark(at row: Int) {
@@ -236,6 +242,7 @@ final class FileListView: NSView {
         }
         setNeedsDisplay(rowRect(row))
         delegate?.fileListMarksDidChange(self)
+        accessibilitySelectionChanged()
     }
 
     private func markRange(from start: Int, to end: Int) {
@@ -718,6 +725,7 @@ final class FileListView: NSView {
         }
         needsDisplay = true
         delegate?.fileListMarksDidChange(self)
+        accessibilitySelectionChanged()
     }
 
     // MARK: - Keyboard

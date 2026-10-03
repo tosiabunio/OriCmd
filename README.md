@@ -9,6 +9,9 @@ keep working as always.
 
 ![OriCmd main window](docs/screenshots/en/main.png)
 
+Full, Brief and Thumbnails file panels expose file names, types, sizes, dates,
+selection and open actions through macOS accessibility, including VoiceOver.
+
 ## Features
 
 - **Panels:** tabs, history, directory hotlist, tree, filters, quick search, a
