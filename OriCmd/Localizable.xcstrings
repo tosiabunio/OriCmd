@@ -2509,6 +2509,16 @@
         }
       }
     },
+    "Credits and licenses": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Благодарности и лицензии"
+          }
+        }
+      }
+    },
     "Cursor text:": {
       "localizations": {
         "ru": {
@@ -3675,6 +3685,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Шрифт"
+          }
+        }
+      }
+    },
+    "Fork repository": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Репозиторий форка"
           }
         }
       }
@@ -5295,6 +5315,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Новый язык появится после перезапуска."
+          }
+        }
+      }
+    },
+    "Original repository": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оригинальный репозиторий"
           }
         }
       }
