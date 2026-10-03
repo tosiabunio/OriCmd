@@ -20,9 +20,10 @@ run ux-palette-focus 'alt+r wait text:eadme escape cmd+shift+p wait escape down 
 rg -q 'cursor:' build/shots/ux-palette-focus-panels.txt
 run ux-palette-empty 'cmd+shift+p wait text:no_such_command_928 wait'
 ! rg -q '^F5$|^Copy…$' build/shots/ux-palette-empty-sheet.txt
-printf '[Shortcuts]\nM+J=cm_Copy\n' > build/palette-shortcuts.ini
+printf '[Shortcuts]\nM+J=cm_Copy\nM++=cm_Copy\n' > build/palette-shortcuts.ini
 run ux-palette-keys "importini:$PWD/build/palette-shortcuts.ini cmd+shift+p wait text:cm_Copy wait"
 rg -q '⌘J' build/shots/ux-palette-keys-sheet.txt
+rg -Fq '⌘+' build/shots/ux-palette-keys-sheet.txt
 UI_LANGUAGE=ru run ux-palette-ru 'cmd+shift+p wait text:cm_MkDir wait'
 rg -q 'Создать' build/shots/ux-palette-ru-sheet.txt
 print 'ok   search, execution, Esc, empty results, customized keys and Russian UI'
