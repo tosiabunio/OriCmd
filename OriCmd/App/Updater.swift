@@ -1,10 +1,10 @@
 import AppKit
 
 /// Updates from GitHub Releases: the DMG of the latest release is downloaded,
-/// its OriCmd.app replaces this one and the app relaunches (no signing
-/// certificate or Sparkle needed; files fetched by the app are not quarantined).
+/// its Ed25519 signature and SHA-256 checksum are verified before mounting it,
+/// then its OriCmd.app replaces this one and the app relaunches.
 enum Updater {
-    nonisolated static let repository = "mmag/OriCmd"
+    nonisolated static let repository = "tosiabunio/OriCmd"
     private static let lastCheckKey = "UpdateLastCheck"
     private static let skippedKey = "UpdateSkippedVersion"
     private static let checkInterval: TimeInterval = 24 * 60 * 60
@@ -37,9 +37,20 @@ enum Updater {
             tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName
         }
 
+        var manifest: URL? { assets.first { $0.name == "OriCmd-\(version).manifest.json" }?.browserDownloadURL }
+        var signature: URL? { assets.first { $0.name == "OriCmd-\(version).manifest.sig" }?.browserDownloadURL }
+
         var dmg: URL? {
-            assets.first { $0.name.lowercased().hasSuffix(".dmg") }?.browserDownloadURL
+            assets.first { $0.name == "OriCmd-\(version).dmg" }?.browserDownloadURL
         }
+    }
+
+    /// The verification key is bundled with the app, never obtained from a release.
+    private nonisolated static var publicKey: Data? {
+        guard let url = Bundle.main.url(forResource: "UpdateSigningPublicKey", withExtension: "txt"),
+              let text = try? String(contentsOf: url, encoding: .utf8),
+              let key = Data(base64Encoded: text.trimmingCharacters(in: .whitespacesAndNewlines)), key.count == 32 else { return nil }
+        return key
     }
 
     private nonisolated static var feedURL: URL {
@@ -152,7 +163,8 @@ enum Updater {
         }
         alert.informativeText = String(localized: "You have version \(currentVersion).")
             + (notes.isEmpty ? "" : "\n\n" + notes)
-        let canInstall = release.dmg != nil && canReplaceApp
+        let canInstall = UpdateVerification.validVersion(release.version) && release.dmg != nil
+            && release.manifest != nil && release.signature != nil && publicKey != nil && canReplaceApp
         alert.addButton(withTitle: canInstall ? String(localized: "Install and Relaunch") : String(localized: "Open Release Page"))
         alert.addCancelButton(String(localized: "Later"))
         alert.addButton(withTitle: String(localized: "Skip This Version"))
@@ -160,7 +172,7 @@ enum Updater {
             switch response {
             case .alertFirstButtonReturn:
                 if canInstall, let dmg = release.dmg, let window {
-                    install(release.version, from: dmg, window: window)
+                    install(release, from: dmg, window: window)
                 } else {
                     NSWorkspace.shared.open(release.htmlURL)
                 }
@@ -187,7 +199,8 @@ enum Updater {
 
     /// Downloads the DMG, copies its app next to this one, then quits; a small
     /// script swaps the bundles once the app has exited and starts the new one.
-    private static func install(_ version: String, from dmg: URL, window: NSWindow) {
+    private static func install(_ release: Release, from dmg: URL, window: NSWindow) {
+        let version = release.version
         // Installing ends with quitting: running operations would stop it half-way.
         guard TransferController.runningCount == 0, TransferQueue.shared.waitingCount == 0 else {
             Prompt.info(String(localized: "File operations are still running"),
@@ -200,7 +213,7 @@ enum Updater {
                                             failureTitle: String(localized: "Update failed"), window: window)
         Task {
             let done = await controller.run(source: dmg.absoluteString, target: app.path) { progress, _ in
-                try await prepare(version, from: dmg, staging: staged, progress: progress)
+                try await prepare(release, from: dmg, staging: staged, progress: progress)
                 return [staged]
             }
             guard !done.isEmpty else { return }
@@ -215,14 +228,23 @@ enum Updater {
     }
 
     @concurrent
-    private nonisolated static func prepare(_ version: String, from dmg: URL, staging staged: URL,
+    private nonisolated static func prepare(_ release: Release, from dmg: URL, staging staged: URL,
                                             progress: TransferProgress) async throws {
+        guard let manifestURL = release.manifest, let signatureURL = release.signature, let publicKey,
+              allowedAsset(dmg), allowedAsset(manifestURL), allowedAsset(signatureURL) else { throw UpdateValidationError.signature }
+        let metadata = try await limitedData(manifestURL, limit: 16 * 1024, progress: progress)
+        let signature = try await limitedData(signatureURL, limit: 64, progress: progress)
+        let manifest = try UpdateVerification.manifest(metadata, signature: signature, publicKey: publicKey,
+                                                       repository: repository, version: release.version,
+                                                       bundleIdentifier: Bundle.main.bundleIdentifier ?? "")
         let work = FileManager.default.temporaryDirectory.appending(path: "OriCmd-update-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: work) }
 
         let image = work.appending(path: dmg.lastPathComponent)
-        try await download(dmg, to: image, progress: progress)
+        try await download(dmg, to: image, expectedSize: manifest.byteCount, progress: progress)
+        try UpdateVerification.image(image, matches: manifest) { progress.isCancelled }
+        if progress.isCancelled { throw CancellationError() }
 
         let mountPoint = work.appending(path: "mount")
         let attach = try await ProcessRunner.run("/usr/bin/hdiutil", [
@@ -243,7 +265,8 @@ enum Updater {
               info["CFBundleIdentifier"] as? String == Bundle.main.bundleIdentifier else {
             throw UpdateError(String(localized: "The disk image does not contain OriCmd."))
         }
-        guard (info["CFBundleShortVersionString"] as? String).map({ isVersion($0, newerThan: currentVersion) }) == true else {
+        guard info["CFBundleShortVersionString"] as? String == manifest.version,
+              isVersion(manifest.version, newerThan: currentVersion) else {
             throw UpdateError(String(localized: "The disk image contains an older version."))
         }
         let verify = try await ProcessRunner.run("/usr/bin/codesign", ["--verify", "--deep", "--strict", newApp.path])
@@ -255,12 +278,13 @@ enum Updater {
     }
 
     /// Streams `url` into `file`, counting bytes for the progress window.
-    private nonisolated static func download(_ url: URL, to file: URL, progress: TransferProgress) async throws {
+    private nonisolated static func download(_ url: URL, to file: URL, expectedSize: Int64, progress: TransferProgress) async throws {
         let (bytes, response) = try await URLSession.shared.bytes(from: url)
         if let http = response as? HTTPURLResponse, http.statusCode != 200 {
             throw UpdateError(HTTPURLResponse.localizedString(forStatusCode: http.statusCode))
         }
-        let total = max(response.expectedContentLength, 0)
+        let total = expectedSize
+        guard response.expectedContentLength <= expectedSize else { throw UpdateValidationError.contents }
         progress.update {
             $0.totalBytes = total
             $0.fileBytes = total
@@ -272,7 +296,9 @@ enum Updater {
         buffer.reserveCapacity(1 << 20)
         var written: Int64 = 0
         for try await byte in bytes {
+            if progress.isCancelled { throw CancellationError() }
             buffer.append(byte)
+            guard written + Int64(buffer.count) <= expectedSize else { throw UpdateValidationError.contents }
             if buffer.count >= 1 << 20 {
                 try handle.write(contentsOf: buffer)
                 written += Int64(buffer.count)
@@ -286,6 +312,30 @@ enum Updater {
             }
         }
         try handle.write(contentsOf: buffer)
+        guard written + Int64(buffer.count) == expectedSize else { throw UpdateValidationError.contents }
+        progress.update { $0.doneBytes = expectedSize; $0.fileDoneBytes = expectedSize }
+    }
+
+    private nonisolated static func allowedAsset(_ url: URL) -> Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["ORICMD_UPDATE_FEED"] != nil,
+           ["127.0.0.1", "localhost"].contains(url.host ?? "") { return url.scheme == "http" || url.scheme == "https" }
+        #endif
+        return url.scheme == "https" && url.host == "github.com"
+            && url.path.hasPrefix("/\(repository)/releases/download/")
+    }
+
+    private nonisolated static func limitedData(_ url: URL, limit: Int, progress: TransferProgress) async throws -> Data {
+        let (bytes, response) = try await URLSession.shared.bytes(from: url)
+        guard (response as? HTTPURLResponse)?.statusCode == 200,
+              response.expectedContentLength <= limit else { throw URLError(.badServerResponse) }
+        var data = Data()
+        for try await byte in bytes {
+            if progress.isCancelled { throw CancellationError() }
+            guard data.count < limit else { throw UpdateValidationError.signature }
+            data.append(byte)
+        }
+        return data
     }
 
     /// Starts a script that waits for this process to exit, swaps the bundles

@@ -5325,6 +5325,16 @@
         }
       }
     },
+    "The downloaded update does not match its signed checksum and size.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Загруженное обновление не соответствует подписанным контрольной сумме и размеру."
+          }
+        }
+      }
+    },
     "The files are identical.": {
       "localizations": {
         "ru": {
@@ -5421,6 +5431,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сервер сообщил об ошибке"
+          }
+        }
+      }
+    },
+    "The signed update does not match this release or app.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подписанное обновление не соответствует этому релизу или приложению."
+          }
+        }
+      }
+    },
+    "The update signature is invalid.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подпись обновления недействительна."
           }
         }
       }
