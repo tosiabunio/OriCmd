@@ -1,6 +1,12 @@
-# OriCmd
+# OriCmd — tosiabunio fork
 
 **English** | [Русский](README.ru.md)
+
+An independently maintained fork of [OriCmd by mmag](https://github.com/mmag/OriCmd),
+developed in [tosiabunio/OriCmd](https://github.com/tosiabunio/OriCmd). This fork has
+its own interface improvements, development direction and release channel. Selected
+changes from the original project may be imported after review and testing; the
+fork is intended to remain a separate project, with no planned merge back upstream.
 
 A two-panel file manager for macOS with a familiar look: two panels, function
 key buttons at the bottom, a command line and full keyboard control — everything
@@ -9,18 +15,34 @@ keep working as always.
 
 ![OriCmd main window](docs/screenshots/en/main.png)
 
-Full, Brief and Thumbnails file panels expose file names, types, sizes, dates,
-selection and open actions through macOS accessibility, including VoiceOver.
+## What this fork adds
 
-Copy and move dialogs show the source, destination, affected names and whether marked items or the cursor item will be used. Their Copy/Move button names the action, and the overwrite rule remains visible when advanced options are collapsed.
-
-Marked items carry a checkmark on their icon in Full, Brief and Thumbnails views, so selection does not depend on text color. Disable it in Settings → Panels → Show checkmarks on marked items for the traditional appearance.
-
-Active filters appear in the path header with their match count and a clear button. Text and filename-mask rules are shown together; clearing restores all entries allowed by the hidden-file setting. Counts exclude the parent-folder row.
-
-Commands → Operations, the panel indicator, and progress dialogs open a shared Operations window. It shows queued and running jobs, progress and session results, including errors, cancellations and skipped local items. Cancel a waiting job before it starts or request cancellation of a running job; Clear Finished preserves active and queued work. The most recent 100 finished results are kept until the app quits.
-
-Commands → Run Command… (⇧⌘P) opens a searchable command palette. Search localized names or cm_* command names, use ↑/↓ and Return to run a command, or Esc to dismiss. Current shortcuts are shown, unavailable actions are disabled, and recent commands appear first on the next opening.
+- **Mac-style panels:** compact headers, folder icons and close buttons on tabs,
+  key caps on function buttons, Finder-style sizes and status summaries, folder
+  colors from Finder tags, and options for folder brackets and file extensions.
+  Appearance settings also offer the traditional layout.
+- **Drive information:** click the free-space or total-capacity readout to open
+  Finder's information window for the panel's volume, in either header layout.
+- **Clear selection and filters:** checkmarks distinguish marked items from the
+  cursor in Full, Brief and Thumbnails views. Filter indicators show text, masks
+  and selected-only rules with match counts and a clear button. Counts exclude
+  the parent-folder row; clearing keeps hidden-file and ignore-list preferences.
+  Disable checkmarks in Settings → Panels → Show checkmarks on marked items.
+- **Copy and move dialogs:** source, destination, affected names and marked/cursor
+  scope are visible before confirming. Copy/Move buttons name the action, and
+  overwrite rules stay visible when advanced options are collapsed.
+- **Operations window:** Commands → Operations, the panel indicator and progress
+  dialogs show queued and running work, progress, errors, cancellations and skipped
+  local items. Cancel pending jobs or request cancellation of running jobs;
+  Clear Finished keeps active and queued work.
+  The most recent 100 results are kept until the app quits.
+- **Command palette:** Commands → Run Command… (⇧⌘P) searches localized names and
+  `cm_*` commands, displays current shortcuts and recent commands, and disables
+  unavailable actions. Use ↑/↓ and Return to run a command, or Esc to dismiss.
+- **Accessibility:** Full, Brief and Thumbnails panels expose file names, types,
+  sizes, dates, selection and open actions to macOS accessibility and VoiceOver.
+- **Authenticated updates:** this fork checks its own GitHub releases and verifies
+  the publisher's signature and image checksum before installing an update.
 
 ## Features
 
@@ -43,9 +65,12 @@ Commands → Run Command… (⇧⌘P) opens a searchable command palette. Search
 - **Make it yours:** your own keyboard shortcuts (including import from
   `wincmd.ini`), a Start menu, programs for `Enter`/`F3`/`F4` by file mask, a
   customizable button bar, the right mouse button marking files.
-- Light and dark themes, English and Russian interface, automatic updates from GitHub.
+- Light and dark themes, English and Russian interface, signed updates from this fork's GitHub releases.
 
 ## Screenshots
+
+The screenshots in this README come from upstream and may not show this fork's
+interface changes yet.
 
 | | |
 |---|---|
@@ -58,23 +83,21 @@ The screenshots are made by `scripts/screenshots.sh` on demo folders
 
 ## Installation
 
-With [Homebrew](https://brew.sh):
+Packaged builds will be published on this fork's
+[Releases](https://github.com/tosiabunio/OriCmd/releases) page. There are no packaged
+fork releases yet; build from this repository for now (a universal app for Apple
+Silicon and Intel, macOS 14+):
 
 ```sh
-brew install --cask mmag/tap/oricmd
-```
-
-Or download the disk image from the [Releases](https://github.com/mmag/OriCmd/releases)
-page. You can also build one yourself (a universal app for Apple Silicon and
-Intel, macOS 14+):
-
-```sh
+git clone https://github.com/tosiabunio/OriCmd.git
+cd OriCmd
 scripts/make-dmg.sh        # → build/OriCmd-<version>.dmg
 ```
 
+The Homebrew cask `mmag/tap/oricmd` distributes the original project's builds.
+
 Open the image and drag OriCmd to Applications. The app is ad-hoc signed,
-without an Apple certificate, so macOS won't open it the first time (whether it
-came from Homebrew or from the image): right-click
+without an Apple certificate, so macOS may require approval the first time: right-click
 OriCmd → Open → Open (or System Settings → Privacy & Security → Open Anyway).
 Or remove the quarantine:
 
@@ -105,6 +128,18 @@ package; Xcode fetches it on the first build). Syntax highlighting is
 checking the package's checksum.
 
 The icon is drawn by `swift scripts/make-icon.swift`.
+
+## Release versions
+
+Future fork releases will use independent version numbers. Imported upstream
+versions and commits belong in release notes as provenance, separate from the
+fork's release number.
+
+The current app still reports `0.13b`; an independent numbering scheme has not
+been adopted yet. The latest imported upstream checkpoint is
+[OriCmd 0.13b, commit 096ccd3](https://github.com/mmag/OriCmd/commit/096ccd3).
+The About window identifies the fork; builds installed with
+`scripts/install-local.sh` also show their local build number and commit.
 
 ## Keys
 
@@ -545,15 +580,21 @@ chooses the language for OriCmd only (the Restart Now button applies it at once)
 
 ## Development
 
+Development and contributions target this fork's `main` branch. Submit changes
+through [this fork's pull requests](https://github.com/tosiabunio/OriCmd/pulls).
+Upstream imports are reviewed for compatibility with the fork's behavior,
+preferences, release numbering and trusted update key.
+
 A Debug build can play key scenarios and save window snapshots — see
 `OriCmd/App/DebugAutomation.swift`. The scenarios only work on explicitly given
 test folders (`ORICMD_LEFT`, `ORICMD_RIGHT`); `scripts/test/` has the test data,
 the regression suite and local test servers.
 
-Release: `scripts/release.sh 0.2 [notes.md]` sets the version, builds the disk
-image, commits, tags `v0.2`, pushes to GitHub, publishes the release with the
-image, signed manifest and signature in the fork (needs `gh auth login` and the
-local publishing key).
+The maintainer publishes with `scripts/release.sh <version> [notes.md]`. It sets
+the fork version, builds the disk image, commits, tags `v<version>`, pushes to the
+fork and publishes the image, signed manifest and signature. Publishing requires
+`gh auth login` and the fork's local publishing key; see
+[authenticated updates](docs/authenticated-updates.md).
 
 ## License
 
