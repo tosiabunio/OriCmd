@@ -2255,6 +2255,16 @@
         }
       }
     },
+    "Existing files: %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Существующие файлы: %@"
+          }
+        }
+      }
+    },
     "Exit": {
       "localizations": {
         "ru": {
@@ -2905,6 +2915,16 @@
         }
       }
     },
+    "Item under cursor": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Элемент под курсором"
+          }
+        }
+      }
+    },
     "Keep options open": {
       "localizations": {
         "ru": {
@@ -3125,6 +3145,16 @@
         }
       }
     },
+    "Marked selection": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отмеченные элементы"
+          }
+        }
+      }
+    },
     "Marking: a click marks or unmarks a file, a drag over files makes them all as the first one became; hold the button still for the context menu. On [..] and with Control-click the menu opens at once.": {
       "localizations": {
         "ru": {
@@ -3331,6 +3361,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Групповое переименование…"
+          }
+        }
+      }
+    },
+    "Multiple folders": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Несколько папок"
           }
         }
       }
@@ -3571,6 +3611,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Изменять можно только архивы zip, tar, tar.gz, tar.bz2, tar.xz и 7z."
+          }
+        }
+      }
+    },
+    "Only: %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Только: %@"
           }
         }
       }
@@ -4445,6 +4495,16 @@
         }
       }
     },
+    "Replace locked files": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заменять защищённые файлы"
+          }
+        }
+      }
+    },
     "Replace the colors with “%@”?": {
       "localizations": {
         "ru": {
@@ -5045,6 +5105,16 @@
         }
       }
     },
+    "Skip unreadable files": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пропускать недоступные файлы"
+          }
+        }
+      }
+    },
     "Sort by Date": {
       "localizations": {
         "ru": {
@@ -5595,6 +5665,16 @@
         }
       }
     },
+    "To:": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Куда:"
+          }
+        }
+      }
+    },
     "To: %@": {
       "localizations": {
         "ru": {
@@ -6051,6 +6131,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "полноэкранная программа"
+          }
+        }
+      }
+    },
+    "and %lld more": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "и ещё %lld"
           }
         }
       }
