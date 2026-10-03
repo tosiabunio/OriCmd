@@ -29,112 +29,24 @@ final class FilePanelController: NSViewController {
     let panelView = PanelView()
     weak var delegate: FilePanelControllerDelegate?
 
-    private(set) var directory: URL
-    private var entries: [FileItem] = []
+    var directory: URL
+    var entries: [FileItem] = []
     /// The order `entries` are already sorted in (big folders are sorted in the background).
-    private var entriesOrder: SortOrder?
-
-    /// Where the panel is inside an archive, while browsing one.
-    struct ArchiveLocation {
-        let url: URL
-        var folder: String
-        var entries: [ArchiveEntry]
-        /// Size and date of the archive file when `entries` were read.
-        var stamp: [Int64] = []
-        /// For an archive inside an archive: the outer one, as it was shown. `url` is
-        /// then a temporary copy, so the archive is read-only.
-        var outer: OuterArchive?
-
-        /// The archive itself, as the path bar shows it (outer.zip/inner.zip inside another).
-        var rootPath: String { outer.map { $0.location.displayPath + "/" + $0.name } ?? url.path }
-
-        var displayPath: String { folder.isEmpty ? rootPath : rootPath + "/" + folder }
-
-        /// Whether files can be added, renamed or deleted in it.
-        var isWritable: Bool { outer == nil && ArchiveEditor.isWritable(url) }
-
-        /// Archive paths of entries shown in the current folder.
-        func path(of name: String) -> String {
-            folder.isEmpty ? name : folder + "/" + name
-        }
-    }
-
-    /// The archive an archive inside it was opened from, and that one's name there.
-    final class OuterArchive {
-        let location: ArchiveLocation
-        let name: String
-
-        init(location: ArchiveLocation, name: String) {
-            self.location = location
-            self.name = name
-        }
-    }
+    var entriesOrder: SortOrder?
 
     /// Set while the panel shows the inside of an archive (read-only).
-    private(set) var archive: ArchiveLocation?
+    var archive: ArchiveLocation?
     private var lastMask = "*.*"
-    private var watcher: DirectoryWatcher?
-    private var loadTask: Task<Void, Never>?
-    private var loadGeneration = 0
-
-    struct HistoryEntry {
-        let directory: URL
-        let selectedName: String?
-    }
-
-    /// A folder tab: everything that differs between tabs of one panel.
-    struct Tab {
-        /// Finds the tab again after an asynchronous question (indices may change).
-        let id = UUID()
-        var directory: URL
-        var selectedName: String?
-        var sortOrder: SortOrder
-        var backHistory: [HistoryEntry] = []
-        var forwardHistory: [HistoryEntry] = []
-        /// The server shown in the tab, with its terminal: both stay while other tabs
-        /// are shown (`directory` is the local folder the tab goes back to).
-        var remote: RemoteLocation?
-        var terminal: ShellTerminalView?
-        var showsTerminal = false
-
-        var title: String {
-            if let remote {
-                let name = (remote.path as NSString).lastPathComponent
-                return name.isEmpty || name == "/" ? remote.fileSystem.displayName : name
-            }
-            return directory.path == "/" ? "/" : directory.lastPathComponent
-        }
-
-        /// The folder's own icon (Downloads, Desktop, an app's folder…) on the startup
-        /// disk; elsewhere a plain folder, as asking a network volume can be slow.
-        var icon: NSImage {
-            if remote != nil {
-                return Self.symbol("network")
-            }
-            let path = directory.path
-            guard !path.hasPrefix("/Volumes/") else { return Self.folderIcon }
-            if let icon = Self.icons[path] { return icon }
-            var isFolder: ObjCBool = false
-            let icon = FileManager.default.fileExists(atPath: path, isDirectory: &isFolder) && isFolder.boolValue
-                ? NSWorkspace.shared.icon(forFile: path) : Self.folderIcon
-            Self.icons[path] = icon
-            return icon
-        }
-
-        private static var icons: [String: NSImage] = [:]
-        private static let folderIcon = NSWorkspace.shared.icon(for: .folder)
-
-        private static func symbol(_ name: String) -> NSImage {
-            NSImage(systemSymbolName: name, accessibilityDescription: nil) ?? folderIcon
-        }
-    }
+    var watcher: DirectoryWatcher?
+    var loadTask: Task<Void, Never>?
+    var loadGeneration = 0
 
     private static let historyLimit = 50
-    private var backHistory: [HistoryEntry] = []
-    private var forwardHistory: [HistoryEntry] = []
+    var backHistory: [HistoryEntry] = []
+    var forwardHistory: [HistoryEntry] = []
 
-    private(set) var tabs: [Tab]
-    private(set) var activeTabIndex: Int
+    var tabs: [Tab]
+    var activeTabIndex: Int
 
     /// Shows the tab bar even for a single tab, so both panels line up
     /// when the other one has tabs.
@@ -179,10 +91,10 @@ final class FilePanelController: NSViewController {
     }
 
     /// Ctrl+B: lists all files of the folder and its subfolders, with relative names.
-    private(set) var isBranchView = false
+    var isBranchView = false
 
     /// Find Files → "Feed to Panel": the found files, listed instead of the folder.
-    private var searchResults: (title: String, urls: [URL])?
+    var searchResults: (title: String, urls: [URL])?
 
     /// A server (SFTP, FTP) shown in the panel.
     struct RemoteLocation {
@@ -196,7 +108,7 @@ final class FilePanelController: NSViewController {
         }
     }
 
-    private(set) var remote: RemoteLocation?
+    var remote: RemoteLocation?
 
     var searchResultsShown: Bool { searchResults != nil }
 
@@ -209,7 +121,7 @@ final class FilePanelController: NSViewController {
     }
 
     /// Ctrl+S quick filter: only names containing this text are listed.
-    private var quickFilter: String? {
+    var quickFilter: String? {
         didSet {
             guard quickFilter != oldValue else { return }
             updatePathMask()
@@ -486,7 +398,7 @@ final class FilePanelController: NSViewController {
     }
 
     /// Lists a folder on the server in the background.
-    private func loadRemote(_ path: String, selecting name: String?) {
+    func loadRemote(_ path: String, selecting name: String?) {
         guard let fileSystem = remote?.fileSystem else { return }
         loadGeneration += 1
         let generation = loadGeneration
@@ -539,75 +451,6 @@ final class FilePanelController: NSViewController {
         }
     }
 
-    /// Downloads one file of the server into a new temporary folder.
-    private func downloadToTemporaryFolder(_ item: FileItem) async -> URL? {
-        guard let remote, let window = view.window else { return nil }
-        let folder = FileManager.default.temporaryDirectory.appending(path: "OriCmd-\(UUID().uuidString)")
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let path = remote.path(of: item.name)
-        let controller = TransferController(title: String(localized: "Downloading"),
-                                            failureTitle: String(localized: "Download failed"), window: window)
-        let done = await controller.run(source: path, target: folder.path) { progress, _ in
-            // A new, empty folder: nothing to ask about.
-            _ = try await remote.fileSystem.download([item], from: remote.path, to: folder, progress: progress,
-                                                     conflicts: RemoteConflicts(nil))
-            return [folder]
-        }
-        return done.isEmpty ? nil : folder.appending(path: item.name)
-    }
-
-    /// Uploads local files into the server folder shown here (or `folder`);
-    /// moving deletes the originals afterwards.
-    func upload(_ urls: [URL], to folder: String? = nil, moving: Bool, then finished: (() -> Void)? = nil) {
-        guard let remote, let window = view.window else { return }
-        let target = folder ?? remote.path
-        Task {
-            let controller = TransferController(title: String(localized: "Uploading"),
-                                                failureTitle: String(localized: "Upload failed"), window: window)
-            let done = await controller.run(source: urls.first?.deletingLastPathComponent().path ?? "",
-                                            target: remote.fileSystem.displayName + target) { progress, resolveConflict in
-                let completed = try await remote.fileSystem.upload(urls, to: target, progress: progress,
-                                                                   conflicts: RemoteConflicts(resolveConflict))
-                // Moving deletes only what reached the server completely.
-                if moving {
-                    try await FileOperations.deletePermanently(urls.filter(completed.contains))
-                }
-                return urls.filter(completed.contains)
-            }
-            if !done.isEmpty {
-                loadRemote(remote.path, selecting: urls.first?.lastPathComponent)
-            }
-            finished?()
-        }
-    }
-
-    /// Downloads entries of the server folder shown here into a local folder;
-    /// moving deletes them on the server afterwards. Returns whether it worked.
-    func download(_ items: [FileItem], to folder: URL, moving: Bool) async -> Bool {
-        guard let remote, let window = view.window else { return false }
-        let controller = TransferController(title: String(localized: "Downloading"),
-                                            failureTitle: String(localized: "Download failed"), window: window)
-        let completed = OSAllocatedUnfairLock(initialState: Set<String>())
-        let done = await controller.run(source: remote.displayPath, target: folder.path) { progress, resolveConflict in
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            let names = try await remote.fileSystem.download(items, from: remote.path, to: folder, progress: progress,
-                                                             conflicts: RemoteConflicts(resolveConflict))
-            completed.withLock { $0 = names }
-            // Moving deletes on the server only what arrived completely (skipped files stay).
-            if moving {
-                try await remote.fileSystem.delete(items.filter { names.contains($0.name) }, in: remote.path)
-            }
-            return [folder]
-        }
-        if !done.isEmpty {
-            listView.setMarked(listView.marked.subtracting(completed.withLock { $0 }))
-            if moving {
-                loadRemote(remote.path, selecting: nil)
-            }
-        }
-        return !done.isEmpty
-    }
-
     /// Net → Disconnect: leaves the server and shows the local folder again.
     @objc(cm_FtpDisconnect:)
     func ftpDisconnect(_ sender: Any?) {
@@ -656,7 +499,7 @@ final class FilePanelController: NSViewController {
 
     /// The tab shows no server any more. The server's entries are dropped at once:
     /// until the local folder is listed they would stand for local paths.
-    private func clearRemote() {
+    func clearRemote() {
         guard remote != nil else { return }
         remote = nil
         entries = []
@@ -701,7 +544,7 @@ final class FilePanelController: NSViewController {
     private var terminalWasFocused = false
 
     /// A session is being started; the focus goes to it when ready if asked for.
-    private var terminalStart: (fileSystem: SFTPFileSystem, focusing: Bool)?
+    var terminalStart: (fileSystem: SFTPFileSystem, focusing: Bool)?
 
     /// The terminals of the panel's tabs (the active tab's is the one shown).
     var terminals: [ShellTerminalView] {
@@ -709,7 +552,7 @@ final class FilePanelController: NSViewController {
     }
 
     /// Shows the terminal, starting a shell in the panel's folder unless one is running.
-    private func openTerminal(focusing: Bool) {
+    func openTerminal(focusing: Bool) {
         guard let remote, let fileSystem = remote.fileSystem as? SFTPFileSystem else {
             NSSound.beep()
             return
@@ -859,7 +702,7 @@ final class FilePanelController: NSViewController {
     private var pathParts: [(range: NSRange, name: String, target: PathTarget)] = []
 
     /// Shows where the panel is in the path bar, with the parts a click goes to.
-    private func updatePathBar() {
+    func updatePathBar() {
         var text = ""
         var parts: [(range: NSRange, name: String, target: PathTarget)] = []
         func add(_ piece: String, _ target: PathTarget? = nil) {
@@ -955,7 +798,7 @@ final class FilePanelController: NSViewController {
     /// Goes to the text typed into the path bar: a folder on this Mac (a file is shown
     /// selected in its folder, an archive opens), a folder on the server or in the
     /// archive shown, or another server's address.
-    private func go(to typed: String) {
+    func go(to typed: String) {
         focus()
         let text = typed.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
@@ -1075,513 +918,6 @@ final class FilePanelController: NSViewController {
         delegate?.filePanelDidChangeDirectory(self)
     }
 
-    // MARK: - Archives
-
-    /// Shows the contents of an archive as a folder (Enter / Ctrl+PgDn on it).
-    /// Shows an archive as a folder. It is read in the background (a big tar.gz is
-    /// decompressed as a whole), and a folder load still under way is dropped.
-    /// `quietly`: a file tried as an archive whatever its name (Ctrl+PgDn); if it is
-    /// none, nothing happens.
-    func openArchive(_ url: URL, inside outer: OuterArchive? = nil, folder: String = "", selecting name: String? = nil,
-                     quietly: Bool = false) {
-        loadGeneration += 1
-        let generation = loadGeneration
-        // A folder still loading is dropped, with its indicator; Esc stops this one.
-        loadTask?.cancel()
-        loadTask = Task {
-            let showsIndicator = Task {
-                try? await Task.sleep(for: .milliseconds(200))
-                if !Task.isCancelled && generation == loadGeneration { panelView.setLoading(true) }
-            }
-            defer {
-                showsIndicator.cancel()
-                if generation == loadGeneration {
-                    panelView.setLoading(false)
-                    loadTask = nil
-                }
-            }
-            do {
-                let (entries, stamp) = try await Self.readArchive(url)
-                // An empty file passes for an empty archive: not unless named as one.
-                guard !entries.isEmpty || !quietly else { throw CancellationError() }
-                guard generation == loadGeneration else { return }
-                listView.setMarked([])
-                // A folder asked for that the archive does not have: its root.
-                let known = folder.isEmpty || entries.contains { $0.path == folder || $0.path.hasPrefix(folder + "/") }
-                archive = ArchiveLocation(url: url, folder: known ? folder : "", entries: entries, stamp: stamp, outer: outer)
-                showArchiveFolder(selecting: known ? name : nil)
-            } catch {
-                // An archive in an archive was a temporary copy.
-                if outer != nil { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
-                guard generation == loadGeneration, !quietly else { return }
-                Prompt.error(String(localized: "Cannot open archive \u{201C}\(url.lastPathComponent)\u{201D}"), error,
-                             in: view.window)
-            }
-        }
-    }
-
-    /// Shows here what the other panel `source` has under its cursor (Ctrl+Left/Right):
-    /// a folder or an archive opened, a file in its folder, selected. Without
-    /// `underCursor`, the folder (or archive folder) `source` shows. A server's folders
-    /// and archives inside archives (temporary copies) stay where they are.
-    func show(locationOf source: FilePanelController, underCursor: Bool) {
-        let item = underCursor ? source.listView.currentItem : nil
-        if source.remote != nil || source.archive?.outer != nil {
-            NSSound.beep()
-        } else if let archive = source.archive {
-            var folder = archive.folder
-            var name: String?
-            if let item, item.isParent {
-                guard !folder.isEmpty else {
-                    load(archive.url.deletingLastPathComponent(), selecting: archive.url.lastPathComponent)
-                    return
-                }
-                name = (folder as NSString).lastPathComponent
-                folder = (folder as NSString).deletingLastPathComponent
-            } else if let item, item.isDirectory {
-                folder = archive.path(of: item.name)
-            } else {
-                name = item?.name
-            }
-            load(archive.url.deletingLastPathComponent(), selecting: archive.url.lastPathComponent) { [weak self] in
-                self?.openArchive(archive.url, folder: folder, selecting: name)
-            }
-        } else if let item, item.isParent {
-            load(source.directory.deletingLastPathComponent(), selecting: source.directory.lastPathComponent)
-        } else if let item, item.isFolder {
-            load(item.url)
-        } else if let item {
-            // Also a file of search results or the branch view: its own folder.
-            let folder = item.url.deletingLastPathComponent()
-            if !item.isDirectory, ArchiveReader.isArchive(item.name) {
-                load(folder, selecting: item.url.lastPathComponent) { [weak self] in self?.openArchive(item.url) }
-            } else {
-                load(folder, selecting: item.url.lastPathComponent)
-            }
-        } else {
-            load(source.directory)
-        }
-    }
-
-    /// Reads the archive again, unless it has not changed since (the folder
-    /// holding it may change for other reasons).
-    private func reopenArchive(_ location: ArchiveLocation, selecting name: String? = nil, force: Bool = false) {
-        if !force, !location.stamp.isEmpty, Self.stamp(of: location.url) == location.stamp {
-            return
-        }
-        loadGeneration += 1
-        let generation = loadGeneration
-        Task {
-            let result = try? await Self.readArchive(location.url)
-            guard generation == loadGeneration, archive?.url == location.url else { return }
-            guard let (entries, stamp) = result else {
-                load(directory)
-                return
-            }
-            archive?.entries = entries
-            archive?.stamp = stamp
-            showArchiveFolder(selecting: name ?? listView.currentItem?.name)
-        }
-    }
-
-    @concurrent
-    private nonisolated static func readArchive(_ url: URL) async throws -> ([ArchiveEntry], [Int64]) {
-        let stamp = stamp(of: url)
-        return (try ArchiveReader.entries(of: url), stamp)
-    }
-
-    private nonisolated static func stamp(of url: URL) -> [Int64] {
-        var info = stat()
-        guard stat(url.path, &info) == 0 else { return [] }
-        return [Int64(info.st_size), Int64(info.st_mtimespec.tv_sec), Int64(info.st_mtimespec.tv_nsec)]
-    }
-
-    /// Changes the archive shown in this panel (with a progress sheet), then
-    /// shows its new contents. `completion` receives whether it succeeded.
-    func applyArchiveEdit(_ edit: ArchiveEditor.Edit, selecting name: String? = nil,
-                          completion: ((Bool) -> Void)? = nil) {
-        guard let archive, let window = view.window else { return }
-        let url = archive.url
-        Task {
-            let controller = TransferController(title: String(localized: "Updating archive"),
-                                                failureTitle: String(localized: "Cannot update archive"), window: window)
-            let done = await controller.run(source: url.path, target: url.path) { progress, _ in
-                try await ArchiveEditor.apply(edit, to: url, progress: progress)
-                return [url]
-            }
-            if let current = self.archive, current.url == url {
-                reopenArchive(current, selecting: name, force: true)
-            }
-            completion?(!done.isEmpty)
-        }
-    }
-
-    /// Lists the current archive folder. Folders that only exist implicitly
-    /// (as part of deeper paths) are shown too.
-    private func showArchiveFolder(selecting name: String?) {
-        guard let archive else { return }
-        let prefix = archive.folder.isEmpty ? "" : archive.folder + "/"
-        var children: [String: FileItem] = [:]
-        for entry in archive.entries where entry.path.hasPrefix(prefix) && entry.path.count > prefix.count {
-            let rest = entry.path.dropFirst(prefix.count)
-            let childName = String(rest.prefix { $0 != "/" })
-            let isNested = rest.contains("/")
-            if isNested && children[childName] != nil { continue }
-            let isFolder = isNested || entry.isDirectory
-            children[childName] = FileItem(
-                name: childName, url: archive.url.appending(path: prefix + childName),
-                isDirectory: isFolder, isPackage: false, isSymlink: false, isHidden: childName.hasPrefix("."),
-                size: isFolder ? 0 : entry.size, modified: entry.modified,
-                mode: isNested ? 0o755 : entry.mode
-            )
-        }
-        entries = Array(children.values)
-        entriesOrder = nil
-        panelView.show(directory: directory, volumes: Volume.mounted())
-        updatePathBar()
-        refreshList(selecting: name, fallback: 0)
-        delegate?.filePanelDidChangeDirectory(self)
-    }
-
-    /// `asArchive`: Ctrl+PgDn, the file is tried as an archive whatever its name.
-    private func openInArchive(_ item: FileItem, asArchive: Bool = false) {
-        guard let archive else { return }
-        if item.isParent {
-            archiveGoUp()
-        } else if item.isDirectory {
-            self.archive?.folder = archive.path(of: item.name)
-            showArchiveFolder(selecting: nil)
-        } else if ArchiveReader.isArchive(item.name) || asArchive {
-            // An archive in the archive opens as a folder too, from a temporary copy —
-            // unless the panel went elsewhere while it was being extracted.
-            let generation = loadGeneration
-            Task {
-                guard let url = await extractToTemporaryFolder(item) else { return }
-                guard generation == loadGeneration, self.archive?.url == archive.url,
-                      self.archive?.folder == archive.folder else {
-                    try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
-                    return
-                }
-                openArchive(url, inside: OuterArchive(location: archive, name: item.name),
-                            quietly: !ArchiveReader.isArchive(item.name))
-            }
-        } else {
-            Task {
-                if let url = await extractToTemporaryFolder(item) {
-                    openFile(url)
-                }
-            }
-        }
-    }
-
-    /// Up one folder inside the archive, or out of it at its root.
-    private func archiveGoUp() {
-        guard let archive else { return }
-        if archive.folder.isEmpty, let outer = archive.outer {
-            // Back to the outer archive; the temporary copy of this one goes.
-            try? FileManager.default.removeItem(at: archive.url.deletingLastPathComponent())
-            self.archive = outer.location
-            showArchiveFolder(selecting: outer.name)
-        } else if archive.folder.isEmpty {
-            load(archive.url.deletingLastPathComponent(), selecting: archive.url.lastPathComponent, recordingHistory: false)
-        } else {
-            let name = (archive.folder as NSString).lastPathComponent
-            self.archive?.folder = (archive.folder as NSString).deletingLastPathComponent
-            showArchiveFolder(selecting: name)
-        }
-    }
-
-    /// Extracts one entry of the archive into a new temporary folder.
-    private func extractToTemporaryFolder(_ item: FileItem) async -> URL? {
-        guard let archive else { return nil }
-        let folder = FileManager.default.temporaryDirectory.appending(path: "OriCmd-\(UUID().uuidString)")
-        do {
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try await ArchiveReader.extract(archive.url, paths: [archive.path(of: item.name)], base: archive.folder,
-                                            to: folder, progress: TransferProgress())
-            return folder.appending(path: item.name)
-        } catch {
-            Prompt.error(String(localized: "Cannot unpack \u{201C}\(item.name)\u{201D}"), error, in: view.window)
-            return nil
-        }
-    }
-
-    /// Refuses changes inside archives that cannot be written (rar, iso, …).
-    private func refuseReadOnlyArchive() -> Bool {
-        guard let archive, !archive.isWritable else { return false }
-        if archive.outer != nil {
-            Prompt.info(String(localized: "An archive inside an archive is read-only"),
-                        message: String(localized: "Copy it out of the outer archive (F5) to change it."), in: view.window)
-            return true
-        }
-        Prompt.info(String(localized: "This archive is read-only"),
-                    message: String(localized: "Only zip, tar, tar.gz, tar.bz2, tar.xz and 7z archives can be changed."),
-                    in: view.window)
-        return true
-    }
-
-    /// Refuses operations that are never available inside archives.
-    private func refuseInsideArchive() -> Bool {
-        if remote != nil {
-            Prompt.info(String(localized: "Not supported on servers"),
-                        message: String(localized: "Download the files first (F5)."), in: view.window)
-            return true
-        }
-        guard archive != nil else { return false }
-        Prompt.info(String(localized: "Not supported inside archives"),
-                    message: String(localized: "Unpack the files first (F5), or use Alt+F5 to create a new archive."),
-                    in: view.window)
-        return true
-    }
-
-    // MARK: - Tabs
-
-    /// Tab directories and the active tab, for saving the panel between launches.
-    var tabState: (directories: [String], active: Int) {
-        (tabs.map(\.directory.path), activeTabIndex)
-    }
-
-    /// Opens a tab for the local `directory` (a server is never in two tabs: from a
-    /// server tab ⌘T opens the folder the tab goes back to).
-    func openTab(_ directory: URL) {
-        tabs[activeTabIndex] = currentTab()
-        tabs.insert(Tab(directory: directory, sortOrder: sortOrder), at: activeTabIndex + 1)
-        activateTab(at: activeTabIndex + 1)
-    }
-
-    func selectTab(_ index: Int) {
-        guard tabs.indices.contains(index), index != activeTabIndex else { return }
-        tabs[activeTabIndex] = currentTab()
-        activateTab(at: index)
-    }
-
-    /// The last tab is never closed, as in Total Commander. A server tab's terminal
-    /// ends with it (after asking when a program still runs there).
-    func closeTab(_ index: Int) {
-        guard tabs.count > 1, tabs.indices.contains(index) else {
-            NSSound.beep()
-            return
-        }
-        let id = tabs[index].id
-        confirmClosing(terminals(ofTabs: [index])) { [weak self] in
-            guard let self, tabs.count > 1, let index = tabs.firstIndex(where: { $0.id == id }) else { return }
-            if index == activeTabIndex, panelView.terminalPane.hasFocus { focus() }
-            terminals(ofTabs: [index]).forEach(panelView.terminalPane.close)
-            removeTab(index)
-        }
-    }
-
-    private func removeTab(_ index: Int) {
-        tabs.remove(at: index)
-        if index == activeTabIndex {
-            activateTab(at: min(index, tabs.count - 1))
-        } else {
-            if index < activeTabIndex { activeTabIndex -= 1 }
-            updateTabBar()
-            delegate?.filePanelDidChangeDirectory(self)
-        }
-    }
-
-    private func tabMenu(for index: Int) -> NSMenu {
-        let menu = NSMenu()
-        for (title, action) in [(String(localized: "Close Tab"), #selector(closeTabFromMenu(_:))),
-                                (String(localized: "Close Other Tabs"), #selector(closeOtherTabs(_:))),
-                                (String(localized: "Duplicate Tab"), #selector(duplicateTab(_:)))] {
-            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
-            item.target = self
-            item.tag = index
-            item.isEnabled = action == #selector(duplicateTab(_:)) ? !isServerTab(index) : tabs.count > 1
-            menu.addItem(item)
-        }
-        menu.autoenablesItems = false
-        return menu
-    }
-
-    @objc private func closeTabFromMenu(_ sender: NSMenuItem) {
-        closeTab(sender.tag)
-    }
-
-    @objc private func closeOtherTabs(_ sender: NSMenuItem) {
-        selectTab(sender.tag)
-        let keepID = tabs[activeTabIndex].id
-        let otherIDs = Set(tabs.map(\.id)).subtracting([keepID])
-        confirmClosing(terminals(ofTabs: tabs.indices.filter { $0 != activeTabIndex })) { [weak self] in
-            // The tabs asked about are closed; any opened meanwhile stay.
-            guard let self, let keep = tabs.firstIndex(where: { $0.id == keepID }) else { return }
-            selectTab(keep)
-            terminals(ofTabs: tabs.indices.filter { otherIDs.contains(tabs[$0].id) })
-                .forEach(panelView.terminalPane.close)
-            tabs.removeAll { otherIDs.contains($0.id) }
-            activeTabIndex = tabs.firstIndex { $0.id == keepID } ?? 0
-            updateTabBar()
-            delegate?.filePanelDidChangeDirectory(self)
-        }
-    }
-
-    /// Only local tabs are duplicated: a server stays in its own tab.
-    @objc private func duplicateTab(_ sender: NSMenuItem) {
-        guard !isServerTab(sender.tag) else { return }
-        selectTab(sender.tag)
-        openTab(directory)
-    }
-
-    private func isServerTab(_ index: Int) -> Bool {
-        index == activeTabIndex ? remote != nil : tabs.indices.contains(index) && tabs[index].remote != nil
-    }
-
-    private func terminals(ofTabs indices: [Int]) -> [ShellTerminalView] {
-        indices.compactMap { $0 == activeTabIndex ? panelView.terminalPane.terminal : tabs[$0].terminal }
-    }
-
-    /// The active tab as it is now.
-    private func currentTab() -> Tab {
-        var tab = tabs[activeTabIndex]
-        tab.directory = directory
-        tab.selectedName = listView.currentItem?.name
-        tab.sortOrder = sortOrder
-        tab.backHistory = backHistory
-        tab.forwardHistory = forwardHistory
-        tab.remote = remote
-        tab.terminal = panelView.terminalPane.terminal
-        tab.showsTerminal = panelView.isTerminalVisible
-        return tab
-    }
-
-    /// Shows the tab: its local folder, or its server with the terminal as it was left.
-    /// The terminal of the tab left keeps running there, hidden.
-    private func activateTab(at index: Int) {
-        activeTabIndex = index
-        let tab = tabs[index]
-        backHistory = tab.backHistory
-        forwardHistory = tab.forwardHistory
-        if sortOrder != tab.sortOrder {
-            sortOrder = tab.sortOrder
-        }
-        terminalStart = nil
-        if panelView.terminalPane.hasFocus { focus() }
-        panelView.terminalPane.attach(tab.terminal)
-        panelView.setTerminalVisible(tab.terminal != nil && tab.showsTerminal)
-        if let server = tab.remote {
-            // Nothing of the folder shown before stays (an archive, found files, a filter).
-            archive = nil
-            searchResults = nil
-            isBranchView = false
-            quickFilter = nil
-            watcher = nil
-            listView.folderSizes = [:]
-            remote = server
-            directory = tab.directory
-            entries = []
-            listView.setMarked([])
-            panelView.pathBar.showsMask = false
-            updatePathBar()
-            refreshList(selecting: nil)
-            loadRemote(server.path, selecting: tab.selectedName)
-            if tab.terminal == nil, tab.showsTerminal {
-                openTerminal(focusing: false)
-            }
-        } else {
-            clearRemote()
-            load(tab.directory, selecting: tab.selectedName, recordingHistory: false)
-        }
-        updateTabBar()
-        delegate?.filePanelDidChangeDirectory(self)
-    }
-
-    /// The active tab's title follows the panel (a server folder, too).
-    private func updateTabBar() {
-        let shown = tabs.indices.map { $0 == activeTabIndex ? currentTab() : tabs[$0] }
-        panelView.setTabs(shown.map(\.title), icons: shown.map(\.icon), identifiers: tabs.map(\.id), selected: activeTabIndex,
-                          visible: tabs.count > 1 || alwaysShowsTabBar)
-    }
-
-    // MARK: - Dragging tabs
-
-    /// A tab dropped on the tab bar before `index`: one of this panel's moves there,
-    /// the other panel's comes over (its server and terminal too) and is shown.
-    private func dropTab(_ id: UUID, at index: Int) -> Bool {
-        if let from = tabs.firstIndex(where: { $0.id == id }) {
-            moveTab(from: from, to: index)
-            return true
-        }
-        guard let tab = delegate?.filePanel(self, takeTab: id) else {
-            NSSound.beep()
-            return false
-        }
-        tabs[activeTabIndex] = currentTab()
-        tabs.insert(tab, at: min(max(index, 0), tabs.count))
-        activateTab(at: min(max(index, 0), tabs.count - 1))
-        focus()
-        return true
-    }
-
-    private func moveTab(from: Int, to index: Int) {
-        let destination = index > from ? index - 1 : index
-        guard destination != from else { return }
-        tabs[activeTabIndex] = currentTab()
-        let activeID = tabs[activeTabIndex].id
-        tabs.insert(tabs.remove(at: from), at: min(max(destination, 0), tabs.count - 1))
-        activeTabIndex = tabs.firstIndex { $0.id == activeID } ?? 0
-        updateTabBar()
-        delegate?.filePanelDidChangeDirectory(self)
-    }
-
-    /// The tab `id` as it is now, for the other panel: taken out of this one, or,
-    /// when it is the only tab, copied (a server stays: it is never in two tabs).
-    func giveTab(_ id: UUID) -> Tab? {
-        guard let index = tabs.firstIndex(where: { $0.id == id }) else { return nil }
-        let tab = index == activeTabIndex ? currentTab() : tabs[index]
-        guard tabs.count > 1 else {
-            guard tab.remote == nil else { return nil }
-            var copy = Tab(directory: tab.directory, sortOrder: tab.sortOrder)
-            copy.selectedName = tab.selectedName
-            copy.backHistory = tab.backHistory
-            copy.forwardHistory = tab.forwardHistory
-            return copy
-        }
-        // A terminal still starting would be left behind: the tab waits for it.
-        guard index != activeTabIndex || terminalStart == nil else { return nil }
-        if index == activeTabIndex, panelView.terminalPane.hasFocus { focus() }
-        tabs[index] = tab
-        removeTab(index)
-        return tab
-    }
-
-    func goBack() {
-        guard !backHistory.isEmpty else {
-            NSSound.beep()
-            return
-        }
-        // Leaving a server may be cancelled: the history changes only after that.
-        if remote != nil {
-            leaveServer { [weak self] in self?.goBack() }
-            return
-        }
-        let entry = backHistory.removeLast()
-        forwardHistory.append(HistoryEntry(directory: directory, selectedName: listView.currentItem?.name))
-        load(entry.directory, selecting: entry.selectedName, recordingHistory: false)
-    }
-
-    func goForward() {
-        guard !forwardHistory.isEmpty else {
-            NSSound.beep()
-            return
-        }
-        if remote != nil {
-            leaveServer { [weak self] in self?.goForward() }
-            return
-        }
-        let entry = forwardHistory.removeLast()
-        backHistory.append(HistoryEntry(directory: directory, selectedName: listView.currentItem?.name))
-        load(entry.directory, selecting: entry.selectedName, recordingHistory: false)
-    }
-
-    /// Recently visited folders, most recent first, without duplicates.
-    var recentDirectories: [URL] {
-        var seen: Set<URL> = [directory]
-        return backHistory.reversed().map(\.directory).filter { seen.insert($0).inserted }
-    }
-
     /// Reloads the current directory keeping cursor and marks, or moves up
     /// to the nearest existing folder if it has been removed.
     func reread() {
@@ -1679,7 +1015,7 @@ final class FilePanelController: NSViewController {
         }
     }
 
-    private func refreshList(selecting name: String?, fallback: Int = 0) {
+    func refreshList(selecting name: String?, fallback: Int = 0) {
         if entriesOrder != sortOrder {
             // Metadata sorts of big folders happen in the background; until then the
             // list keeps its previous order.
@@ -1769,7 +1105,7 @@ final class FilePanelController: NSViewController {
         }
     }
 
-    private func open(_ item: FileItem, enteringPackages: Bool) {
+    func open(_ item: FileItem, enteringPackages: Bool) {
         if let remote {
             if item.isParent {
                 goToParent()
@@ -1801,7 +1137,7 @@ final class FilePanelController: NSViewController {
     }
 
     /// Enter on a file: its associated program, or the one macOS opens it with.
-    private func openFile(_ url: URL) {
+    func openFile(_ url: URL) {
         if !FileAssociations.perform(.open, on: url, window: view.window) {
             NSWorkspace.shared.open(url)
         }
@@ -2178,230 +1514,6 @@ extension FilePanelController: NSMenuItemValidation {
     @objc(cm_SrcAllFiles:)
     func srcAllFiles(_ sender: Any?) {
         filterMask = nil
-    }
-
-    // MARK: - Clipboard
-
-    /// Files cut with ⌘X: pasting them (while the clipboard is unchanged) moves them.
-    private static var cutClipboard: (changeCount: Int, urls: [URL])?
-
-    @objc func copy(_ sender: Any?) {
-        writeSelectionToClipboard(cut: false)
-    }
-
-    @objc func cut(_ sender: Any?) {
-        writeSelectionToClipboard(cut: true)
-    }
-
-    @objc func paste(_ sender: Any?) {
-        pasteFiles(moving: false)
-    }
-
-    /// ⌥⌘V, like Finder's "Move Item Here".
-    @objc func moveItemsHere(_ sender: Any?) {
-        pasteFiles(moving: true)
-    }
-
-    private func writeSelectionToClipboard(cut: Bool) {
-        let urls = selectedItems.map(\.url)
-        guard archive == nil, remote == nil, !urls.isEmpty else {
-            NSSound.beep()
-            return
-        }
-        let pasteboard = AppDefaults.pasteboard
-        pasteboard.clearContents()
-        pasteboard.writeObjects(urls as [NSURL])
-        Self.cutClipboard = cut ? (pasteboard.changeCount, urls) : nil
-    }
-
-    private var clipboardFiles: [URL] {
-        (AppDefaults.pasteboard.readObjects(forClasses: [NSURL.self],
-                                            options: [.urlReadingFileURLsOnly: true]) as? [URL]) ?? []
-    }
-
-    private func pasteFiles(moving forceMove: Bool) {
-        let pasteboard = AppDefaults.pasteboard
-        // Files another program promised (Remote Desktop, virtual machines) come from the
-        // program itself: the file URLs next to the promise point to placeholders.
-        if PromisedFiles.areOffered(on: pasteboard) {
-            pastePromisedFiles(from: pasteboard.name)
-            return
-        }
-        let urls = clipboardFiles
-        guard !urls.isEmpty else {
-            NSSound.beep()
-            return
-        }
-        let moving = forceMove || Self.cutClipboard?.changeCount == pasteboard.changeCount
-        if moving { Self.cutClipboard = nil }
-        whenWritten(urls) { [weak self] in self?.paste(urls, moving: moving) }
-    }
-
-    /// Runs `proceed` once the programs that put `urls` on the clipboard (or drag them)
-    /// have written them (see FileCoordination). A wait longer than half a second
-    /// shows "Receiving Files…" with Cancel.
-    private func whenWritten(_ urls: [URL], then proceed: @escaping () -> Void) {
-        guard let window = view.window else { return }
-        let waiting = Task { try await FileCoordination.waitUntilWritten(urls) }
-        let progress = ProgressSheet()
-        Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            guard !progress.isFinished else { return }
-            progress.close = Prompt.progress(String(localized: "Receiving Files…"), in: window) { waiting.cancel() }
-        }
-        Task {
-            let result = await waiting.result
-            progress.finish()
-            switch result {
-            case .success:
-                proceed()
-            case .failure(let error) where !(error is CancellationError):
-                Prompt.error(String(localized: "Cannot paste the files"), error, in: window)
-            case .failure:
-                break
-            }
-        }
-    }
-
-    private func paste(_ urls: [URL], moving: Bool) {
-        if remote != nil {
-            upload(urls, moving: moving)
-            return
-        }
-        if let archive {
-            guard !refuseReadOnlyArchive() else { return }
-            applyArchiveEdit(.add(urls, folder: archive.folder), selecting: urls.first?.lastPathComponent) { succeeded in
-                guard succeeded, moving else { return }
-                Task { try? await FileOperations.deletePermanently(urls) }
-            }
-            return
-        }
-        transfer(urls, to: directory, moving: moving)
-    }
-
-    /// Asks the program that copied them for the promised files, into a private folder
-    /// on this folder's volume, then moves them in (or uploads them, or adds them to
-    /// the archive). The program may take a while: Cancel stops waiting for it.
-    private func pastePromisedFiles(from pasteboard: NSPasteboard.Name) {
-        guard let window = view.window, !refuseReadOnlyArchive() else { return }
-        let base = remote == nil && archive == nil ? directory : FileManager.default.temporaryDirectory
-        guard let folder = try? FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask,
-                                                         appropriateFor: base, create: true) else {
-            NSSound.beep()
-            return
-        }
-        let cleanUp: () -> Void = { try? FileManager.default.removeItem(at: folder) }
-        var cancelled = false
-        let closeProgress = Prompt.progress(String(localized: "Receiving Files…"),
-                                            in: window) { cancelled = true }
-        Task {
-            let result = await Task.detached { try PromisedFiles.receive(from: pasteboard, into: folder) }.result
-            closeProgress()
-            guard !cancelled else {
-                cleanUp()
-                return
-            }
-            switch result {
-            case .failure(let error):
-                cleanUp()
-                Prompt.error(String(localized: "Cannot paste the files"), error, in: window)
-            case .success(let files) where files.isEmpty:
-                cleanUp()
-                NSSound.beep()
-            case .success(let files):
-                deliver(files, then: cleanUp)
-            }
-        }
-    }
-
-    /// Moves received files from a private folder to where the panel is.
-    private func deliver(_ files: [URL], then finished: @escaping () -> Void) {
-        if remote != nil {
-            upload(files, moving: true, then: finished)
-        } else if let archive {
-            applyArchiveEdit(.add(files, folder: archive.folder), selecting: files.first?.lastPathComponent) { _ in
-                finished()
-            }
-        } else {
-            transfer(files, to: directory, moving: true, then: finished)
-        }
-    }
-
-    /// Copies or moves files into `destination` (paste, drag and drop). Items
-    /// already in that folder are duplicated as "name copy" instead.
-    private func transfer(_ urls: [URL], to destination: URL, moving: Bool, then finished: (() -> Void)? = nil) {
-        guard let window = view.window else { return }
-        Task {
-            let controller = moving
-                ? TransferController(title: String(localized: "Moving"), failureTitle: String(localized: "Moving failed"),
-                                     window: window)
-                : TransferController(title: String(localized: "Copying"), failureTitle: String(localized: "Copying failed"),
-                                     window: window)
-            _ = await controller.run(source: urls[0].deletingLastPathComponent().path, target: destination.path) {
-                progress, resolveConflict in
-                let total = urls.reduce(Int64(0)) { $0 + TransferEngine.totalSize(of: $1) }
-                progress.update { $0.totalBytes = total }
-                // Items from another folder go in one job, so "Overwrite All" / "Skip All"
-                // hold for all of them; items of this folder become "name copy".
-                var others: [URL] = []
-                for url in urls {
-                    guard url.deletingLastPathComponent().standardizedFileURL.path == destination.standardizedFileURL.path else {
-                        others.append(url)
-                        continue
-                    }
-                    if moving { continue }
-                    let job = TransferJob(kind: .copy, sources: [url], destination: destination,
-                                          newName: Self.copyName(for: url.lastPathComponent, in: destination))
-                    _ = try await TransferEngine(job: job, progress: progress, reportsTotal: false,
-                                                 resolveConflict: resolveConflict).run()
-                }
-                if !others.isEmpty {
-                    let job = TransferJob(kind: moving ? .move : .copy, sources: others, destination: destination, newName: nil)
-                    _ = try await TransferEngine(job: job, progress: progress, reportsTotal: false,
-                                                 resolveConflict: resolveConflict).run()
-                }
-                return urls
-            }
-            load(directory, selecting: urls.first?.lastPathComponent)
-            finished?()
-        }
-    }
-
-    /// "name copy.ext", "name copy 2.ext", … — the first name not taken in `folder`.
-    nonisolated static func copyName(for name: String, in folder: URL) -> String {
-        let base = (name as NSString).deletingPathExtension
-        let ext = (name as NSString).pathExtension
-        for index in 1... {
-            let candidate = index == 1 ? "\(base) copy" : "\(base) copy \(index)"
-            let full = ext.isEmpty ? candidate : candidate + "." + ext
-            if !FileManager.default.fileExists(atPath: folder.appending(path: full).path) {
-                return full
-            }
-        }
-        return name
-    }
-
-    /// Copies the names of the selected entries to the clipboard, one per line.
-    @objc(cm_CopyNamesToClip:)
-    func copyNamesToClip(_ sender: Any?) {
-        copyToClipboard(selectedItems.map(\.name))
-    }
-
-    /// ⌥⌘C: copies the full paths of the selected entries, like Finder's "Copy as Pathname".
-    @objc(cm_CopyFullNamesToClip:)
-    func copyFullNamesToClip(_ sender: Any?) {
-        let prefix = archive.map { $0.displayPath + "/" }
-        copyToClipboard(selectedItems.map { item in prefix.map { $0 + item.name } ?? item.url.path })
-    }
-
-    private func copyToClipboard(_ lines: [String]) {
-        guard !lines.isEmpty else {
-            NSSound.beep()
-            return
-        }
-        let pasteboard = AppDefaults.pasteboard
-        pasteboard.clearContents()
-        pasteboard.setString(lines.joined(separator: "\n"), forType: .string)
     }
 
     // MARK: - Context menu
@@ -3196,7 +2308,7 @@ extension FilePanelController: FileListViewDelegate {
         return refuseReadOnlyArchive()
     }
 
-    private func drop(_ urls: [URL], into folder: FileItem?, moving: Bool) {
+    func drop(_ urls: [URL], into folder: FileItem?, moving: Bool) {
         guard !refusesDrop(into: folder) else { return }
         if let remote {
             let target = folder.map { $0.isParent ? RemotePath.parent(of: remote.path) : remote.path(of: $0.name) }

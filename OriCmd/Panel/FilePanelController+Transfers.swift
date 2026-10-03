@@ -1,0 +1,299 @@
+import AppKit
+import os
+
+/// Transfer orchestration and clipboard delivery for a panel.
+extension FilePanelController {
+    /// Downloads one file of the server into a new temporary folder.
+    func downloadToTemporaryFolder(_ item: FileItem) async -> URL? {
+        guard let remote, let window = view.window else { return nil }
+        let folder = FileManager.default.temporaryDirectory.appending(path: "OriCmd-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let path = remote.path(of: item.name)
+        let controller = TransferController(title: String(localized: "Downloading"),
+                                            failureTitle: String(localized: "Download failed"), window: window)
+        let done = await controller.run(source: path, target: folder.path) { progress, _ in
+            // A new, empty folder: nothing to ask about.
+            _ = try await remote.fileSystem.download([item], from: remote.path, to: folder, progress: progress,
+                                                     conflicts: RemoteConflicts(nil))
+            return [folder]
+        }
+        return done.isEmpty ? nil : folder.appending(path: item.name)
+    }
+
+    /// Uploads local files into the server folder shown here (or `folder`);
+    /// moving deletes the originals afterwards.
+    func upload(_ urls: [URL], to folder: String? = nil, moving: Bool, then finished: (() -> Void)? = nil) {
+        guard let remote, let window = view.window else { return }
+        let target = folder ?? remote.path
+        Task {
+            let controller = TransferController(title: String(localized: "Uploading"),
+                                                failureTitle: String(localized: "Upload failed"), window: window)
+            let done = await controller.run(source: urls.first?.deletingLastPathComponent().path ?? "",
+                                            target: remote.fileSystem.displayName + target) { progress, resolveConflict in
+                let completed = try await remote.fileSystem.upload(urls, to: target, progress: progress,
+                                                                   conflicts: RemoteConflicts(resolveConflict))
+                // Moving deletes only what reached the server completely.
+                if moving {
+                    try await FileOperations.deletePermanently(urls.filter(completed.contains))
+                }
+                return urls.filter(completed.contains)
+            }
+            if !done.isEmpty {
+                loadRemote(remote.path, selecting: urls.first?.lastPathComponent)
+            }
+            finished?()
+        }
+    }
+
+    /// Downloads entries of the server folder shown here into a local folder;
+    /// moving deletes them on the server afterwards. Returns whether it worked.
+    func download(_ items: [FileItem], to folder: URL, moving: Bool) async -> Bool {
+        guard let remote, let window = view.window else { return false }
+        let controller = TransferController(title: String(localized: "Downloading"),
+                                            failureTitle: String(localized: "Download failed"), window: window)
+        let completed = OSAllocatedUnfairLock(initialState: Set<String>())
+        let done = await controller.run(source: remote.displayPath, target: folder.path) { progress, resolveConflict in
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            let names = try await remote.fileSystem.download(items, from: remote.path, to: folder, progress: progress,
+                                                             conflicts: RemoteConflicts(resolveConflict))
+            completed.withLock { $0 = names }
+            // Moving deletes on the server only what arrived completely (skipped files stay).
+            if moving {
+                try await remote.fileSystem.delete(items.filter { names.contains($0.name) }, in: remote.path)
+            }
+            return [folder]
+        }
+        if !done.isEmpty {
+            listView.setMarked(listView.marked.subtracting(completed.withLock { $0 }))
+            if moving {
+                loadRemote(remote.path, selecting: nil)
+            }
+        }
+        return !done.isEmpty
+    }
+
+    // MARK: - Clipboard
+
+    /// Files cut with ⌘X: pasting them (while the clipboard is unchanged) moves them.
+    private static var cutClipboard: (changeCount: Int, urls: [URL])?
+
+    @objc func copy(_ sender: Any?) {
+        writeSelectionToClipboard(cut: false)
+    }
+
+    @objc func cut(_ sender: Any?) {
+        writeSelectionToClipboard(cut: true)
+    }
+
+    @objc func paste(_ sender: Any?) {
+        pasteFiles(moving: false)
+    }
+
+    /// ⌥⌘V, like Finder's "Move Item Here".
+    @objc func moveItemsHere(_ sender: Any?) {
+        pasteFiles(moving: true)
+    }
+
+    private func writeSelectionToClipboard(cut: Bool) {
+        let urls = selectedItems.map(\.url)
+        guard archive == nil, remote == nil, !urls.isEmpty else {
+            NSSound.beep()
+            return
+        }
+        let pasteboard = AppDefaults.pasteboard
+        pasteboard.clearContents()
+        pasteboard.writeObjects(urls as [NSURL])
+        Self.cutClipboard = cut ? (pasteboard.changeCount, urls) : nil
+    }
+
+    var clipboardFiles: [URL] {
+        (AppDefaults.pasteboard.readObjects(forClasses: [NSURL.self],
+                                            options: [.urlReadingFileURLsOnly: true]) as? [URL]) ?? []
+    }
+
+    private func pasteFiles(moving forceMove: Bool) {
+        let pasteboard = AppDefaults.pasteboard
+        // Files another program promised (Remote Desktop, virtual machines) come from the
+        // program itself: the file URLs next to the promise point to placeholders.
+        if PromisedFiles.areOffered(on: pasteboard) {
+            pastePromisedFiles(from: pasteboard.name)
+            return
+        }
+        let urls = clipboardFiles
+        guard !urls.isEmpty else {
+            NSSound.beep()
+            return
+        }
+        let moving = forceMove || Self.cutClipboard?.changeCount == pasteboard.changeCount
+        if moving { Self.cutClipboard = nil }
+        whenWritten(urls) { [weak self] in self?.paste(urls, moving: moving) }
+    }
+
+    /// Runs `proceed` once the programs that put `urls` on the clipboard (or drag them)
+    /// have written them (see FileCoordination). A wait longer than half a second
+    /// shows "Receiving Files…" with Cancel.
+    func whenWritten(_ urls: [URL], then proceed: @escaping () -> Void) {
+        guard let window = view.window else { return }
+        let waiting = Task { try await FileCoordination.waitUntilWritten(urls) }
+        let progress = ProgressSheet()
+        Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !progress.isFinished else { return }
+            progress.close = Prompt.progress(String(localized: "Receiving Files…"), in: window) { waiting.cancel() }
+        }
+        Task {
+            let result = await waiting.result
+            progress.finish()
+            switch result {
+            case .success:
+                proceed()
+            case .failure(let error) where !(error is CancellationError):
+                Prompt.error(String(localized: "Cannot paste the files"), error, in: window)
+            case .failure:
+                break
+            }
+        }
+    }
+
+    func paste(_ urls: [URL], moving: Bool) {
+        if remote != nil {
+            upload(urls, moving: moving)
+            return
+        }
+        if let archive {
+            guard !refuseReadOnlyArchive() else { return }
+            applyArchiveEdit(.add(urls, folder: archive.folder), selecting: urls.first?.lastPathComponent) { succeeded in
+                guard succeeded, moving else { return }
+                Task { try? await FileOperations.deletePermanently(urls) }
+            }
+            return
+        }
+        transfer(urls, to: directory, moving: moving)
+    }
+
+    /// Asks the program that copied them for the promised files, into a private folder
+    /// on this folder's volume, then moves them in (or uploads them, or adds them to
+    /// the archive). The program may take a while: Cancel stops waiting for it.
+    private func pastePromisedFiles(from pasteboard: NSPasteboard.Name) {
+        guard let window = view.window, !refuseReadOnlyArchive() else { return }
+        let base = remote == nil && archive == nil ? directory : FileManager.default.temporaryDirectory
+        guard let folder = try? FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask,
+                                                         appropriateFor: base, create: true) else {
+            NSSound.beep()
+            return
+        }
+        let cleanUp: () -> Void = { try? FileManager.default.removeItem(at: folder) }
+        var cancelled = false
+        let closeProgress = Prompt.progress(String(localized: "Receiving Files…"),
+                                            in: window) { cancelled = true }
+        Task {
+            let result = await Task.detached { try PromisedFiles.receive(from: pasteboard, into: folder) }.result
+            closeProgress()
+            guard !cancelled else {
+                cleanUp()
+                return
+            }
+            switch result {
+            case .failure(let error):
+                cleanUp()
+                Prompt.error(String(localized: "Cannot paste the files"), error, in: window)
+            case .success(let files) where files.isEmpty:
+                cleanUp()
+                NSSound.beep()
+            case .success(let files):
+                deliver(files, then: cleanUp)
+            }
+        }
+    }
+
+    /// Moves received files from a private folder to where the panel is.
+    private func deliver(_ files: [URL], then finished: @escaping () -> Void) {
+        if remote != nil {
+            upload(files, moving: true, then: finished)
+        } else if let archive {
+            applyArchiveEdit(.add(files, folder: archive.folder), selecting: files.first?.lastPathComponent) { _ in
+                finished()
+            }
+        } else {
+            transfer(files, to: directory, moving: true, then: finished)
+        }
+    }
+
+    /// Copies or moves files into `destination` (paste, drag and drop). Items
+    /// already in that folder are duplicated as "name copy" instead.
+    func transfer(_ urls: [URL], to destination: URL, moving: Bool, then finished: (() -> Void)? = nil) {
+        guard let window = view.window else { return }
+        Task {
+            let controller = moving
+                ? TransferController(title: String(localized: "Moving"), failureTitle: String(localized: "Moving failed"),
+                                     window: window)
+                : TransferController(title: String(localized: "Copying"), failureTitle: String(localized: "Copying failed"),
+                                     window: window)
+            _ = await controller.run(source: urls[0].deletingLastPathComponent().path, target: destination.path) {
+                progress, resolveConflict in
+                let total = urls.reduce(Int64(0)) { $0 + TransferEngine.totalSize(of: $1) }
+                progress.update { $0.totalBytes = total }
+                // Items from another folder go in one job, so "Overwrite All" / "Skip All"
+                // hold for all of them; items of this folder become "name copy".
+                var others: [URL] = []
+                for url in urls {
+                    guard url.deletingLastPathComponent().standardizedFileURL.path == destination.standardizedFileURL.path else {
+                        others.append(url)
+                        continue
+                    }
+                    if moving { continue }
+                    let job = TransferJob(kind: .copy, sources: [url], destination: destination,
+                                          newName: Self.copyName(for: url.lastPathComponent, in: destination))
+                    _ = try await TransferEngine(job: job, progress: progress, reportsTotal: false,
+                                                 resolveConflict: resolveConflict).run()
+                }
+                if !others.isEmpty {
+                    let job = TransferJob(kind: moving ? .move : .copy, sources: others, destination: destination, newName: nil)
+                    _ = try await TransferEngine(job: job, progress: progress, reportsTotal: false,
+                                                 resolveConflict: resolveConflict).run()
+                }
+                return urls
+            }
+            load(directory, selecting: urls.first?.lastPathComponent)
+            finished?()
+        }
+    }
+
+    /// "name copy.ext", "name copy 2.ext", … — the first name not taken in `folder`.
+    nonisolated static func copyName(for name: String, in folder: URL) -> String {
+        let base = (name as NSString).deletingPathExtension
+        let ext = (name as NSString).pathExtension
+        for index in 1... {
+            let candidate = index == 1 ? "\(base) copy" : "\(base) copy \(index)"
+            let full = ext.isEmpty ? candidate : candidate + "." + ext
+            if !FileManager.default.fileExists(atPath: folder.appending(path: full).path) {
+                return full
+            }
+        }
+        return name
+    }
+
+    /// Copies the names of the selected entries to the clipboard, one per line.
+    @objc(cm_CopyNamesToClip:)
+    func copyNamesToClip(_ sender: Any?) {
+        copyToClipboard(selectedItems.map(\.name))
+    }
+
+    /// ⌥⌘C: copies the full paths of the selected entries, like Finder's "Copy as Pathname".
+    @objc(cm_CopyFullNamesToClip:)
+    func copyFullNamesToClip(_ sender: Any?) {
+        let prefix = archive.map { $0.displayPath + "/" }
+        copyToClipboard(selectedItems.map { item in prefix.map { $0 + item.name } ?? item.url.path })
+    }
+
+    func copyToClipboard(_ lines: [String]) {
+        guard !lines.isEmpty else {
+            NSSound.beep()
+            return
+        }
+        let pasteboard = AppDefaults.pasteboard
+        pasteboard.clearContents()
+        pasteboard.setString(lines.joined(separator: "\n"), forType: .string)
+    }
+
+}
