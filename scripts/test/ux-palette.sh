@@ -7,6 +7,8 @@ scripts/test/mkdata.sh
 run ux-palette-search 'cmd+shift+p wait text:copy wait'
 rg -q 'Copy…' build/shots/ux-palette-search-sheet.txt
 rg -q '^F5$' build/shots/ux-palette-search-sheet.txt
+run ux-palette-copyquery 'alt+r wait text:eadme escape cmd+shift+p wait text:copy enter wait'
+rg -q 'Only files of this type:' build/shots/ux-palette-copyquery-sheet.txt
 run ux-palette-execute 'cmd+shift+p wait text:cm_MkDir enter wait text:palette-made enter wait'
 [[ -d build/testdata/left/palette-made ]]
 run ux-palette-disabled 'cmd+shift+p wait text:cm_CloseCurrentTab enter wait'
