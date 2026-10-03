@@ -275,6 +275,16 @@
         }
       }
     },
+    "%lld of %lld": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld из %lld"
+          }
+        }
+      }
+    },
     "%lld of %lld files will be renamed": {
       "localizations": {
         "ru": {
@@ -1221,6 +1231,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Очистить"
+          }
+        }
+      }
+    },
+    "Clear filters": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сбросить фильтры"
           }
         }
       }
@@ -3161,6 +3181,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Маска:"
+          }
+        }
+      }
+    },
+    "Mask: %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Маска: %@"
           }
         }
       }
@@ -5301,6 +5331,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Терминал: перейти в папку панели"
+          }
+        }
+      }
+    },
+    "Text: %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Текст: %@"
           }
         }
       }

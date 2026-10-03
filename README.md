@@ -12,6 +12,8 @@ keep working as always.
 Full, Brief and Thumbnails file panels expose file names, types, sizes, dates,
 selection and open actions through macOS accessibility, including VoiceOver.
 
+Active filters appear in the path header with their match count and a clear button. Text and filename-mask rules are shown together; clearing restores all entries allowed by the hidden-file setting. Counts exclude the parent-folder row.
+
 ## Features
 
 - **Panels:** tabs, history, directory hotlist, tree, filters, quick search, a

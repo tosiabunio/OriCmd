@@ -59,3 +59,5 @@ Thumbnails views, selection, refresh identity and stale-row safety, then uses Pi
 and Press on disposable files and folders. `accessibilitycheck` writes its API
 checks to `<name>-accessibility.txt`; `accessibilitydump` writes row descriptions
 and selection there. `axpick:filename` selects a row and `axpress:filename` opens it.
+
+`ux-filters.sh` checks combined text and mask rules, match counts, clearing and Escape, both header styles and Russian labels. `filterdump` writes the active summary; `clearfilters` clicks the header’s clear button.
