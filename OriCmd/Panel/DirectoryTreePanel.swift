@@ -44,7 +44,9 @@ final class DirectoryTreePanel: NSView {
         (outline.item(atRow: outline.selectedRow) as? Node)?.url
     }
 
-    init(root: URL, showsHidden: Bool) {
+    /// `insets`: the room above and below, to line up with a panel's path bar
+    /// and status line (none in a dialog).
+    init(root: URL, showsHidden: Bool, insets: (top: CGFloat, bottom: CGFloat) = (29, 22)) {
         self.root = Node(url: root, showsHidden: showsHidden)
         super.init(frame: .zero)
 
@@ -74,9 +76,9 @@ final class DirectoryTreePanel: NSView {
             view.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
         }
         NSLayoutConstraint.activate([
-            titleBar.topAnchor.constraint(equalTo: topAnchor, constant: 29),
+            titleBar.topAnchor.constraint(equalTo: topAnchor, constant: insets.top),
             scrollView.topAnchor.constraint(equalTo: titleBar.bottomAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -22),
+            scrollView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -insets.bottom),
         ])
         outline.reloadData()
     }
@@ -90,8 +92,14 @@ final class DirectoryTreePanel: NSView {
         window?.makeFirstResponder(outline)
     }
 
-    /// Expands the tree down to `url` and selects it.
-    func reveal(_ url: URL) {
+    /// While the tree follows a panel: selecting does not go anywhere.
+    private var isFollowing = false
+
+    /// Expands the tree down to `url` and selects it; `quietly`, the selection is
+    /// not reported (the tree follows a panel's folder).
+    func reveal(_ url: URL, quietly: Bool = false) {
+        isFollowing = quietly
+        defer { isFollowing = false }
         var node = root
         var path = [root]
         for component in url.standardizedFileURL.pathComponents.dropFirst(root.url.pathComponents.count) {
@@ -150,8 +158,13 @@ extension DirectoryTreePanel: NSOutlineViewDataSource, NSOutlineViewDelegate {
         return cell
     }
 
+    /// Typing a folder's first letters finds it among the folders shown.
+    func outlineView(_ outlineView: NSOutlineView, typeSelectStringFor tableColumn: NSTableColumn?, item: Any) -> String? {
+        (item as? Node)?.name
+    }
+
     func outlineViewSelectionDidChange(_ notification: Notification) {
-        if let url = selectedURL {
+        if !isFollowing, let url = selectedURL {
             onSelect?(url)
         }
     }

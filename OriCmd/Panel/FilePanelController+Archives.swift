@@ -12,6 +12,7 @@ extension FilePanelController {
     /// none, nothing happens.
     func openArchive(_ url: URL, inside outer: OuterArchive? = nil, folder: String = "", selecting name: String? = nil,
                      quietly: Bool = false) {
+        if archive == nil { leaveLockedTab(for: nil) }
         loadGeneration += 1
         let generation = loadGeneration
         // A folder still loading is dropped, with its indicator; Esc stops this one.
@@ -131,10 +132,26 @@ extension FilePanelController {
         guard let archive, let window = view.window else { return }
         let url = archive.url
         Task {
+            // An encrypted archive is changed with its password (and keeps it).
+            let password: String?
+            do {
+                password = try await ArchivePasswords.password(for: url, entries: archive.entries, in: window)
+            } catch {
+                if !(error is CancellationError) {
+                    Prompt.error(String(localized: "Cannot update archive"), error, in: window)
+                }
+                completion?(false)
+                return
+            }
             let controller = TransferController(title: String(localized: "Updating archive"),
                                                 failureTitle: String(localized: "Cannot update archive"), window: window)
             let done = await controller.run(source: url.path, target: url.path) { progress, _ in
-                try await ArchiveEditor.apply(edit, to: url, progress: progress)
+                do {
+                    try await ArchiveEditor.apply(edit, to: url, password: password, progress: progress)
+                } catch let error as ArchiveError where error.kind == .wrongPassword {
+                    await ArchivePasswords.forget(url)
+                    throw error
+                }
                 return [url]
             }
             if let current = self.archive, current.url == url {
@@ -150,11 +167,14 @@ extension FilePanelController {
         guard let archive else { return }
         let prefix = archive.folder.isEmpty ? "" : archive.folder + "/"
         var children: [String: FileItem] = [:]
+        // The order the archive has its entries in (for Unsorted).
+        var order: [String] = []
         for entry in archive.entries where entry.path.hasPrefix(prefix) && entry.path.count > prefix.count {
             let rest = entry.path.dropFirst(prefix.count)
             let childName = String(rest.prefix { $0 != "/" })
             let isNested = rest.contains("/")
             if isNested && children[childName] != nil { continue }
+            if children[childName] == nil { order.append(childName) }
             let isFolder = isNested || entry.isDirectory
             children[childName] = FileItem(
                 name: childName, url: archive.url.appending(path: prefix + childName),
@@ -163,7 +183,7 @@ extension FilePanelController {
                 mode: isNested ? 0o755 : entry.mode
             )
         }
-        entries = Array(children.values)
+        entries = order.compactMap { children[$0] }
         entriesOrder = nil
         panelView.show(directory: directory, volumes: Volume.mounted())
         updatePathBar()
@@ -223,12 +243,24 @@ extension FilePanelController {
     func extractToTemporaryFolder(_ item: FileItem) async -> URL? {
         guard let archive else { return nil }
         let folder = FileManager.default.temporaryDirectory.appending(path: "OriCmd-\(UUID().uuidString)")
+        let path = archive.path(of: item.name)
         do {
+            let password = try await ArchivePasswords.password(
+                for: archive.url, entries: ArchivePasswords.entries(archive.entries, at: [path]), in: view.window)
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try await ArchiveReader.extract(archive.url, paths: [archive.path(of: item.name)], base: archive.folder,
-                                            to: folder, progress: TransferProgress())
+            do {
+                try await ArchiveReader.extract(archive.url, paths: [path], base: archive.folder, to: folder,
+                                                password: password, progress: TransferProgress())
+            } catch let error as ArchiveError where error.kind == .wrongPassword {
+                ArchivePasswords.forget(archive.url)
+                throw error
+            }
             return folder.appending(path: item.name)
+        } catch is CancellationError {
+            try? FileManager.default.removeItem(at: folder)
+            return nil
         } catch {
+            try? FileManager.default.removeItem(at: folder)
             Prompt.error(String(localized: "Cannot unpack \u{201C}\(item.name)\u{201D}"), error, in: view.window)
             return nil
         }

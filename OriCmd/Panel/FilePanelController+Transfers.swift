@@ -286,6 +286,168 @@ extension FilePanelController {
         copyToClipboard(selectedItems.map { item in prefix.map { $0 + item.name } ?? item.url.path })
     }
 
+    /// Files → Print File List: the entries shown (the marked ones, when some are).
+    @objc(cm_PrintDir:)
+    func printDir(_ sender: Any?) {
+        printList(subfolders: false)
+    }
+
+    /// Files → Print File List with Subfolders: the files inside the folders too.
+    @objc(cm_PrintDirSub:)
+    func printDirSub(_ sender: Any?) {
+        printList(subfolders: true)
+    }
+
+    private func printList(subfolders: Bool) {
+        let items = listView.marked.isEmpty ? listView.items : selectedItems
+        Printing.print(Printing.list(items, in: directory, subfolders: subfolders && archive == nil && remote == nil),
+                       title: panelView.pathBar.path, in: view.window)
+    }
+
+    /// Files → Print File: the text of the file under the cursor.
+    @objc(cm_PrintFile:)
+    func printFile(_ sender: Any?) {
+        guard archive == nil, remote == nil, let item = listView.currentItem, !item.isParent, !item.isDirectory,
+              let data = try? Data(contentsOf: item.url, options: .alwaysMapped), TextDecoding.looksLikeText(data) else {
+            NSSound.beep()
+            return
+        }
+        Printing.print(TextDecoding.string(from: data), title: item.name, in: view.window)
+    }
+
+    /// Ctrl+Z: the Finder comment of the file under the cursor, changed (empty:
+    /// removed); the Comment column shows it.
+    @objc(cm_CommentFiles:)
+    func commentFiles(_ sender: Any?) {
+        guard archive == nil, remote == nil, let item = listView.currentItem, !item.isParent,
+              let window = view.window else {
+            NSSound.beep()
+            return
+        }
+        Prompt.text(String(localized: "Comment"), message: String(localized: "The comment of \u{201C}\(item.name)\u{201D}:"),
+                    initial: FinderComment.read(item.url) ?? "", okTitle: String(localized: "OK"), in: window) {
+            [weak self] text in
+            do {
+                try FinderComment.write(text.trimmingCharacters(in: .whitespacesAndNewlines), to: item.url)
+                MetadataCache.shared.forget(item.url)
+                self?.listView.needsDisplay = true
+            } catch {
+                Prompt.error(String(localized: "Cannot change the comment"), error, in: window)
+            }
+        }
+    }
+
+    /// The names (or full paths) with the size, the modification date and the
+    /// permissions, tab-separated, one entry per line (a folder's size when calculated).
+    @objc(cm_CopyDetailsToClip:)
+    func copyDetailsToClip(_ sender: Any?) {
+        copyToClipboard(selectedItems.map { details(of: $0, fullPath: false) })
+    }
+
+    @objc(cm_CopyFullDetailsToClip:)
+    func copyFullDetailsToClip(_ sender: Any?) {
+        copyToClipboard(selectedItems.map { details(of: $0, fullPath: true) })
+    }
+
+    private static let detailsDateFormat: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return formatter
+    }()
+
+    private func details(of item: FileItem, fullPath: Bool) -> String {
+        let name = fullPath ? archive.map { $0.displayPath + "/" + item.name } ?? item.url.path : item.name
+        let size = item.isFolder ? listView.folderSizes[item.name].map(String.init) ?? "" : String(item.size)
+        let kind = item.isSymlink ? "l" : item.isDirectory ? "d" : "-"
+        return [name, size, Self.detailsDateFormat.string(from: item.modified), kind + item.permissions]
+            .joined(separator: "\t")
+    }
+
+    /// The names of the selected entries saved in a text file, one per line.
+    @objc(cm_SaveSelectionToFile:)
+    func saveSelectionToFile(_ sender: Any?) {
+        let names = selectedItems.map(\.name)
+        guard !names.isEmpty else {
+            NSSound.beep()
+            return
+        }
+        chooseFile(saving: String(localized: "selection.txt")) { [weak self] url in
+            do {
+                try (names.joined(separator: "\n") + "\n").write(to: url, atomically: true, encoding: .utf8)
+            } catch {
+                Prompt.error(String(localized: "Cannot save the selection"), error, in: self?.view.window)
+            }
+        }
+    }
+
+    /// Selects the entries named in a text file (names, or paths of this folder's entries).
+    @objc(cm_LoadSelectionFromFile:)
+    func loadSelectionFromFile(_ sender: Any?) {
+        chooseFile(saving: nil) { [weak self] url in
+            do {
+                self?.select(lines: try String(contentsOf: url, encoding: .utf8))
+            } catch {
+                Prompt.error(String(localized: "Cannot read the selection"), error, in: self?.view.window)
+            }
+        }
+    }
+
+    /// Selects the entries named on the clipboard, one per line.
+    @objc(cm_LoadSelectionFromClip:)
+    func loadSelectionFromClip(_ sender: Any?) {
+        guard let text = AppDefaults.pasteboard.string(forType: .string) else {
+            NSSound.beep()
+            return
+        }
+        select(lines: text)
+    }
+
+    /// Marks the entries shown whose names (or paths in this folder) are lines of `text`.
+    private func select(lines text: String) {
+        let folder = directory.standardizedFileURL.path
+        let names = Set(text.split(whereSeparator: \.isNewline).compactMap { line -> String? in
+            let line = line.trimmingCharacters(in: .whitespaces)
+            guard line.hasPrefix("/") else { return line.isEmpty ? nil : line }
+            let url = URL(filePath: line).standardizedFileURL
+            return url.deletingLastPathComponent().path == folder ? url.lastPathComponent : nil
+        })
+        let shown = listView.items.filter { !$0.isParent && names.contains($0.name) }.map(\.name)
+        guard !shown.isEmpty else {
+            NSSound.beep()
+            return
+        }
+        listView.setMarked(Set(shown))
+        updateStatus()
+    }
+
+    /// A file to save to (with a suggested name) or to open, chosen in a sheet;
+    /// a test run gives it with `file:/path`.
+    private func chooseFile(saving name: String?, then use: @escaping (URL) -> Void) {
+        #if DEBUG
+        if let path = DebugAutomation.takeChosenFile() {
+            use(URL(filePath: path))
+            return
+        }
+        #endif
+        guard let window = view.window else { return }
+        let panel: NSSavePanel
+        if let name {
+            panel = NSSavePanel()
+            panel.nameFieldStringValue = name
+            panel.allowedContentTypes = [.plainText]
+        } else {
+            let open = NSOpenPanel()
+            open.allowsMultipleSelection = false
+            open.canChooseDirectories = false
+            panel = open
+        }
+        panel.directoryURL = remote == nil && archive == nil ? directory : nil
+        panel.beginSheetModal(for: window) { response in
+            if response == .OK, let url = panel.url { use(url) }
+        }
+    }
+
     func copyToClipboard(_ lines: [String]) {
         guard !lines.isEmpty else {
             NSSound.beep()

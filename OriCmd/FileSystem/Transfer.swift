@@ -24,6 +24,9 @@ nonisolated struct ConflictItem: Sendable {
     let isFolder: Bool
     let size: Int64?
     let modified: Date?
+    /// The existing file is smaller than the one coming from or going to a server:
+    /// the transfer may go on from where it stopped.
+    var resumable = false
 
     static func local(_ url: URL) -> ConflictItem {
         var info = stat()
@@ -44,6 +47,8 @@ nonisolated struct ConflictItem: Sendable {
 
 nonisolated enum ConflictDecision: Sendable {
     case overwrite, overwriteAll, skip, skipAll, overwriteAllOlder, cancel
+    /// Go on with an existing smaller file (offered for servers only).
+    case resume
 }
 
 nonisolated struct TransferError: LocalizedError {
@@ -66,6 +71,12 @@ nonisolated final class TransferProgress: Sendable {
         var target = ""
         var skippedItems = 0
         var isCancelled = false
+        var isPaused = false
+        /// Bytes per second; nil: as fast as it goes.
+        var speedLimit: Int64?
+        /// Since when the bytes counted against the speed limit are counted.
+        fileprivate var paceStart: TimeInterval = 0
+        fileprivate var pacedBytes: Int64 = 0
     }
 
     private let state = OSAllocatedUnfairLock(initialState: State())
@@ -79,6 +90,57 @@ nonisolated final class TransferProgress: Sendable {
 
     func cancel() {
         update { $0.isCancelled = true }
+    }
+
+    /// Sets the bytes done of the current file, counting them in the whole too;
+    /// returns how many were added.
+    func advanceFile(to bytes: Int64) -> Int64 {
+        state.withLock { state in
+            let added = bytes - state.fileDoneBytes
+            state.fileDoneBytes = bytes
+            state.doneBytes += added
+            return added
+        }
+    }
+
+    /// Pauses or goes on; the speed limit counts afresh after a pause.
+    func setPaused(_ paused: Bool) {
+        update {
+            $0.isPaused = paused
+            $0.paceStart = 0
+        }
+    }
+
+    func setSpeedLimit(_ limit: Int64?) {
+        update {
+            $0.speedLimit = limit
+            $0.paceStart = 0
+        }
+    }
+
+    /// Called by the copying thread after `bytes` more were copied: waits while
+    /// the operation is paused, and as long as the bytes so far are ahead of the
+    /// speed limit. Returns at once when it is cancelled.
+    func pace(_ bytes: Int64) {
+        while state.withLock({ $0.isPaused && !$0.isCancelled }) {
+            usleep(100_000)
+        }
+        let now = ProcessInfo.processInfo.systemUptime
+        let wait: TimeInterval = state.withLock { state in
+            guard let limit = state.speedLimit, limit > 0 else { return 0 }
+            if state.paceStart == 0 {
+                state.paceStart = now
+                state.pacedBytes = 0
+            }
+            state.pacedBytes += bytes
+            return Double(state.pacedBytes) / Double(limit) - (now - state.paceStart)
+        }
+        var left = wait
+        while left > 0, !isCancelled {
+            let step = min(left, 0.1)
+            usleep(useconds_t(step * 1_000_000))
+            left -= step
+        }
     }
 }
 
@@ -326,7 +388,7 @@ nonisolated final class TransferEngine {
         if !bothFiles {
             if mode == .skipAll { return .skip }
             switch await resolveConflict(.local(source), .local(target)) {
-            case .overwrite, .overwriteAll, .overwriteAllOlder: return .overwrite
+            case .overwrite, .overwriteAll, .overwriteAllOlder, .resume: return .overwrite
             case .skip, .skipAll: return .skip
             case .cancel: throw CancellationError()
             }
@@ -353,7 +415,7 @@ nonisolated final class TransferEngine {
         }
         // Ask, and for a file meeting a folder in the modes that compare files.
         switch await resolveConflict(.local(source), .local(target)) {
-        case .overwrite:
+        case .overwrite, .resume:
             return .overwrite
         case .overwriteAll:
             mode = .overwriteAll
@@ -455,7 +517,8 @@ nonisolated final class TransferEngine {
                 var copied: off_t = 0
                 copyfile_state_get(state, UInt32(COPYFILE_STATE_COPIED), &copied)
                 let bytes = Int64(copied)
-                progress.update { $0.fileDoneBytes = bytes }
+                // Paused, or ahead of the speed limit: copyfile waits here.
+                progress.pace(progress.advanceFile(to: bytes))
             }
             return progress.isCancelled ? COPYFILE_QUIT : COPYFILE_CONTINUE
         }
@@ -468,7 +531,8 @@ nonisolated final class TransferEngine {
         let result = copyfile(source, target, state, copyfile_flags_t(flags))
         let failure = errno
         progress.update {
-            $0.doneBytes += size
+            // What the callbacks have not counted yet (all of a clone, which has none).
+            $0.doneBytes += max(size - $0.fileDoneBytes, 0)
             $0.fileDoneBytes = size
         }
         if result != 0 {

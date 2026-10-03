@@ -1,4 +1,5 @@
 import AppKit
+import os
 
 /// Root view of the main window: two panels side by side,
 /// the command line and the function key bar underneath.
@@ -6,6 +7,10 @@ final class MainViewController: NSViewController {
     private let leftPanel: FilePanelController
     private let rightPanel: FilePanelController
     private let splitView = PanelSplitView()
+    /// Show → Separate Tree: a folder tree left of the panels, for the active one.
+    private var separateTree: DirectoryTreePanel?
+    private var splitViewLeading: NSLayoutConstraint!
+    private static let separateTreeWidth: CGFloat = 220
     private static let splitRatioKey = "PanelSplitRatio"
     private let commandLine = CommandLineController()
     private let functionKeyBar = FunctionKeyBar()
@@ -102,6 +107,8 @@ final class MainViewController: NSViewController {
             root.addSubview(view)
         }
         operationsHeight = operationsButton.heightAnchor.constraint(equalToConstant: 0)
+        splitViewLeading = splitView.leadingAnchor.constraint(equalTo: root.leadingAnchor)
+        splitViewLeading.isActive = true
         commandLineHeight = commandLine.view.heightAnchor.constraint(equalToConstant: CommandLineView.height)
         functionKeyBarHeight = functionKeyBar.heightAnchor.constraint(equalToConstant: FunctionKeyBar.height)
         NSLayoutConstraint.activate([
@@ -109,7 +116,6 @@ final class MainViewController: NSViewController {
             commandLineHeight,
             functionKeyBarHeight,
             splitView.topAnchor.constraint(equalTo: root.topAnchor),
-            splitView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             splitView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
 
             operationsButton.topAnchor.constraint(equalTo: splitView.bottomAnchor),
@@ -144,10 +150,14 @@ final class MainViewController: NSViewController {
         super.viewDidLoad()
         activate(leftPanel)
         applyLayoutSettings()
+        applySeparateTree()
+        applyPanelArrangement()
     }
 
     @objc private func settingsDidChange(_ notification: Notification) {
         applyLayoutSettings()
+        applySeparateTree()
+        applyPanelArrangement()
         leftPanel.settingsDidChange()
         rightPanel.settingsDidChange()
     }
@@ -178,24 +188,18 @@ final class MainViewController: NSViewController {
         }
         let state = AppDefaults.store.dictionary(forKey: key)
         let viewMode = (state?["view"] as? String).flatMap(FileListView.ViewMode.init(rawValue:)) ?? .full
-        let paths = state?["tabs"] as? [String] ?? []
-        let active = state?["active"] as? Int ?? 0
-        var directories: [URL] = []
-        var activeIndex = 0
-        for (index, path) in paths.enumerated() where FileManager.default.fileExists(atPath: path) {
-            if index == active { activeIndex = directories.count }
-            directories.append(URL(filePath: path))
-        }
-        let panel = FilePanelController(tabDirectories: directories, activeTab: activeIndex)
+        let (tabs, active) = FilePanelController.SavedTabs(state).tabs(sortOrder: SortOrder())
+        let panel = FilePanelController(tabs: tabs, activeTab: active)
         panel.viewMode = viewMode
+        panel.chosenColumnSet = state?["columnSet"] as? String
         return panel
     }
 
     private func savePanels() {
         for (panel, key) in [(leftPanel, Self.leftPanelKey), (rightPanel, Self.rightPanelKey)] {
-            let state = panel.tabState
-            AppDefaults.store.set(["tabs": state.directories, "active": state.active,
-                                   "view": panel.viewMode.rawValue], forKey: key)
+            var state = panel.tabState.dictionary.merging(["view": panel.viewMode.rawValue]) { $1 }
+            state["columnSet"] = panel.chosenColumnSet
+            AppDefaults.store.set(state, forKey: key)
         }
     }
 
@@ -224,6 +228,194 @@ final class MainViewController: NSViewController {
         leftPanel.isActive = panel === leftPanel
         rightPanel.isActive = panel === rightPanel
         commandLine.view.directory = panel.directory
+        separateTree?.reveal(panel.directory, quietly: true)
+    }
+
+    #if DEBUG
+    /// The separate tree, for the test harness.
+    var separateTreeForTests: DirectoryTreePanel? { separateTree }
+    #endif
+
+    /// The tree of the Alt+F10 dialog while it is open (for the test harness).
+    private(set) var folderTreeDialog: DirectoryTreePanel?
+
+    /// Alt+F10 (cm_CDtree): a folder tree in a dialog, the active panel's folder
+    /// selected; typing finds a folder, Enter (or OK) goes there.
+    @objc(cm_CDtree:)
+    func cdTree(_ sender: Any?) {
+        guard let window = view.window, activePanel.remote == nil else {
+            NSSound.beep()
+            return
+        }
+        let tree = DirectoryTreePanel(root: URL(filePath: "/"), showsHidden: showsHidden, insets: (0, 0))
+        tree.frame = NSRect(x: 0, y: 0, width: 420, height: 420)
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Go to Folder")
+        alert.informativeText = String(localized: "Type a folder's first letters to find it.")
+        alert.accessoryView = tree
+        alert.addButton(withTitle: String(localized: "Go"))
+        alert.addCancelButton()
+        tree.onSwitchPanel = { [weak alert] in
+            guard let alert else { return }
+            window.endSheet(alert.window, returnCode: .alertFirstButtonReturn)
+        }
+        tree.onClose = { [weak alert] _ in
+            guard let alert else { return }
+            window.endSheet(alert.window, returnCode: .cancel)
+        }
+        folderTreeDialog = tree
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self else { return }
+            folderTreeDialog = nil
+            if response == .alertFirstButtonReturn, let url = tree.selectedURL {
+                activePanel.load(url)
+            }
+            activePanel.focus()
+        }
+        tree.reveal(activePanel.directory, quietly: true)
+        tree.focus()
+    }
+
+    /// Net → Download from URL…: http(s) and ftp addresses, one per line (the one
+    /// on the clipboard offered), downloaded into the active panel's folder.
+    @objc func downloadFromURL(_ sender: Any?) {
+        guard let window = view.window, activePanel.archive == nil, activePanel.remote == nil else {
+            NSSound.beep()
+            return
+        }
+        let text = NSTextView(frame: NSRect(x: 0, y: 0, width: 460, height: 120))
+        let clipboard = AppDefaults.pasteboard.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        text.string = ["http://", "https://", "ftp://"].contains(where: clipboard.lowercased().hasPrefix) ? clipboard : ""
+        text.font = Theme.panelFont
+        text.isRichText = false
+        text.isAutomaticLinkDetectionEnabled = false
+        text.isAutomaticQuoteSubstitutionEnabled = false
+        text.identifier = NSUserInterfaceItemIdentifier("downloadURLs")
+        let scroll = NSScrollView(frame: text.frame)
+        scroll.documentView = text
+        scroll.hasVerticalScroller = true
+        scroll.borderType = .bezelBorder
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Download from URL")
+        alert.informativeText = String(localized: "Addresses (http, https, ftp), one per line, into \(activePanel.directory.path):")
+        alert.accessoryView = scroll
+        alert.addButton(withTitle: String(localized: "Download"))
+        alert.addCancelButton()
+        alert.window.initialFirstResponder = text
+        let panel = activePanel
+        let folder = panel.directory
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self, response == .alertFirstButtonReturn else { return }
+            let urls = text.string.components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+                .compactMap(URL.init(string:)).filter { ["http", "https", "ftp"].contains($0.scheme?.lowercased() ?? "") }
+            guard !urls.isEmpty else {
+                NSSound.beep()
+                return
+            }
+            confirmOverwriting(urls.map(URLDownloader.fileName(of:)), in: folder) {
+                Task {
+                    let controller = TransferController(title: String(localized: "Downloading"),
+                                                        failureTitle: String(localized: "Download failed"), window: window)
+                    let files = await controller.run(source: urls[0].absoluteString, target: folder.path) { progress, _ in
+                        try await URLDownloader.download(urls, into: folder, progress: progress)
+                    }
+                    panel.reread()
+                    if let first = files.first { panel.load(folder, selecting: first.lastPathComponent) }
+                }
+            }
+        }
+    }
+
+    /// Show → Use the Ignore List (cm_SwitchIgnoreList).
+    @objc(cm_SwitchIgnoreList:)
+    func switchIgnoreList(_ sender: Any?) {
+        Settings.usesIgnoreList.toggle()
+    }
+
+    /// Show → Ignore List…: the names, masks and paths to leave out, a line each;
+    /// saving it turns it on.
+    @objc func editIgnoreList(_ sender: Any?) {
+        guard let window = view.window else { return }
+        let text = NSTextView(frame: NSRect(x: 0, y: 0, width: 420, height: 220))
+        text.string = Settings.ignoreList.joined(separator: "\n")
+        text.font = Theme.panelFont
+        text.isRichText = false
+        text.isAutomaticQuoteSubstitutionEnabled = false
+        text.isAutomaticDashSubstitutionEnabled = false
+        text.identifier = NSUserInterfaceItemIdentifier("ignoreList")
+        let scroll = NSScrollView(frame: text.frame)
+        scroll.documentView = text
+        scroll.hasVerticalScroller = true
+        scroll.borderType = .bezelBorder
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Ignore List")
+        alert.informativeText = String(localized:
+            "Entries the panels leave out: a name, a mask (*.bak) or a full path (~/Library) per line.")
+        alert.accessoryView = scroll
+        alert.addButton(withTitle: String(localized: "OK"))
+        alert.addCancelButton()
+        alert.window.initialFirstResponder = text
+        alert.beginSheetModal(for: window) { response in
+            guard response == .alertFirstButtonReturn else { return }
+            Settings.ignoreList = text.string.components(separatedBy: .newlines)
+            Settings.usesIgnoreList = true
+        }
+    }
+
+    /// Show → Horizontal Panels (cm_HorizontalPanels): the panels one above the other.
+    @objc(cm_HorizontalPanels:)
+    func horizontalPanels(_ sender: Any?) {
+        Settings.panelsOneAboveTheOther.toggle()
+    }
+
+    /// Side by side, or one above the other; the share of each stays.
+    private func applyPanelArrangement() {
+        let vertical = !Settings.panelsOneAboveTheOther
+        guard splitView.isVertical != vertical else { return }
+        let ratio = splitView.ratio
+        splitView.isVertical = vertical
+        splitView.adjustSubviews()
+        splitView.layoutSubtreeIfNeeded()
+        splitView.setRatio(ratio)
+    }
+
+    /// Show → Separate Tree (cm_ToggleSeparateTree1): one tree for both panels.
+    @objc(cm_ToggleSeparateTree1:)
+    func toggleSeparateTree1(_ sender: Any?) {
+        Settings.showsSeparateTree.toggle()
+    }
+
+    /// Shows or removes the separate tree. A folder chosen in it is shown in the
+    /// active panel, and it follows the active panel's folder.
+    private func applySeparateTree() {
+        if Settings.showsSeparateTree, separateTree == nil {
+            let tree = DirectoryTreePanel(root: URL(filePath: "/"), showsHidden: showsHidden)
+            tree.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(tree)
+            NSLayoutConstraint.activate([
+                tree.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                tree.topAnchor.constraint(equalTo: splitView.topAnchor),
+                tree.bottomAnchor.constraint(equalTo: splitView.bottomAnchor),
+                tree.widthAnchor.constraint(equalToConstant: Self.separateTreeWidth),
+            ])
+            splitViewLeading.constant = Self.separateTreeWidth + 1
+            tree.onSelect = { [weak self] url in self?.activePanel.load(url) }
+            tree.onSwitchPanel = { [weak self] in self?.activePanel.focus() }
+            tree.onClose = { [weak self] mode in
+                self?.activePanel.viewMode = mode
+                self?.activePanel.focus()
+            }
+            separateTree = tree
+            tree.reveal(activePanel.directory, quietly: true)
+        } else if !Settings.showsSeparateTree, let tree = separateTree {
+            if view.window?.firstResponder.map({ ($0 as? NSView)?.isDescendant(of: tree) == true }) == true {
+                activePanel.focus()
+            }
+            tree.removeFromSuperview()
+            separateTree = nil
+            splitViewLeading.constant = 0
+        }
     }
 }
 
@@ -368,14 +560,24 @@ extension MainViewController: NSMenuItemValidation {
     private func askForServerTransfer(_ items: [FileItem], kind: TransferJob.Kind, from source: FilePanelController,
                                       to target: FilePanelController) {
         guard let window = view.window else { return }
+        let what = items.count == 1 ? String(localized: "\u{201C}\(items[0].name)\u{201D}")
+            : String(localized: "\(items.count) files/folders")
+        if let from = source.remote, let to = target.remote, source.archive == nil, target.archive == nil {
+            Prompt.confirm(kind == .copy ? String(localized: "Copy \(what) to \(to.displayPath)?")
+                                         : String(localized: "Move \(what) to \(to.displayPath)?"),
+                           message: String(localized: "From one server to the other, through this Mac."),
+                           okTitle: kind == .copy ? String(localized: "Copy") : String(localized: "move.button", defaultValue: "Move"),
+                           in: window) {
+                Task { await self.relay(items, from: from, to: to, moving: kind == .move, source: source, target: target) }
+            }
+            return
+        }
         guard (source.remote == nil) != (target.remote == nil), source.archive == nil, target.archive == nil,
               target.searchResultsShown == false else {
             Prompt.info(String(localized: "Not supported on servers"),
                         message: String(localized: "Copy between a server and a local folder."), in: window)
             return
         }
-        let what = items.count == 1 ? String(localized: "\u{201C}\(items[0].name)\u{201D}")
-            : String(localized: "\(items.count) files/folders")
         if source.remote != nil {
             Prompt.text(kind == .copy ? String(localized: "Download") : String(localized: "Download and delete"),
                         message: String(localized: "Download \(what) to:"),
@@ -401,6 +603,36 @@ extension MainViewController: NSMenuItemValidation {
         }
     }
 
+    /// F5/F6 between two servers (Total Commander's FXP, here through this Mac):
+    /// the entries are downloaded into a temporary folder and uploaded from there;
+    /// moving deletes on the first server what reached the other one whole.
+    private func relay(_ items: [FileItem], from: FilePanelController.RemoteLocation,
+                       to: FilePanelController.RemoteLocation, moving: Bool,
+                       source: FilePanelController, target: FilePanelController) async {
+        guard let window = view.window else { return }
+        let controller = TransferController(title: moving ? String(localized: "Moving") : String(localized: "Copying"),
+                                            failureTitle: String(localized: "Server to server failed"), window: window)
+        let done = await controller.run(source: from.displayPath, target: to.displayPath) { progress, resolveConflict in
+            let temporary = FileManager.default.temporaryDirectory.appending(path: "OriCmd-relay-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: temporary, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: temporary) }
+            let fetched = try await from.fileSystem.download(items, from: from.path, to: temporary, progress: progress,
+                                                             conflicts: RemoteConflicts(nil))
+            let local = items.filter { fetched.contains($0.name) }.map { temporary.appending(path: $0.name) }
+            let sent = try await to.fileSystem.upload(local, to: to.path, progress: progress,
+                                                      conflicts: RemoteConflicts(resolveConflict))
+            let names = Set(sent.map(\.lastPathComponent))
+            if moving {
+                try await from.fileSystem.delete(items.filter { names.contains($0.name) }, in: from.path)
+            }
+            return Array(sent)
+        }
+        if !done.isEmpty {
+            target.reread()
+            if moving { source.reread() }
+        }
+    }
+
     // MARK: - Archives
 
     /// F5 inside an archive: unpacks the selected entries, by default into the other panel.
@@ -415,11 +647,13 @@ extension MainViewController: NSMenuItemValidation {
             guard let self, !text.isEmpty else { return }
             let destination = Self.resolveFolder(text, base: source.directory)
             let paths = items.map { archive.path(of: $0.name) }
-            let total = archive.entries
-                .filter { entry in paths.contains { entry.path == $0 || entry.path.hasPrefix($0 + "/") } }
-                .reduce(Int64(0)) { $0 + $1.size }
+            let entries = ArchivePasswords.entries(archive.entries, at: paths)
+            let total = entries.reduce(Int64(0)) { $0 + $1.size }
             confirmOverwriting(items.map(\.name), in: destination) {
-                self.unpack([(archive.url, paths, archive.folder, destination)], total: total)
+                Task {
+                    guard let passwords = await self.passwords(for: [(archive.url, entries)]) else { return }
+                    self.unpack([(archive.url, paths, archive.folder, destination, passwords[archive.url])], total: total)
+                }
             }
         }
     }
@@ -456,6 +690,106 @@ extension MainViewController: NSMenuItemValidation {
         }
     }
 
+    // MARK: - Column sets
+
+    /// Show → Columns → Column Sets…: the sets, their columns and folders.
+    @objc func configureColumnSets(_ sender: Any?) {
+        ColumnSetsWindowController.show()
+    }
+
+    // MARK: - Favorite tabs
+
+    /// Shows the favorite tabs chosen in the menu in both panels.
+    @objc func showFavoriteTabs(_ sender: Any?) {
+        guard let name = (sender as? NSMenuItem)?.representedObject as? String,
+              let favorite = FavoriteTabs.saved.first(where: { $0.name == name }) else { return }
+        leftPanel.replaceTabs(with: favorite.left)
+        rightPanel.replaceTabs(with: favorite.right)
+    }
+
+    /// Saves the tabs of both panels under a name (one of the same name is replaced).
+    @objc func saveFavoriteTabs(_ sender: Any?) {
+        guard let window = view.window else { return }
+        Prompt.text(String(localized: "Save the tabs"), message: String(localized: "The tabs of both panels, saved as:"),
+                    initial: activePanel.directory.lastPathComponent, okTitle: String(localized: "Save"), in: window) {
+            [weak self] text in
+            guard let self else { return }
+            let name = text.trimmingCharacters(in: .whitespaces)
+            guard !name.isEmpty else {
+                NSSound.beep()
+                return
+            }
+            var favorites = FavoriteTabs.saved
+            let favorite = FavoriteTabs(name: name, left: leftPanel.tabState, right: rightPanel.tabState)
+            if let index = favorites.firstIndex(where: { $0.name == name }) {
+                favorites[index] = favorite
+            } else {
+                favorites.append(favorite)
+            }
+            FavoriteTabs.saved = favorites
+        }
+    }
+
+    @objc func removeFavoriteTabs(_ sender: Any?) {
+        guard let name = (sender as? NSMenuItem)?.representedObject as? String else { return }
+        FavoriteTabs.saved.removeAll { $0.name == name }
+    }
+
+    /// Alt+Shift+F9: reads the selected archives through (or the one shown), so
+    /// libarchive checks their contents, and tells which are damaged.
+    @objc(cm_TestArchive:)
+    func testArchives(_ sender: Any?) {
+        let source = activePanel
+        let archives = source.archive.map { [$0.url] }
+            ?? source.selectedItems.filter { !$0.isDirectory && ArchiveReader.isArchive($0.name) }.map(\.url)
+        guard !archives.isEmpty, let window = view.window else {
+            NSSound.beep()
+            return
+        }
+        Task {
+            let entries = await Self.entries(of: archives)
+            guard let passwords = await passwords(for: archives.map { ($0, entries[$0] ?? []) }) else { return }
+            let total = entries.values.joined().reduce(Int64(0)) { $0 + $1.size }
+            let failures = OSAllocatedUnfairLock(initialState: [String]())
+            let controller = TransferController(title: String(localized: "Testing archives"),
+                                                failureTitle: String(localized: "Cannot test archives"), window: window)
+            let tested = await controller.run(source: archives[0].path, target: "") { progress, _ in
+                progress.update { $0.totalBytes = total }
+                for archive in archives {
+                    do {
+                        try await ArchiveReader.test(archive, password: passwords[archive], progress: progress)
+                    } catch is CancellationError {
+                        throw CancellationError()
+                    } catch {
+                        if (error as? ArchiveError)?.kind == .wrongPassword {
+                            await ArchivePasswords.forget(archive)
+                        }
+                        let line = "\u{201C}\(archive.lastPathComponent)\u{201D}: \(error.localizedDescription)"
+                        failures.withLock { $0.append(line) }
+                    }
+                }
+                return archives
+            }
+            guard !tested.isEmpty else { return }
+            let failed = failures.withLock { $0 }
+            if failed.isEmpty {
+                Prompt.info(String(localized: "No errors found"), message: archives.count == 1
+                    ? String(localized: "\u{201C}\(archives[0].lastPathComponent)\u{201D} was read through: its contents are intact.")
+                    : String(localized: "\(archives.count) archives were read through: their contents are intact."), in: window)
+            } else {
+                let intact = archives.count - failed.count
+                Prompt.info(String(localized: "Errors found"), message: failed.joined(separator: "\n")
+                    + (intact > 0 ? "\n\n" + String(localized: "The other archives (\(intact)) are intact.") : ""), in: window)
+            }
+        }
+    }
+
+    /// The entries of each archive (an archive that cannot be read has none).
+    @concurrent
+    private nonisolated static func entries(of archives: [URL]) async -> [URL: [ArchiveEntry]] {
+        Dictionary(uniqueKeysWithValues: archives.map { ($0, (try? ArchiveReader.entries(of: $0)) ?? []) })
+    }
+
     /// Alt+F9: unpacks the selected archives, by default into the other panel.
     @objc(cm_UnpackFiles:)
     func unpackFiles(_ sender: Any?) {
@@ -483,30 +817,41 @@ extension MainViewController: NSMenuItemValidation {
             }
             // Unpacking replaces existing files: ask first, as for the other operations.
             Task {
-                let (existing, total) = await Self.existingEntries(jobs.map { ($0.url, $0.destination) })
+                let (existing, total, entries) = await Self.existingEntries(jobs.map { ($0.url, $0.destination) })
+                let unpack: () -> Void = {
+                    Task {
+                        guard let passwords = await self.passwords(for: jobs.map { ($0.url, entries[$0.url] ?? []) }) else {
+                            return
+                        }
+                        self.unpack(jobs.map { ($0.url, $0.paths, $0.base, $0.destination, passwords[$0.url]) }, total: total)
+                    }
+                }
                 guard !existing.isEmpty else {
-                    self.unpack(jobs, total: total)
+                    unpack()
                     return
                 }
                 let what = existing.count == 1 ? String(localized: "\u{201C}\(existing[0])\u{201D}")
                     : String(localized: "\(existing.count) files/folders")
                 Prompt.confirm(String(localized: "\(what) already exists. Replace?"),
                                okTitle: String(localized: "Overwrite"), in: window) {
-                    self.unpack(jobs, total: total)
+                    unpack()
                 }
             }
         }
     }
 
     /// Top-level entries of the archives that already exist in their destinations,
-    /// and the total size (so the archives are not read once more for the progress).
+    /// the total size (so the archives are not read once more for the progress) and
+    /// the entries of each archive.
     @concurrent
     private nonisolated static func existingEntries(_ archives: [(url: URL, destination: URL)]) async
-        -> (existing: [String], total: Int64) {
+        -> (existing: [String], total: Int64, entries: [URL: [ArchiveEntry]]) {
         var existing: [String] = []
         var total: Int64 = 0
+        var all: [URL: [ArchiveEntry]] = [:]
         for (url, destination) in archives {
             let entries = (try? ArchiveReader.entries(of: url)) ?? []
+            all[url] = entries
             total += entries.reduce(Int64(0)) { $0 + $1.size }
             let names = Set(entries.compactMap {
                 $0.path.split(separator: "/").first.map(String.init)
@@ -515,7 +860,24 @@ extension MainViewController: NSMenuItemValidation {
                 FileManager.default.fileExists(atPath: destination.appending(path: $0).path)
             }
         }
-        return (existing, total)
+        return (existing, total, all)
+    }
+
+    /// The passwords of the encrypted archives among `archives`, asked one after
+    /// another; nil when the user cancels or an archive cannot be decrypted (said so).
+    private func passwords(for archives: [(url: URL, entries: [ArchiveEntry])]) async -> [URL: String]? {
+        var passwords: [URL: String] = [:]
+        for (url, entries) in archives {
+            do {
+                passwords[url] = try await ArchivePasswords.password(for: url, entries: entries, in: view.window)
+            } catch is CancellationError {
+                return nil
+            } catch {
+                Prompt.error(String(localized: "Cannot unpack \u{201C}\(url.lastPathComponent)\u{201D}"), error, in: view.window)
+                return nil
+            }
+        }
+        return passwords
     }
 
     /// Alt+F5: packs the selection into a new archive; the suffix picks the format.
@@ -535,23 +897,49 @@ extension MainViewController: NSMenuItemValidation {
                                 length: (name as NSString).length)
         let what = items.count == 1 ? String(localized: "\u{201C}\(items[0].name)\u{201D}")
             : String(localized: "\(items.count) files/folders")
-        Prompt.text(String(localized: "Pack files"),
-                    message: String(localized: "Pack \(what) to archive (.zip, .tar.gz, .tar.bz2, .tar.xz, .7z):"),
-                    initial: initial, selection: selection, okTitle: String(localized: "Pack"), in: window) {
-            [weak self] text in
-            guard let self, !text.isEmpty else { return }
-            var path = (text as NSString).expandingTildeInPath
+        PackDialog.show(title: String(localized: "Pack files"),
+                        message: String(localized: "Pack \(what) to archive (.zip, .tar.gz, .tar.bz2, .tar.xz, .7z):"),
+                        initial: initial, selection: selection, itemCount: items.count, in: window) { [weak self] choice in
+            guard let self else { return }
+            var path = (choice.path as NSString).expandingTildeInPath
             if !path.hasPrefix("/") { path = source.directory.appending(path: path).path }
-            let archive = URL(filePath: path)
-            let names = items.map(\.name)
-            confirmOverwriting([archive.lastPathComponent], in: archive.deletingLastPathComponent()) {
+            let archive = URL(filePath: path).standardizedFileURL
+            let folder = archive.deletingLastPathComponent()
+            // One archive per item: named after it (the whole name when two would clash).
+            let suffix = choice.separately ? ArchiveWriter.suffix(of: archive.lastPathComponent) : nil
+            let bases = items.map { $0.isFolder ? $0.name : $0.baseName }
+            let jobs: [(names: [String], archive: URL)] = suffix.map { suffix in
+                items.indices.map { index in
+                    let base = bases.filter { $0 == bases[index] }.count > 1 ? items[index].name : bases[index]
+                    return ([items[index].name], folder.appending(path: base + suffix))
+                }
+            } ?? [(items.map(\.name), archive)]
+            let directory = source.directory
+            // A folder packed into an archive inside it would take in the archive being written.
+            let inside = items.first { item in
+                jobs.contains { $0.archive.path.hasPrefix(item.url.standardizedFileURL.path + "/") }
+            }
+            if let inside {
+                Prompt.info(String(localized: "Cannot pack \u{201C}\(inside.name)\u{201D}"),
+                            message: String(localized: "The archive cannot be put inside a folder being packed."), in: window)
+                return
+            }
+            confirmOverwriting(jobs.map(\.archive.lastPathComponent), in: folder) {
                 Task {
                     let controller = TransferController(title: String(localized: "Packing"),
                                                         failureTitle: String(localized: "Packing failed"), window: window)
-                    _ = await controller.run(source: source.directory.path, target: archive.path) { progress, _ in
-                        // The old archive is replaced only once the new one is complete.
-                        try await ArchiveWriter.pack(names, in: source.directory, to: archive, progress: progress)
-                        return []
+                    _ = await controller.run(source: directory.path, target: archive.path) { progress, _ in
+                        for job in jobs {
+                            // The old archive is replaced only once the new one is complete.
+                            try await ArchiveWriter.pack(job.names, in: directory, to: job.archive,
+                                                         compression: choice.compression, password: choice.password,
+                                                         encryption: choice.encryption, progress: progress)
+                            guard choice.moves else { continue }
+                            // The files go only once the archive reads back whole.
+                            try await ArchiveReader.test(job.archive, password: choice.password, progress: TransferProgress())
+                            try await FileOperations.deletePermanently(job.names.map { directory.appending(path: $0) })
+                        }
+                        return jobs.map(\.archive)
                     }
                     self.leftPanel.reread()
                     self.rightPanel.reread()
@@ -560,7 +948,8 @@ extension MainViewController: NSMenuItemValidation {
         }
     }
 
-    private func unpack(_ archives: [(url: URL, paths: [String], base: String, destination: URL)], total: Int64?) {
+    private func unpack(_ archives: [(url: URL, paths: [String], base: String, destination: URL, password: String?)],
+                        total: Int64?) {
         guard let window = view.window, let destination = archives.first?.destination else { return }
         Task {
             let controller = TransferController(title: String(localized: "Unpacking"),
@@ -572,8 +961,13 @@ extension MainViewController: NSMenuItemValidation {
                 progress.update { $0.totalBytes = size }
                 for archive in archives {
                     try FileManager.default.createDirectory(at: archive.destination, withIntermediateDirectories: true)
-                    try await ArchiveReader.extract(archive.url, paths: archive.paths, base: archive.base,
-                                                    to: archive.destination, progress: progress)
+                    do {
+                        try await ArchiveReader.extract(archive.url, paths: archive.paths, base: archive.base,
+                                                        to: archive.destination, password: archive.password, progress: progress)
+                    } catch let error as ArchiveError where error.kind == .wrongPassword {
+                        await ArchivePasswords.forget(archive.url)
+                        throw error
+                    }
                 }
                 return archives.map(\.url)
             }
@@ -685,9 +1079,14 @@ extension MainViewController: NSMenuItemValidation {
     /// Alt+F7: find files; the chosen result is shown in the active panel.
     @objc(cm_SearchFor:)
     func searchFor(_ sender: Any?) {
-        FindFilesWindowController.show(searchingIn: activePanel.directory, goTo: { [weak self] url in
+        FindFilesWindowController.show(searchingIn: activePanel.directory, goTo: { [weak self] found in
             guard let self else { return }
-            activePanel.load(url.deletingLastPathComponent(), selecting: url.lastPathComponent)
+            if let entry = found.entry {
+                activePanel.openArchive(found.url, folder: (entry as NSString).deletingLastPathComponent,
+                                        selecting: (entry as NSString).lastPathComponent)
+            } else {
+                activePanel.load(found.url.deletingLastPathComponent(), selecting: found.url.lastPathComponent)
+            }
             view.window?.makeKeyAndOrderFront(nil)
             activePanel.focus()
         }, feed: { [weak self] results, root, title in
@@ -792,6 +1191,222 @@ extension MainViewController: NSMenuItemValidation {
         }
     }
 
+    /// The piece sizes offered when splitting (any other can be typed).
+    private static let pieceSizes = ["10 MB", "100 MB", "650 MB", "700 MB", "1 GB", "2 GB", "4095 MB", "4.7 GB"]
+
+    /// "650 MB", "1.5 GB", "100000": bytes (no unit: megabytes).
+    private static func bytes(in text: String) -> Int64? {
+        let parts = text.trimmingCharacters(in: .whitespaces).uppercased().replacingOccurrences(of: ",", with: ".")
+            .split(separator: " ", omittingEmptySubsequences: true)
+        guard let number = parts.first.flatMap({ Double($0) }), number > 0 else { return nil }
+        let unit: Double = switch parts.count > 1 ? String(parts[1]) : "MB" {
+        case "B": 1
+        case "KB", "K": 1024
+        case "MB", "M": 1024 * 1024
+        case "GB", "G": 1024 * 1024 * 1024
+        default: 0
+        }
+        return unit > 0 ? Int64(number * unit) : nil
+    }
+
+    /// Files → Split File… (cm_FileSpliter): the file under the cursor cut into
+    /// pieces of a size chosen (`name.001`… and `name.crc`), by default in the
+    /// other panel.
+    @objc(cm_FileSpliter:)
+    func fileSpliter(_ sender: Any?) {
+        guard let item = activePanel.listView.currentItem, !item.isParent, !item.isDirectory,
+              activePanel.archive == nil, activePanel.remote == nil, let window = view.window else {
+            NSSound.beep()
+            return
+        }
+        let folderField = NSTextField(string: Self.folderText(inactivePanel.archive == nil && inactivePanel.remote == nil
+            ? inactivePanel.directory : activePanel.directory))
+        let sizeBox = NSComboBox()
+        sizeBox.addItems(withObjectValues: Self.pieceSizes)
+        sizeBox.stringValue = AppDefaults.store.string(forKey: "SplitPieceSize") ?? "100 MB"
+        folderField.identifier = NSUserInterfaceItemIdentifier("splitFolder")
+        sizeBox.identifier = NSUserInterfaceItemIdentifier("splitSize")
+        folderField.widthAnchor.constraint(equalToConstant: 380).isActive = true
+        let grid = NSGridView(views: [[NSTextField(labelWithString: String(localized: "Into:")), folderField],
+                                      [NSTextField(labelWithString: String(localized: "Piece size:")), sizeBox]])
+        grid.rowSpacing = 6
+        grid.column(at: 0).xPlacement = .trailing
+        grid.frame = NSRect(origin: .zero, size: grid.fittingSize)
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Split File")
+        alert.informativeText = String(localized: "Cut \u{201C}\(item.name)\u{201D} into pieces:")
+        alert.accessoryView = grid
+        alert.addButton(withTitle: String(localized: "Split"))
+        alert.addCancelButton()
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self, response == .alertFirstButtonReturn else { return }
+            guard let size = Self.bytes(in: sizeBox.stringValue) else {
+                Prompt.info(String(localized: "Cannot split \u{201C}\(item.name)\u{201D}"),
+                            message: String(localized: "The piece size is not understood: write it as 650 MB or 1.5 GB."),
+                            in: window)
+                return
+            }
+            AppDefaults.store.set(sizeBox.stringValue, forKey: "SplitPieceSize")
+            let folder = Self.resolveFolder(folderField.stringValue, base: activePanel.directory)
+            Task {
+                let controller = TransferController(title: String(localized: "Splitting"),
+                                                    failureTitle: String(localized: "Splitting failed"), window: window)
+                _ = await controller.run(source: item.url.path, target: folder.path) { progress, _ in
+                    try await FileSplitter.split(item.url, pieceSize: size, into: folder, progress: progress)
+                }
+                self.leftPanel.reread()
+                self.rightPanel.reread()
+            }
+        }
+    }
+
+    /// Files → Encode File (cm_UUEncode): the file under the cursor as text for
+    /// mail — MIME, UUE or XXE — by default in the other panel.
+    @objc(cm_UUEncode:)
+    func uuEncode(_ sender: Any?) {
+        guard let item = activePanel.listView.currentItem, !item.isParent, !item.isDirectory,
+              activePanel.archive == nil, activePanel.remote == nil, let window = view.window else {
+            NSSound.beep()
+            return
+        }
+        let folderField = NSTextField(string: Self.folderText(inactivePanel.archive == nil && inactivePanel.remote == nil
+            ? inactivePanel.directory : activePanel.directory))
+        folderField.widthAnchor.constraint(equalToConstant: 380).isActive = true
+        let formatPopup = NSPopUpButton()
+        formatPopup.addItems(withTitles: MailEncoding.allCases.map(\.title))
+        formatPopup.selectItem(at: AppDefaults.store.integer(forKey: "EncodeFormat"))
+        folderField.identifier = NSUserInterfaceItemIdentifier("encodeFolder")
+        formatPopup.identifier = NSUserInterfaceItemIdentifier("encodeFormat")
+        let grid = NSGridView(views: [[NSTextField(labelWithString: String(localized: "Into:")), folderField],
+                                      [NSTextField(labelWithString: String(localized: "Format:")), formatPopup]])
+        grid.rowSpacing = 6
+        grid.column(at: 0).xPlacement = .trailing
+        grid.frame = NSRect(origin: .zero, size: grid.fittingSize)
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Encode File")
+        alert.informativeText = String(localized: "\u{201C}\(item.name)\u{201D} as text for mail:")
+        alert.accessoryView = grid
+        alert.addButton(withTitle: String(localized: "Encode"))
+        alert.addCancelButton()
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self, response == .alertFirstButtonReturn else { return }
+            let format = MailEncoding(rawValue: formatPopup.indexOfSelectedItem) ?? .mime
+            AppDefaults.store.set(format.rawValue, forKey: "EncodeFormat")
+            let folder = Self.resolveFolder(folderField.stringValue, base: activePanel.directory)
+            let target = folder.appending(path: (item.name as NSString).deletingPathExtension + "." + format.fileExtension)
+            confirmOverwriting([target.lastPathComponent], in: folder) { [self] in
+                do {
+                    let data = try Data(contentsOf: item.url)
+                    try format.encode(data, name: item.name).write(to: target, atomically: true, encoding: .utf8)
+                } catch {
+                    Prompt.error(String(localized: "Cannot encode \u{201C}\(item.name)\u{201D}"), error, in: window)
+                }
+                leftPanel.reread()
+                rightPanel.reread()
+            }
+        }
+    }
+
+    /// Files → Decode File (cm_UUDecode): the file a MIME, UUE or XXE text holds,
+    /// under the name it gives, by default in the other panel.
+    @objc(cm_UUDecode:)
+    func uuDecode(_ sender: Any?) {
+        guard let item = activePanel.listView.currentItem, !item.isParent, !item.isDirectory,
+              activePanel.archive == nil, activePanel.remote == nil, let window = view.window else {
+            NSSound.beep()
+            return
+        }
+        guard let text = (try? String(contentsOf: item.url, encoding: .utf8))
+                ?? (try? String(contentsOf: item.url, encoding: .isoLatin1)),
+              let decoded = MailEncoding.decode(text) else {
+            Prompt.info(String(localized: "Cannot decode \u{201C}\(item.name)\u{201D}"),
+                        message: String(localized: "It holds no MIME (Base64), UUE or XXE encoded file."), in: window)
+            return
+        }
+        let name = decoded.name.flatMap { $0.isEmpty || $0.contains("/") ? nil : $0 }
+            ?? (item.name as NSString).deletingPathExtension
+        Prompt.text(String(localized: "Decode File"), message: String(localized: "Put \u{201C}\(name)\u{201D} in:"),
+                    initial: Self.folderText(inactivePanel.archive == nil && inactivePanel.remote == nil
+                        ? inactivePanel.directory : activePanel.directory),
+                    okTitle: String(localized: "Decode"), in: window) { [weak self] text in
+            guard let self, !text.isEmpty else { return }
+            let folder = Self.resolveFolder(text, base: activePanel.directory)
+            confirmOverwriting([name], in: folder) { [self] in
+                do {
+                    try decoded.data.write(to: folder.appending(path: name), options: .atomic)
+                } catch {
+                    Prompt.error(String(localized: "Cannot decode \u{201C}\(item.name)\u{201D}"), error, in: window)
+                }
+                leftPanel.reread()
+                rightPanel.reread()
+            }
+        }
+    }
+
+    /// Files → Combine Files… (cm_FileCombine): the pieces of the one under the
+    /// cursor (`name.001`, or `name.crc`) put together, by default in the other panel.
+    @objc(cm_FileCombine:)
+    func fileCombine(_ sender: Any?) {
+        guard let item = activePanel.listView.currentItem, !item.isParent, !item.isDirectory,
+              activePanel.archive == nil, activePanel.remote == nil, let window = view.window else {
+            NSSound.beep()
+            return
+        }
+        let first = item.url.pathExtension.lowercased() == "crc"
+            ? item.url.deletingPathExtension().appendingPathExtension("001") : item.url
+        guard FileSplitter.baseName(of: first) != nil, FileManager.default.fileExists(atPath: first.path) else {
+            Prompt.info(String(localized: "Cannot combine \u{201C}\(item.name)\u{201D}"),
+                        message: String(localized: "Choose the first piece (a name ending in .001) or the .crc file."),
+                        in: window)
+            return
+        }
+        Prompt.text(String(localized: "Combine Files"),
+                    message: String(localized: "Put the pieces of \u{201C}\(first.deletingPathExtension().lastPathComponent)\u{201D} together in:"),
+                    initial: Self.folderText(inactivePanel.archive == nil && inactivePanel.remote == nil
+                        ? inactivePanel.directory : activePanel.directory),
+                    okTitle: String(localized: "Combine"), in: window) { [weak self] text in
+            guard let self, !text.isEmpty else { return }
+            let folder = Self.resolveFolder(text, base: activePanel.directory)
+            confirmOverwriting([FileSplitter.combinedName(of: first) ?? ""], in: folder) { [self] in
+            Task {
+                let controller = TransferController(title: String(localized: "Combining"),
+                                                    failureTitle: String(localized: "Combining failed"), window: window)
+                _ = await controller.run(source: first.path, target: folder.path) { progress, _ in
+                    [try await FileSplitter.combine(first, into: folder, progress: progress)]
+                }
+                self.leftPanel.reread()
+                self.rightPanel.reread()
+            }
+            }
+        }
+    }
+
+    /// A hard link to the file under the cursor: another name of the same file (on
+    /// the same volume; folders cannot have them).
+    @objc(cm_CreateHardLink:)
+    func createHardLink(_ sender: Any?) {
+        guard let item = activePanel.listView.currentItem, !item.isParent, !item.isDirectory, !item.isSymlink,
+              activePanel.archive == nil, activePanel.remote == nil, let window = view.window else {
+            NSSound.beep()
+            return
+        }
+        let folder = inactivePanel.archive == nil && inactivePanel.remote == nil ? inactivePanel.directory : activePanel.directory
+        let initial = folder.appending(path: item.name).path
+        Prompt.text(String(localized: "Create Hard Link"),
+                    message: String(localized: "Another name of \u{201C}\(item.name)\u{201D} (on the same volume):"),
+                    initial: initial, okTitle: String(localized: "Create"), in: window) { [weak self] path in
+            guard let self, !path.isEmpty else { return }
+            let link = URL(filePath: (path as NSString).expandingTildeInPath)
+            do {
+                try FileManager.default.linkItem(at: item.url, to: link)
+                leftPanel.reread()
+                rightPanel.reread()
+            } catch {
+                Prompt.error(String(localized: "Cannot create link"), error, in: window)
+            }
+        }
+    }
+
     /// Opens the "Synchronize directories" window for the two panels' folders.
     @objc(cm_SyncDirs:)
     func syncDirs(_ sender: Any?) {
@@ -841,11 +1456,23 @@ extension MainViewController: NSMenuItemValidation {
     /// ⌘K: connects to a server (SFTP, FTP) or mounts a network share, and shows it in
     /// the active panel. The recent servers are listed under the address.
     @objc func connectToServer(_ sender: Any?) {
+        askToConnect(initial: AppDefaults.store.string(forKey: "LastServerAddress") ?? "smb://")
+    }
+
+    /// Net → Servers on the Network…: a server found through Bonjour, its address
+    /// put into Connect to Server (where a user name can be added).
+    @objc func browseNetwork(_ sender: Any?) {
+        NetworkBrowserWindowController.show { [weak self] address in
+            self?.view.window?.makeKeyAndOrderFront(nil)
+            self?.askToConnect(initial: address)
+        }
+    }
+
+    private func askToConnect(initial: String) {
         guard let window = view.window else { return }
-        let key = "LastServerAddress"
         ServerAddressSheet.show(String(localized: "Connect to Server"),
                                 message: String(localized: "Server address (sftp://, ftp://, ftps://, smb://, afp://, nfs://, https:// for WebDAV):"),
-                                initial: AppDefaults.store.string(forKey: key) ?? "smb://",
+                                initial: initial,
                                 recent: Self.recentServers,
                                 okTitle: String(localized: "Connect"), in: window,
                                 onRemove: { address in Self.recentServers.removeAll { $0 == address } }) { [weak self] address in
@@ -1022,7 +1649,8 @@ extension MainViewController: NSMenuItemValidation {
     /// Puts `newView` where `oldView` is in the split view, keeping the divider.
     private func replaceInSplitView(_ oldView: NSView, with newView: NSView) {
         guard let index = splitView.arrangedSubviews.firstIndex(of: oldView) else { return }
-        let position = splitView.arrangedSubviews[0].frame.width
+        let first = splitView.arrangedSubviews[0].frame
+        let position = splitView.isVertical ? first.width : first.height
         splitView.removeArrangedSubview(oldView)
         oldView.removeFromSuperview()
         splitView.insertArrangedSubview(newView, at: index)
@@ -1140,6 +1768,12 @@ extension MainViewController: NSMenuItemValidation {
             menuItem.state = quickView == nil ? .off : .on
         } else if menuItem.action == #selector(ejectVolume(_:)) {
             return ejectableVolume != nil
+        } else if menuItem.action == Command.switchIgnoreList.selector {
+            menuItem.state = Settings.usesIgnoreList ? .on : .off
+        } else if menuItem.action == Command.horizontalPanels.selector {
+            menuItem.state = splitView.isVertical ? .off : .on
+        } else if menuItem.action == Command.toggleSeparateTree1.selector {
+            menuItem.state = separateTree == nil ? .off : .on
         } else if menuItem.action == Command.srcTree.selector {
             menuItem.state = treePanel == nil ? .off : .on
         } else if menuItem.action == Command.syncChangeDir.selector {
@@ -1206,6 +1840,7 @@ extension MainViewController: FilePanelControllerDelegate {
         rightPanel.alwaysShowsTabBar = showTabs
         if panel === activePanel {
             commandLine.view.directory = panel.directory
+            separateTree?.reveal(panel.directory, quietly: true)
         }
     }
 }

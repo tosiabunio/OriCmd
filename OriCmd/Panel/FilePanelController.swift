@@ -131,12 +131,28 @@ final class FilePanelController: NSViewController {
 
     /// The size display the status line and the free space were written in.
     private var shownSizeDisplay = Settings.sizeDisplay
+    /// The column set chosen for this panel (nil: the Default view); folders that
+    /// match a set's masks show that set anyway.
+    var chosenColumnSet: String? {
+        didSet { applyColumnSet() }
+    }
+
+    /// cm_ShowOnlySelected: only these names are listed, until another folder is
+    /// shown or All Files is chosen.
+    var onlyNames: Set<String>? {
+        didSet {
+            guard onlyNames != oldValue else { return }
+            updatePathMask()
+            refreshList(selecting: listView.currentItem?.name)
+        }
+    }
 
     /// Whether the quick search box currently edits the quick filter.
     private var quickSearchFilters = false
 
     private func updatePathMask() {
-        panelView.pathBar.mask = quickFilter.map { "*\($0)*" } ?? filterMask ?? "*.*"
+        let mask = quickFilter.map { "*\($0)*" } ?? filterMask ?? "*.*"
+        panelView.pathBar.mask = onlyNames == nil ? mask : mask + " " + String(localized: "[selected only]")
     }
 
     var listView: FileListView { panelView.listView }
@@ -152,23 +168,29 @@ final class FilePanelController: NSViewController {
     }
 
     /// Creates a panel with a tab for each directory.
-    init(tabDirectories: [URL], activeTab: Int = 0) {
-        let directories = tabDirectories.isEmpty ? [FileManager.default.homeDirectoryForCurrentUser] : tabDirectories
-        let active = min(max(activeTab, 0), directories.count - 1)
-        directory = directories[active]
-        tabs = directories.map { Tab(directory: $0, sortOrder: SortOrder()) }
+    convenience init(tabDirectories: [URL], activeTab: Int = 0) {
+        self.init(tabs: tabDirectories.map { Tab(directory: $0, sortOrder: SortOrder()) }, activeTab: activeTab)
+    }
+
+    init(tabs: [Tab], activeTab: Int = 0) {
+        let tabs = tabs.isEmpty ? [Tab(directory: FileManager.default.homeDirectoryForCurrentUser, sortOrder: SortOrder())] : tabs
+        let active = min(max(activeTab, 0), tabs.count - 1)
+        directory = tabs[active].directory
+        self.tabs = tabs
         activeTabIndex = active
         super.init(nibName: nil, bundle: nil)
 
         listView.delegate = self
         panelView.headerView.sortOrder = sortOrder
         panelView.headerView.onColumnClicked = { [weak self] column in self?.sort(by: column) }
+        panelView.headerView.onChooseColumnSet = { [weak self] name in self?.chooseColumnSet(name) }
         panelView.pathBar.onClick = { [weak self] in self?.focus() }
         panelView.pathBar.editableText = { [weak self] in self?.editablePath ?? "" }
         panelView.pathBar.onCommit = { [weak self] text in self?.go(to: text) }
         panelView.pathBar.onCrumbClick = { [weak self] index in self?.goToPathPart(index) }
         panelView.pathBar.onClearFilters = { [weak self] in
             guard let self else { return }
+            onlyNames = nil
             filterMask = nil
             quickFilter = nil
             endQuickSearch(openingItem: false)
@@ -225,6 +247,7 @@ final class FilePanelController: NSViewController {
 
     /// Font or other appearance settings changed.
     func settingsDidChange() {
+        applyColumnSet()
         panelView.setDriveBarVisible(Settings.showsDriveButtons)
         if Settings.sizeDisplay != shownSizeDisplay {
             shownSizeDisplay = Settings.sizeDisplay
@@ -238,6 +261,7 @@ final class FilePanelController: NSViewController {
             terminal.font = TerminalPane.font
         }
         listView.settingsDidChange()
+        refreshList(selecting: listView.currentItem?.name, fallback: listView.cursor)
         panelView.pathBar.needsDisplay = true
         panelView.headerView.needsDisplay = true
         updateTabBar()
@@ -261,6 +285,7 @@ final class FilePanelController: NSViewController {
             return
         }
         let directory = directory.standardizedFileURL
+        leaveLockedTab(for: directory)
         if directory != self.directory {
             isBranchView = false
         }
@@ -347,6 +372,7 @@ final class FilePanelController: NSViewController {
         if isNewDirectory {
             listView.folderSizes = [:]
             quickFilter = nil
+            onlyNames = nil
             if recordingHistory {
                 backHistory.append(HistoryEntry(directory: self.directory, selectedName: listView.currentItem?.name))
                 backHistory = Array(backHistory.suffix(Self.historyLimit))
@@ -362,6 +388,7 @@ final class FilePanelController: NSViewController {
         }
         panelView.show(directory: directory, volumes: listing.volumes, freeSpace: listing.freeSpace)
         updatePathBar()
+        applyColumnSet()
         refreshList(selecting: name, fallback: isNewDirectory ? 0 : listView.cursor)
         tabs[activeTabIndex].directory = directory
         updateTabBar()
@@ -372,6 +399,7 @@ final class FilePanelController: NSViewController {
 
     /// Connects to a server and shows its first folder in this panel.
     func openRemote(_ fileSystem: any RemoteFileSystem, leftServer: Bool = false, onConnected: (() -> Void)? = nil) {
+        leaveLockedTab(for: nil)
         if remote != nil {
             // Another server in this tab: the terminal of the one shown ends first.
             leaveServer { [weak self] in self?.openRemote(fileSystem, leftServer: true, onConnected: onConnected) }
@@ -900,6 +928,7 @@ final class FilePanelController: NSViewController {
     /// Shows found files (named relative to `root` where possible) as the panel's
     /// listing; everything works on the real files, [..] returns to `root`.
     func showSearchResults(_ urls: [URL], root: URL, title: String, selecting name: String? = nil) {
+        leaveLockedTab(for: nil)
         loadGeneration += 1
         loadTask?.cancel()
         loadTask = nil
@@ -1018,7 +1047,7 @@ final class FilePanelController: NSViewController {
     }
 
     func sort(by column: SortColumn) {
-        if sortOrder.column == column {
+        if sortOrder.column == column, !sortOrder.isUnsorted {
             sortOrder.ascending.toggle()
         } else {
             sortOrder = SortOrder(column: column, ascending: true)
@@ -1037,6 +1066,13 @@ final class FilePanelController: NSViewController {
             }
         }
         var items = showsHidden ? entries : entries.filter { !$0.isHidden }
+        // The ignore list hides local entries only (a server's and an archive's stay).
+        if Settings.usesIgnoreList, remote == nil, archive == nil {
+            let list = Settings.ignoreList
+            if !list.isEmpty {
+                items = items.filter { !Settings.ignores(name: $0.name, path: $0.url.path, in: list) }
+            }
+        }
         let unfilteredCount = items.count
         if let filterMask {
             items = items.filter { $0.isFolder || FileMask.matches($0.name, filterMask) }
@@ -1044,9 +1080,13 @@ final class FilePanelController: NSViewController {
         if let quickFilter {
             items = items.filter { $0.name.localizedCaseInsensitiveContains(quickFilter) }
         }
+        if let onlyNames {
+            items = items.filter { onlyNames.contains($0.name) }
+        }
         var rules: [String] = []
         if let quickFilter { rules.append(String(localized: "Text: \(quickFilter)")) }
         if let filterMask { rules.append(String(localized: "Mask: \(filterMask)")) }
+        if onlyNames != nil { rules.append(Command.showOnlySelected.title) }
         panelView.pathBar.filterCriteria = rules.joined(separator: " · ")
         panelView.pathBar.filterCount = String(localized: "\(items.count) of \(unfilteredCount)")
         panelView.pathBar.filterSummary = rules.isEmpty ? nil :
@@ -1062,7 +1102,7 @@ final class FilePanelController: NSViewController {
     /// "12 files, 3 folders · 1,2 MB" or "2 of 15 selected · 35 KB of 1,2 MB", as the
     /// Finder words it; or "0 k / 1 234 k in 0 / 12 file(s), 0 / 3 dir(s)", as Total
     /// Commander does (Settings).
-    private func updateStatus() {
+    func updateStatus() {
         let entries = listView.items.filter { !$0.isParent }
         let marked = listView.marked
         let files = entries.filter { !$0.isFolder }
@@ -1528,10 +1568,61 @@ extension FilePanelController: NSMenuItemValidation {
         }
     }
 
-    /// Show → All Files: removes the filter.
+    // MARK: - Column sets
+
+    /// The Full view columns for the folder shown (a server's: the chosen set).
+    func applyColumnSet() {
+        let set = ColumnSet.set(for: remote == nil ? directory : nil, chosen: chosenColumnSet)
+        listView.columns = set.columns
+        panelView.headerView.columns = set.columns
+        panelView.headerView.columnSet = set.name
+    }
+
+    private func chooseColumnSet(_ name: String) {
+        chosenColumnSet = name.isEmpty ? nil : name
+    }
+
+    /// Show → Columns: a set chosen in the menu (its name in the item).
+    @objc func chooseColumnSetFromMenu(_ sender: Any?) {
+        chooseColumnSet((sender as? NSMenuItem)?.representedObject as? String ?? "")
+    }
+
+    /// The set the panel shows ("" the Default view), for the menu's check mark.
+    var columnSetShown: String { panelView.headerView.columnSet }
+
+    /// Show → Unsorted (Ctrl+F7): the entries in the order the folder is read in;
+    /// the folder is read again, since the order shown is a sorted one.
+    @objc(cm_SrcUnsorted:)
+    func srcUnsorted(_ sender: Any?) {
+        guard !sortOrder.isUnsorted else { return }
+        sortOrder = SortOrder(column: .name, ascending: true, isUnsorted: true)
+        if archive != nil, let location = archive {
+            reopenArchive(location, selecting: listView.currentItem?.name, force: true)
+        } else {
+            reread()
+        }
+    }
+
+    /// Show → All Files: removes the filter (and Only Selected Files).
     @objc(cm_SrcAllFiles:)
     func srcAllFiles(_ sender: Any?) {
+        onlyNames = nil
         filterMask = nil
+    }
+
+    /// Show → Only Selected Files: the others are hidden (again: all are shown).
+    @objc(cm_ShowOnlySelected:)
+    func showOnlySelected(_ sender: Any?) {
+        if onlyNames != nil {
+            onlyNames = nil
+            return
+        }
+        let names = selectedItems.map(\.name)
+        guard !names.isEmpty else {
+            NSSound.beep()
+            return
+        }
+        onlyNames = Set(names)
     }
 
     // MARK: - Context menu
@@ -2084,6 +2175,9 @@ extension FilePanelController: NSMenuItemValidation {
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         switch menuItem.action {
+        case #selector(chooseColumnSetFromMenu(_:)):
+            menuItem.state = (menuItem.representedObject as? String) == columnSetShown ? .on : .off
+            return true
         case #selector(copy(_:)), #selector(cut(_:)):
             return archive == nil && !selectedItems.isEmpty
         case #selector(paste(_:)), #selector(moveItemsHere(_:)):
@@ -2100,7 +2194,9 @@ extension FilePanelController: NSMenuItemValidation {
         default: nil
         }
         if let sortColumn {
-            menuItem.state = sortOrder.column == sortColumn ? .on : .off
+            menuItem.state = sortOrder.column == sortColumn && !sortOrder.isUnsorted ? .on : .off
+        } else if command == .unsorted {
+            menuItem.state = sortOrder.isUnsorted ? .on : .off
         } else if command == .reverseOrder {
             menuItem.state = sortOrder.ascending ? .off : .on
         } else if command == .goToParent {
@@ -2110,7 +2206,10 @@ extension FilePanelController: NSMenuItemValidation {
         } else if command == .branchView {
             menuItem.state = isBranchView ? .on : .off
         } else if command == .srcAllFiles || command == .srcUserSpec {
-            menuItem.state = (filterMask == nil) == (command == .srcAllFiles) ? .on : .off
+            menuItem.state = (filterMask == nil && (command == .srcUserSpec || onlyNames == nil)) == (command == .srcAllFiles)
+                ? .on : .off
+        } else if command == .showOnlySelected {
+            menuItem.state = onlyNames == nil ? .off : .on
         } else if command == .srcShort || command == .srcLong || command == .srcThumbs {
             let mode: FileListView.ViewMode = command == .srcShort ? .brief : (command == .srcLong ? .full : .thumbnails)
             menuItem.state = viewMode == mode ? .on : .off

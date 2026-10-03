@@ -29,6 +29,10 @@ real keyboard and mouse, so working elsewhere meanwhile changes nothing.
   test runs record Get Info requests instead of opening Finder windows.
   `tabhover:N` shows the active panel's tab N as under the mouse (its close button),
   `tabclose:N` clicks that button.
+  `set:identifier=value` sets a control found by its
+  identifier as the user would (a field, a pop-up item, a checkbox `on`/`off`/`mixed`,
+  a date `2026-01-31`), `click:` also chooses a tab; the rows of a table drawn by
+  cells (Find Files results) go to the window's `.txt` as `[row] …` lines.
   Modifiers: `cmd+`, `shift+`, `alt+`, `ctrl+`, `num+`; `ru+` types the key as the
   Russian layout would (`ru+ctrl+d` sends "в" with the D key code).
 - `regress.sh` — plays the main file operations and checks the results on disk.

@@ -8,20 +8,88 @@ final class FindFilesWindowController: NSWindowController {
     private let directoryField = NSTextField(string: "")
     private let textField = NSTextField(string: "")
     private let caseSensitiveBox = NSButton(checkboxWithTitle: String(localized: "Case sensitive"), target: nil, action: nil)
+    private let nameRegexBox = NSButton(checkboxWithTitle: String(localized: "Regular expression instead of masks"),
+                                        target: nil, action: nil)
+    private let wholeWordsBox = NSButton(checkboxWithTitle: String(localized: "Whole words"), target: nil, action: nil)
+    private let textRegexBox = NSButton(checkboxWithTitle: String(localized: "Regular expression"), target: nil, action: nil)
+    private let notContainingBox = NSButton(checkboxWithTitle: String(localized: "Not containing it"), target: nil, action: nil)
+    private let encodingPopup = NSPopUpButton()
+    private let archivesBox = NSButton(checkboxWithTitle: String(localized: "Search in archives"), target: nil, action: nil)
+    private let indexBox = NSButton(checkboxWithTitle: String(localized: "Use the Spotlight index"), target: nil, action: nil)
+    /// How deep into subfolders: all, none, 1…9 levels.
+    private let depthPopup = NSPopUpButton()
+    private let tabs = NSTabView()
+    private let advancedTab = NSTabViewItem(identifier: "advanced")
+
+    // The Advanced tab: the date, the size, attributes.
+    private let betweenBox = NSButton(checkboxWithTitle: String(localized: "Date between:"), target: nil, action: nil)
+    private let fromPicker = NSDatePicker()
+    private let toPicker = NSDatePicker()
+    private let olderBox = NSButton(checkboxWithTitle: String(localized: "Not older than:"), target: nil, action: nil)
+    private let ageField = NSTextField(string: "1")
+    private let ageUnitPopup = NSPopUpButton()
+    private let sizeBox = NSButton(checkboxWithTitle: String(localized: "File size:"), target: nil, action: nil)
+    private let sizeComparisonPopup = NSPopUpButton()
+    private let sizeField = NSTextField(string: "")
+    private let sizeUnitPopup = NSPopUpButton()
+    private let duplicatesBox = NSButton(checkboxWithTitle: String(localized: "Find duplicates:"), target: nil, action: nil)
+    private let sameNameBox = NSButton(checkboxWithTitle: String(localized: "same name"), target: nil, action: nil)
+    private let sameSizeBox = NSButton(checkboxWithTitle: String(localized: "same size"), target: nil, action: nil)
+    private let sameContentsBox = NSButton(checkboxWithTitle: String(localized: "same contents"), target: nil, action: nil)
+    /// Tri-state: on — the item must have it, off — must not, mixed — any.
+    private let attributeBoxes: [(FileSearch.Attribute, NSButton)] = [
+        (.folder, String(localized: "Folder")), (.hidden, String(localized: "Hidden")),
+        (.locked, String(localized: "Locked")), (.symbolicLink, String(localized: "Symbolic link")),
+        (.executable, String(localized: "Executable")),
+    ].map { attribute, title in
+        let box = NSButton(checkboxWithTitle: title, target: nil, action: nil)
+        box.allowsMixedState = true
+        box.state = .mixed
+        return (attribute, box)
+    }
+
     private let startButton = NSButton(title: String(localized: "Start Search"), target: nil, action: nil)
     private let goToButton = NSButton(title: String(localized: "Go to File"), target: nil, action: nil)
     private let feedButton = NSButton(title: String(localized: "Feed to Panel"), target: nil, action: nil)
     private let statusLabel = NSTextField(labelWithString: "")
     private let resultsTable = ResultsTableView()
+    private let generalTab = NSTabViewItem(identifier: "general")
+    private let templatesTable = NSTableView()
+    private var templates = SearchTemplate.saved
 
-    private var results: [URL] = []
+    private static let ageUnits: [(title: String, component: Calendar.Component)] = [
+        (String(localized: "minutes"), .minute), (String(localized: "hours"), .hour), (String(localized: "days"), .day),
+        (String(localized: "weeks"), .weekOfYear), (String(localized: "months"), .month), (String(localized: "years"), .year),
+    ]
+    private static let sizeUnits: [(title: String, bytes: Int64)] = [
+        (String(localized: "bytes"), 1), (String(localized: "KB"), 1 << 10), (String(localized: "MB"), 1 << 20),
+        (String(localized: "GB"), 1 << 30),
+    ]
+    /// The encoding pop-up: one encoding, all of them, or bytes in hex (nil).
+    private static let textEncodings: [(title: String, encodings: [TextEncoding]?)] = {
+        let single: [TextEncoding] = [.utf8, .utf16, .windows1251, .dos866, .koi8r]
+        return single.map { ($0.title, [$0]) } + [(String(localized: "All of them"), single), (String(localized: "Hex"), nil)]
+    }()
+    private static let sizeComparisons: [(title: String, comparison: FileSearch.SizeCondition.Comparison)] = [
+        ("=", .equal), ("<", .less), (">", .greater),
+    ]
+
+    /// The files found, and the rows showing them: duplicates under a title per group.
+    private var results: [FileSearch.Found] = []
+    private var rows: [Row] = []
+
+    private enum Row {
+        case file(FileSearch.Found)
+        case group(String)
+    }
     private var search: FileSearch?
     private var timer: Timer?
-    private var onGoTo: ((URL) -> Void)?
+    private var onGoTo: ((FileSearch.Found) -> Void)?
     private var onFeed: ((_ results: [URL], _ root: URL, _ title: String) -> Void)?
 
-    /// Shows the dialog searching in `directory`; `goTo` receives the chosen result.
-    static func show(searchingIn directory: URL, goTo: @escaping (URL) -> Void,
+    /// Shows the dialog searching in `directory`; `goTo` receives the chosen result,
+    /// `feed` the files found (for those found in archives, the archives).
+    static func show(searchingIn directory: URL, goTo: @escaping (FileSearch.Found) -> Void,
                      feed: @escaping (_ results: [URL], _ root: URL, _ title: String) -> Void) {
         let controller = shared ?? FindFilesWindowController()
         shared = controller
@@ -36,7 +104,7 @@ final class FindFilesWindowController: NSWindowController {
 
     private init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 640, height: 480),
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 540),
             styleMask: [.titled, .closable, .resizable, .miniaturizable],
             backing: .buffered, defer: false
         )
@@ -68,6 +136,7 @@ final class FindFilesWindowController: NSWindowController {
         resultsTable.addTableColumn(column)
         resultsTable.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
         resultsTable.dataSource = self
+        resultsTable.delegate = self
         resultsTable.target = self
         resultsTable.doubleAction = #selector(goToFile(_:))
         resultsTable.onReturn = { [weak self] in self?.goToFile(nil) }
@@ -76,29 +145,403 @@ final class FindFilesWindowController: NSWindowController {
         scrollView.hasVerticalScroller = true
         scrollView.borderType = .bezelBorder
 
-        let grid = NSGridView(views: [
+        depthPopup.addItems(withTitles: [String(localized: "All"), String(localized: "None")] + (1...9).map(String.init))
+        encodingPopup.addItems(withTitles: Self.textEncodings.map(\.title))
+        encodingPopup.target = self
+        encodingPopup.action = #selector(encodingChanged(_:))
+        let textOptions = NSStackView(views: [caseSensitiveBox, wholeWordsBox, textRegexBox, notContainingBox])
+        textOptions.spacing = 12
+        let general = NSGridView(views: [
             [NSTextField(labelWithString: String(localized: "Search for:")), maskField],
+            [NSGridCell.emptyContentView, nameRegexBox],
             [NSTextField(labelWithString: String(localized: "Search in:")), directoryField],
+            [NSTextField(labelWithString: String(localized: "Subfolder levels:")), depthPopup],
+            [NSGridCell.emptyContentView, archivesBox],
+            [NSGridCell.emptyContentView, indexOption()],
             [NSTextField(labelWithString: String(localized: "Find text:")), textField],
-            [NSGridCell.emptyContentView, caseSensitiveBox],
+            [NSGridCell.emptyContentView, textOptions],
+            [NSTextField(labelWithString: String(localized: "Encoding:")), encodingPopup],
         ])
-        grid.column(at: 0).xPlacement = .trailing
-        grid.rowSpacing = 6
+        general.column(at: 0).xPlacement = .trailing
+        general.rowSpacing = 6
+        for index in [3, 8] {
+            general.row(at: index).yPlacement = .center
+        }
+
+        generalTab.label = String(localized: "General")
+        generalTab.view = padded(general)
+        advancedTab.view = padded(advancedGrid())
+        tabs.addTabViewItem(generalTab)
+        tabs.addTabViewItem(advancedTab)
+        let templatesTab = NSTabViewItem(identifier: "templates")
+        templatesTab.label = String(localized: "Templates")
+        templatesTab.view = padded(templatesPane())
+        tabs.addTabViewItem(templatesTab)
+        updateAdvanced()
 
         let buttons = NSStackView(views: [statusLabel, feedButton, goToButton, startButton])
         statusLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
         statusLabel.lineBreakMode = .byTruncatingTail
 
-        let stack = NSStackView(views: [grid, scrollView, buttons])
+        let stack = NSStackView(views: [tabs, scrollView, buttons])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
-        stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        for view in [grid, scrollView, buttons] {
+        stack.edgeInsets = NSEdgeInsets(top: 12, left: 16, bottom: 16, right: 16)
+        for view in [tabs, scrollView, buttons] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -32).isActive = true
         }
+        tabs.setContentHuggingPriority(.required, for: .vertical)
         scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
         window?.contentView = stack
+
+        // Identifiers for the test harness (`set:findSize=10`).
+        for (view, name) in [(maskField, "findMask"), (directoryField, "findIn"), (textField, "findText"),
+                             (nameRegexBox, "findNameRegex"), (caseSensitiveBox, "findCase"),
+                             (wholeWordsBox, "findWholeWords"), (textRegexBox, "findTextRegex"),
+                             (notContainingBox, "findNot"), (encodingPopup, "findEncoding"), (archivesBox, "findArchives"),
+                             (indexBox, "findIndex"),
+                             (depthPopup, "findDepth"), (betweenBox, "findBetween"), (fromPicker, "findFrom"),
+                             (toPicker, "findTo"), (olderBox, "findOlder"), (ageField, "findAge"),
+                             (ageUnitPopup, "findAgeUnit"), (sizeBox, "findSizeOn"), (sizeComparisonPopup, "findSizeOp"),
+                             (sizeField, "findSize"), (sizeUnitPopup, "findSizeUnit"),
+                             (duplicatesBox, "findDuplicates"), (sameNameBox, "findSameName"),
+                             (sameSizeBox, "findSameSize"), (sameContentsBox, "findSameContents"),
+                             (templatesTable, "findTemplates")] as [(NSView, String)] {
+            view.identifier = NSUserInterfaceItemIdentifier(name)
+        }
+        for (attribute, box) in attributeBoxes {
+            box.identifier = NSUserInterfaceItemIdentifier("findAttr-\(attribute)")
+        }
+    }
+
+    /// A tab's contents, with a margin, at the top of the tab.
+    private func padded(_ content: NSView) -> NSView {
+        let container = NSView()
+        content.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(content)
+        NSLayoutConstraint.activate([
+            content.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
+            content.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            content.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            content.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -12),
+        ])
+        return container
+    }
+
+    private func advancedGrid() -> NSView {
+        for picker in [fromPicker, toPicker] {
+            picker.datePickerStyle = .textFieldAndStepper
+            picker.datePickerElements = .yearMonthDay
+            picker.dateValue = Date()
+        }
+        ageUnitPopup.addItems(withTitles: Self.ageUnits.map(\.title))
+        ageUnitPopup.selectItem(at: 2)
+        sizeComparisonPopup.addItems(withTitles: Self.sizeComparisons.map(\.title))
+        sizeComparisonPopup.selectItem(at: 2)
+        sizeUnitPopup.addItems(withTitles: Self.sizeUnits.map(\.title))
+        sizeUnitPopup.selectItem(at: 1)
+        for field in [ageField, sizeField] {
+            field.widthAnchor.constraint(equalToConstant: 70).isActive = true
+            field.alignment = .right
+        }
+        sameContentsBox.state = .on
+        for control in [betweenBox, olderBox, sizeBox, duplicatesBox] + attributeBoxes.map(\.1) {
+            control.target = self
+            control.action = #selector(advancedChanged(_:))
+        }
+
+        func row(_ views: NSView...) -> NSStackView {
+            let stack = NSStackView(views: views)
+            stack.spacing = 6
+            return stack
+        }
+        let attributes = NSStackView(views: attributeBoxes.map(\.1))
+        attributes.spacing = 12
+        let hint = NSTextField(labelWithString: String(localized: "A check mark: has it; empty: does not have it; a dash: any."))
+        hint.textColor = .secondaryLabelColor
+        hint.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        let grid = NSGridView(views: [
+            [betweenBox, row(fromPicker, NSTextField(labelWithString: String(localized: "and")), toPicker)],
+            [olderBox, row(ageField, ageUnitPopup)],
+            [sizeBox, row(sizeComparisonPopup, sizeField, sizeUnitPopup)],
+            [NSTextField(labelWithString: String(localized: "Attributes:")), attributes],
+            [NSGridCell.emptyContentView, hint],
+            [duplicatesBox, row(sameNameBox, sameSizeBox, sameContentsBox)],
+        ])
+        grid.rowSpacing = 8
+        grid.column(at: 0).xPlacement = .leading
+        for index in 0..<grid.numberOfRows {
+            grid.row(at: index).yPlacement = .center
+        }
+        return grid
+    }
+
+    // MARK: - Templates
+
+    /// The saved searches, with the buttons to load, save and delete them.
+    private func templatesPane() -> NSView {
+        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("name"))
+        column.title = String(localized: "Saved searches")
+        column.resizingMask = .autoresizingMask
+        templatesTable.addTableColumn(column)
+        templatesTable.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
+        templatesTable.dataSource = self
+        templatesTable.delegate = self
+        templatesTable.target = self
+        templatesTable.doubleAction = #selector(loadTemplate(_:))
+        let scrollView = NSScrollView()
+        scrollView.documentView = templatesTable
+        scrollView.hasVerticalScroller = true
+        scrollView.borderType = .bezelBorder
+        scrollView.heightAnchor.constraint(equalToConstant: 170).isActive = true
+
+        let buttons = NSStackView(views: [
+            NSButton(title: String(localized: "Load"), target: self, action: #selector(loadTemplate(_:))),
+            NSButton(title: String(localized: "Save…"), target: self, action: #selector(saveTemplate(_:))),
+            NSButton(title: String(localized: "Delete"), target: self, action: #selector(deleteTemplate(_:))),
+        ])
+        buttons.orientation = .vertical
+        buttons.alignment = .leading
+        buttons.setHuggingPriority(.required, for: .horizontal)
+        for case let button as NSButton in buttons.arrangedSubviews {
+            button.widthAnchor.constraint(equalTo: buttons.widthAnchor).isActive = true
+        }
+        let pane = NSStackView(views: [scrollView, buttons])
+        pane.alignment = .top
+        pane.spacing = 10
+        return pane
+    }
+
+    private var selectedTemplate: SearchTemplate? {
+        templates.indices.contains(templatesTable.selectedRow) ? templates[templatesTable.selectedRow] : nil
+    }
+
+    /// The dialog set as the template has it; the General tab shown.
+    @objc private func loadTemplate(_ sender: Any?) {
+        guard let template = selectedTemplate else {
+            NSSound.beep()
+            return
+        }
+        apply(template)
+        tabs.selectTabViewItem(generalTab)
+        window?.makeFirstResponder(maskField)
+    }
+
+    /// Asks for a name (the selected template's, to replace it); a template of that
+    /// name is replaced.
+    @objc private func saveTemplate(_ sender: Any?) {
+        guard let window else { return }
+        Prompt.text(String(localized: "Save the search"), message: String(localized: "Name:"),
+                    initial: selectedTemplate?.name ?? maskField.stringValue, okTitle: String(localized: "Save"),
+                    in: window) { [weak self] name in
+            guard let self else { return }
+            let name = name.trimmingCharacters(in: .whitespaces)
+            guard !name.isEmpty else {
+                NSSound.beep()
+                return
+            }
+            let template = currentTemplate(named: name)
+            if let index = templates.firstIndex(where: { $0.name == name }) {
+                templates[index] = template
+            } else {
+                templates.append(template)
+            }
+            SearchTemplate.saved = templates
+            templatesTable.reloadData()
+            templatesTable.selectRowIndexes([templates.firstIndex { $0.name == name } ?? 0], byExtendingSelection: false)
+        }
+    }
+
+    @objc private func deleteTemplate(_ sender: Any?) {
+        guard templates.indices.contains(templatesTable.selectedRow) else {
+            NSSound.beep()
+            return
+        }
+        templates.remove(at: templatesTable.selectedRow)
+        SearchTemplate.saved = templates
+        templatesTable.reloadData()
+    }
+
+    private func currentTemplate(named name: String) -> SearchTemplate {
+        SearchTemplate(
+            name: name, masks: maskField.stringValue, nameIsRegex: nameRegexBox.state == .on,
+            depth: depthPopup.indexOfSelectedItem, inArchives: archivesBox.state == .on, usesIndex: indexBox.state == .on,
+            text: textField.stringValue, caseSensitive: caseSensitiveBox.state == .on,
+            wholeWords: wholeWordsBox.state == .on, textIsRegex: textRegexBox.state == .on,
+            notContaining: notContainingBox.state == .on, encoding: encodingPopup.indexOfSelectedItem,
+            between: betweenBox.state == .on, from: fromPicker.dateValue, to: toPicker.dateValue,
+            older: olderBox.state == .on, age: ageField.stringValue, ageUnit: ageUnitPopup.indexOfSelectedItem,
+            size: sizeBox.state == .on, sizeComparison: sizeComparisonPopup.indexOfSelectedItem,
+            sizeValue: sizeField.stringValue, sizeUnit: sizeUnitPopup.indexOfSelectedItem,
+            attributes: Dictionary(uniqueKeysWithValues: attributeBoxes.map { ("\($0.0)", $0.1.state.rawValue) }),
+            duplicates: duplicatesBox.state == .on, sameName: sameNameBox.state == .on,
+            sameSize: sameSizeBox.state == .on, sameContents: sameContentsBox.state == .on
+        )
+    }
+
+    private func apply(_ template: SearchTemplate) {
+        func set(_ box: NSButton, _ on: Bool) { box.state = on ? .on : .off }
+        func select(_ popup: NSPopUpButton, _ index: Int) {
+            popup.selectItem(at: popup.numberOfItems > index && index >= 0 ? index : 0)
+        }
+        maskField.stringValue = template.masks
+        set(nameRegexBox, template.nameIsRegex)
+        select(depthPopup, template.depth)
+        set(archivesBox, template.inArchives)
+        set(indexBox, template.usesIndex)
+        textField.stringValue = template.text
+        set(caseSensitiveBox, template.caseSensitive)
+        set(wholeWordsBox, template.wholeWords)
+        set(textRegexBox, template.textIsRegex)
+        set(notContainingBox, template.notContaining)
+        select(encodingPopup, template.encoding)
+        set(betweenBox, template.between)
+        fromPicker.dateValue = template.from
+        toPicker.dateValue = template.to
+        set(olderBox, template.older)
+        ageField.stringValue = template.age
+        select(ageUnitPopup, template.ageUnit)
+        set(sizeBox, template.size)
+        select(sizeComparisonPopup, template.sizeComparison)
+        sizeField.stringValue = template.sizeValue
+        select(sizeUnitPopup, template.sizeUnit)
+        for (attribute, box) in attributeBoxes {
+            box.state = NSControl.StateValue(rawValue: template.attributes["\(attribute)"] ?? NSControl.StateValue.mixed.rawValue)
+        }
+        set(duplicatesBox, template.duplicates)
+        set(sameNameBox, template.sameName)
+        set(sameSizeBox, template.sameSize)
+        set(sameContentsBox, template.sameContents)
+        encodingChanged(nil)
+        indexChanged(nil)
+        updateAdvanced()
+    }
+
+    /// The index checkbox with what it means beside it.
+    private func indexOption() -> NSView {
+        indexBox.target = self
+        indexBox.action = #selector(indexChanged(_:))
+        let hint = NSTextField(wrappingLabelWithString: String(localized:
+            "faster; Spotlight leaves out hidden files, packages and excluded folders, archives are not looked into"))
+        hint.textColor = .secondaryLabelColor
+        hint.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        hint.preferredMaxLayoutWidth = 480
+        let option = NSStackView(views: [indexBox, hint])
+        option.orientation = .vertical
+        option.alignment = .leading
+        option.spacing = 2
+        return option
+    }
+
+    /// The index has no archive contents.
+    @objc private func indexChanged(_ sender: Any?) {
+        archivesBox.isEnabled = indexBox.state != .on
+    }
+
+    /// Bytes in hex are looked for as they are: no case, words or expressions.
+    @objc private func encodingChanged(_ sender: Any?) {
+        let isHex = Self.textEncodings[encodingPopup.indexOfSelectedItem].encodings == nil
+        for box in [caseSensitiveBox, wholeWordsBox, textRegexBox] {
+            box.isEnabled = !isHex
+        }
+    }
+
+    @objc private func advancedChanged(_ sender: Any?) {
+        updateAdvanced()
+    }
+
+    /// Enables the fields of the conditions turned on; the tab's title says when
+    /// one is, so a condition left there is not forgotten.
+    private func updateAdvanced() {
+        for picker in [fromPicker, toPicker] {
+            picker.isEnabled = betweenBox.state == .on
+        }
+        ageField.isEnabled = olderBox.state == .on
+        ageUnitPopup.isEnabled = olderBox.state == .on
+        for control in [sizeComparisonPopup, sizeField, sizeUnitPopup] as [NSControl] {
+            control.isEnabled = sizeBox.state == .on
+        }
+        for box in [sameNameBox, sameSizeBox, sameContentsBox] {
+            box.isEnabled = duplicatesBox.state == .on
+        }
+        let inUse = [betweenBox, olderBox, sizeBox, duplicatesBox].contains { $0.state == .on }
+            || attributeBoxes.contains { $0.1.state != .mixed }
+        advancedTab.label = inUse ? String(localized: "Advanced (in use)") : String(localized: "Advanced")
+    }
+
+    /// The query from the dialog; nil (after a message) when a number is wrong.
+    private func makeQuery() -> FileSearch.Query? {
+        var query = FileSearch.Query(
+            root: URL(filePath: (directoryField.stringValue as NSString).expandingTildeInPath),
+            masks: maskField.stringValue.isEmpty ? "*" : maskField.stringValue,
+            text: textField.stringValue,
+            caseSensitive: caseSensitiveBox.state == .on,
+            depth: depthPopup.indexOfSelectedItem == 0 ? nil : depthPopup.indexOfSelectedItem - 1
+        )
+        query.nameIsRegex = nameRegexBox.state == .on
+        query.usesIndex = indexBox.state == .on
+        query.inArchives = archivesBox.state == .on && !query.usesIndex
+        query.notContaining = notContainingBox.state == .on
+        if let encodings = Self.textEncodings[encodingPopup.indexOfSelectedItem].encodings {
+            query.encodings = encodings
+            query.wholeWords = wholeWordsBox.state == .on
+            query.textIsRegex = textRegexBox.state == .on
+        } else {
+            query.isHex = true
+        }
+        let calendar = Calendar.current
+        if betweenBox.state == .on {
+            let (from, to) = (min(fromPicker.dateValue, toPicker.dateValue), max(fromPicker.dateValue, toPicker.dateValue))
+            query.modifiedAfter = calendar.startOfDay(for: from)
+            query.modifiedBefore = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: to))
+        }
+        if olderBox.state == .on {
+            guard let age = Int(ageField.stringValue.trimmingCharacters(in: .whitespaces)), age >= 0,
+                  let since = calendar.date(byAdding: Self.ageUnits[ageUnitPopup.indexOfSelectedItem].component,
+                                            value: -age, to: Date()) else {
+                return wrongNumber(in: ageField)
+            }
+            query.modifiedAfter = max(query.modifiedAfter ?? since, since)
+        }
+        if sizeBox.state == .on {
+            let unit = Self.sizeUnits[sizeUnitPopup.indexOfSelectedItem].bytes
+            guard let value = Int64(sizeField.stringValue.trimmingCharacters(in: .whitespaces)), value >= 0,
+                  value <= Int64.max / unit else {
+                return wrongNumber(in: sizeField)
+            }
+            query.size = FileSearch.SizeCondition(
+                comparison: Self.sizeComparisons[sizeComparisonPopup.indexOfSelectedItem].comparison,
+                value: value, unit: unit)
+        }
+        for (attribute, box) in attributeBoxes where box.state != .mixed {
+            query.attributes[attribute] = box.state == .on
+        }
+        if duplicatesBox.state == .on {
+            let duplicates = FileSearch.Duplicates(sameName: sameNameBox.state == .on, sameSize: sameSizeBox.state == .on,
+                                                   sameContents: sameContentsBox.state == .on)
+            guard duplicates.sameName || duplicates.sameSize || duplicates.sameContents else {
+                complain(String(localized: "Choose what the duplicates have in common."), in: sameContentsBox)
+                return nil
+            }
+            query.duplicates = duplicates
+        }
+        return query
+    }
+
+    private func wrongNumber(in field: NSTextField) -> FileSearch.Query? {
+        complain(String(localized: "Enter a whole number."), in: field)
+        return nil
+    }
+
+    /// Shows what is wrong with the field (on its tab), the search not started.
+    private func complain(_ message: String, in field: NSView) {
+        if let tab = tabs.tabViewItems.first(where: { $0.view.map(field.isDescendant(of:)) ?? false }) {
+            tabs.selectTabViewItem(tab)
+        }
+        window?.makeFirstResponder(field)
+        NSSound.beep()
+        statusLabel.stringValue = message
     }
 
     @objc private func startOrStop(_ sender: Any?) {
@@ -106,15 +549,21 @@ final class FindFilesWindowController: NSWindowController {
             search.cancel()
             return
         }
-        let root = URL(filePath: (directoryField.stringValue as NSString).expandingTildeInPath)
-        let search = FileSearch(query: FileSearch.Query(
-            root: root,
-            masks: maskField.stringValue.isEmpty ? "*" : maskField.stringValue,
-            text: textField.stringValue,
-            caseSensitive: caseSensitiveBox.state == .on
-        ))
+        guard let query = makeQuery() else { return }
+        let search: FileSearch
+        do {
+            search = try FileSearch(query: query)
+        } catch {
+            switch error {
+            case .nameRegex: complain(String(localized: "The regular expression for the name is not valid."), in: maskField)
+            case .textRegex: complain(String(localized: "The regular expression for the text is not valid."), in: textField)
+            case .hex: complain(String(localized: "Enter the bytes in hex, as 50 4B 03 04."), in: textField)
+            }
+            return
+        }
         self.search = search
         results = []
+        rows = []
         resultsTable.reloadData()
         startButton.title = String(localized: "Stop")
         timer?.invalidate()
@@ -132,16 +581,25 @@ final class FindFilesWindowController: NSWindowController {
         let state = search.snapshot
         if state.found.count != results.count {
             results = state.found
+            rows = state.groups.isEmpty ? results.map(Row.file) : state.groups.flatMap { group in
+                [.group(title(of: group, sameSize: search.query.duplicates.map { $0.sameSize || $0.sameContents } ?? false))]
+                    + group.map(Row.file)
+            }
             resultsTable.reloadData()
         }
-        let summary = String(localized: "\(results.count) found, \(state.scannedCount) scanned")
+        let summary = search.query.duplicates == nil
+            ? String(localized: "\(results.count) found, \(state.scannedCount) scanned")
+            : state.isFinished
+            ? String(localized: "\(results.count) duplicates in \(state.groups.count) groups, \(state.scannedCount) scanned")
+            : state.comparedCount > 0 ? String(localized: "comparing the contents of \(state.comparedCount) files")
+            : String(localized: "\(state.scannedCount) scanned")
         if state.isFinished {
             statusLabel.stringValue = state.isCancelled ? String(localized: "Stopped: \(summary)") : String(localized: "Done: \(summary)")
             startButton.title = String(localized: "Start Search")
             timer?.invalidate()
             timer = nil
-            if !results.isEmpty, resultsTable.selectedRow < 0 {
-                resultsTable.selectRowIndexes([0], byExtendingSelection: false)
+            if let first = rows.firstIndex(where: { if case .file = $0 { true } else { false } }), resultsTable.selectedRow < 0 {
+                resultsTable.selectRowIndexes([first], byExtendingSelection: false)
                 window?.makeFirstResponder(resultsTable)
             }
         } else {
@@ -156,25 +614,50 @@ final class FindFilesWindowController: NSWindowController {
             return
         }
         let title = String(localized: "Search results: \(search.query.masks) in \(search.query.root.path)")
-        onFeed?(results, search.query.root, title)
+        var seen = Set<URL>()
+        onFeed?(results.map(\.url).filter { seen.insert($0).inserted }, search.query.root, title)
         window?.close()
     }
 
     @objc private func goToFile(_ sender: Any?) {
         let row = resultsTable.selectedRow
-        guard results.indices.contains(row) else { return }
-        onGoTo?(results[row])
+        guard rows.indices.contains(row), case .file(let found) = rows[row] else { return }
+        onGoTo?(found)
         window?.close()
+    }
+
+    /// "3 files, 2 MB each" (of the same size), or "3 files" (alike by name only).
+    private func title(of group: [FileSearch.Found], sameSize: Bool) -> String {
+        guard sameSize, let size = try? group[0].url.resourceValues(forKeys: [.fileSizeKey]).fileSize else {
+            return String(localized: "\(group.count) files")
+        }
+        return String(localized: "\(group.count) files, \(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)) each")
     }
 }
 
-extension FindFilesWindowController: NSTableViewDataSource {
+extension FindFilesWindowController: NSTableViewDataSource, NSTableViewDelegate {
     func numberOfRows(in tableView: NSTableView) -> Int {
-        results.count
+        tableView === templatesTable ? templates.count : rows.count
     }
 
     func tableView(_ tableView: NSTableView, objectValueFor tableColumn: NSTableColumn?, row: Int) -> Any? {
-        results[row].path
+        if tableView === templatesTable {
+            return templates[row].name
+        }
+        return switch rows[row] {
+        case .file(let found): found.path
+        case .group(let title): title
+        }
+    }
+
+    /// A group of duplicates is titled by a row of its own.
+    func tableView(_ tableView: NSTableView, isGroupRow row: Int) -> Bool {
+        guard tableView === resultsTable, case .group = rows[row] else { return false }
+        return true
+    }
+
+    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
+        !self.tableView(tableView, isGroupRow: row)
     }
 }
 

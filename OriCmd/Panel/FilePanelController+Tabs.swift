@@ -5,9 +5,136 @@ import os
 extension FilePanelController {
     // MARK: - Tabs
 
-    /// Tab directories and the active tab, for saving the panel between launches.
-    var tabState: (directories: [String], active: Int) {
-        (tabs.map(\.directory.path), activeTabIndex)
+    /// The tabs as saved between launches: their folders (a locked tab's own one),
+    /// locks and names, and the active tab.
+    var tabState: SavedTabs {
+        tabs[activeTabIndex] = currentTab()
+        return SavedTabs(directories: tabs.map { ($0.lockedDirectory ?? $0.directory).path },
+                         locks: tabs.map(\.lock.rawValue), names: tabs.map { $0.name ?? "" }, active: activeTabIndex)
+    }
+
+    /// Tabs of a panel kept in the defaults (between launches, or as favorites).
+    struct SavedTabs {
+        var directories: [String]
+        var locks: [Int]
+        var names: [String]
+        var active: Int
+
+        var dictionary: [String: Any] {
+            ["tabs": directories, "locks": locks, "names": names, "active": active]
+        }
+
+        init(directories: [String], locks: [Int], names: [String], active: Int) {
+            (self.directories, self.locks, self.names, self.active) = (directories, locks, names, active)
+        }
+
+        init(_ dictionary: [String: Any]?) {
+            directories = dictionary?["tabs"] as? [String] ?? []
+            locks = dictionary?["locks"] as? [Int] ?? []
+            names = dictionary?["names"] as? [String] ?? []
+            active = dictionary?["active"] as? Int ?? 0
+        }
+
+        /// The tabs whose folders still exist (the active one kept active if it does).
+        func tabs(sortOrder: SortOrder) -> (tabs: [Tab], active: Int) {
+            var tabs: [Tab] = []
+            var activeIndex = 0
+            for (index, path) in directories.enumerated() where FileManager.default.fileExists(atPath: path) {
+                if index == active { activeIndex = tabs.count }
+                var tab = Tab(directory: URL(filePath: path), sortOrder: sortOrder)
+                tab.lock = locks.indices.contains(index) ? Tab.Lock(rawValue: locks[index]) ?? .none : .none
+                tab.lockedDirectory = tab.lock == .none ? nil : tab.directory
+                tab.name = names.indices.contains(index) && !names[index].isEmpty ? names[index] : nil
+                tabs.append(tab)
+            }
+            return (tabs, activeIndex)
+        }
+    }
+
+    /// Shows `saved` tabs instead of the panel's (asking first when a program still
+    /// runs in a server terminal of a tab closed); none existing: nothing changes.
+    func replaceTabs(with saved: SavedTabs) {
+        let (newTabs, active) = saved.tabs(sortOrder: sortOrder)
+        guard !newTabs.isEmpty else {
+            NSSound.beep()
+            return
+        }
+        confirmClosing(terminals(ofTabs: Array(tabs.indices))) { [weak self] in
+            guard let self else { return }
+            if panelView.terminalPane.hasFocus { focus() }
+            terminals(ofTabs: Array(tabs.indices)).forEach(panelView.terminalPane.close)
+            tabs = newTabs
+            activateTab(at: active)
+        }
+    }
+
+    /// A locked tab keeps its folder: before going to `target` (or anywhere else
+    /// when nil, as into an archive or a server) a new tab opens beside it, and
+    /// it goes there instead. A tab locked with folder changes allowed goes, except
+    /// to a server.
+    func leaveLockedTab(for target: URL?) {
+        let tab = tabs[activeTabIndex]
+        guard tab.lock == .locked || (tab.lock == .allowsChanges && target == nil) else { return }
+        if let target, target.standardizedFileURL == tab.lockedDirectory { return }
+        tabs[activeTabIndex] = currentTab()
+        var opened = Tab(directory: directory, sortOrder: sortOrder)
+        opened.backHistory = backHistory
+        opened.forwardHistory = forwardHistory
+        tabs.insert(opened, at: activeTabIndex + 1)
+        activeTabIndex += 1
+        updateTabBar()
+    }
+
+    /// Locks the tab to its folder, or unlocks it.
+    @objc(cm_ToggleLockCurrentTab:)
+    func toggleLockCurrentTab(_ sender: Any?) {
+        toggleLock(.locked, of: activeTabIndex)
+    }
+
+    /// cm_ToggleLockDcaCurrentTab: locked, but the folder may change; the tab comes
+    /// back to its folder when chosen again.
+    @objc(cm_ToggleLockDcaCurrentTab:)
+    func toggleLockDcaCurrentTab(_ sender: Any?) {
+        toggleLock(.allowsChanges, of: activeTabIndex)
+    }
+
+    /// Only a local folder (not a server, an archive or found files) is locked.
+    private func toggleLock(_ lock: Tab.Lock, of index: Int) {
+        guard tabs.indices.contains(index) else { return }
+        if index == activeTabIndex { tabs[index] = currentTab() }
+        if tabs[index].lock == lock {
+            tabs[index].lock = .none
+            tabs[index].lockedDirectory = nil
+        } else {
+            guard canLock(index) else {
+                NSSound.beep()
+                return
+            }
+            tabs[index].lock = lock
+            tabs[index].lockedDirectory = tabs[index].lockedDirectory ?? tabs[index].directory.standardizedFileURL
+        }
+        updateTabBar()
+    }
+
+    private func canLock(_ index: Int) -> Bool {
+        index == activeTabIndex ? remote == nil && archive == nil && searchResults == nil : tabs[index].remote == nil
+    }
+
+    /// Asks for the tab's own name; an empty one shows the folder's again.
+    private func renameTab(_ index: Int) {
+        guard tabs.indices.contains(index), let window = view.window else { return }
+        let id = tabs[index].id
+        let shown = index == activeTabIndex ? currentTab() : tabs[index]
+        var unnamed = shown
+        unnamed.name = nil
+        unnamed.lock = .none
+        Prompt.text(String(localized: "Rename Tab"), message: String(localized: "The tab's name (empty: the folder's):"),
+                    initial: shown.name ?? unnamed.title, okTitle: String(localized: "Rename"), in: window) { [weak self] text in
+            guard let self, let index = tabs.firstIndex(where: { $0.id == id }) else { return }
+            let name = text.trimmingCharacters(in: .whitespaces)
+            tabs[index].name = name.isEmpty ? nil : name
+            updateTabBar()
+        }
     }
 
     /// Opens a tab for the local `directory` (a server is never in two tabs: from a
@@ -53,17 +180,49 @@ extension FilePanelController {
 
     func tabMenu(for index: Int) -> NSMenu {
         let menu = NSMenu()
+        let lock = tabs[index].lock
         for (title, action) in [(String(localized: "Close Tab"), #selector(closeTabFromMenu(_:))),
                                 (String(localized: "Close Other Tabs"), #selector(closeOtherTabs(_:))),
-                                (String(localized: "Duplicate Tab"), #selector(duplicateTab(_:)))] {
+                                (String(localized: "Duplicate Tab"), #selector(duplicateTab(_:))),
+                                ("-", nil),
+                                (Command.toggleLockCurrentTab.title, #selector(lockTabFromMenu(_:))),
+                                (Command.toggleLockDcaCurrentTab.title, #selector(lockTabAllowingChangesFromMenu(_:))),
+                                (String(localized: "Rename Tab…"), #selector(renameTabFromMenu(_:)))] as [(String, Selector?)] {
+            guard let action else {
+                menu.addItem(.separator())
+                continue
+            }
             let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
             item.target = self
             item.tag = index
-            item.isEnabled = action == #selector(duplicateTab(_:)) ? !isServerTab(index) : tabs.count > 1
+            switch action {
+            case #selector(duplicateTab(_:)):
+                item.isEnabled = !isServerTab(index)
+            case #selector(lockTabFromMenu(_:)), #selector(lockTabAllowingChangesFromMenu(_:)):
+                let mine: Tab.Lock = action == #selector(lockTabFromMenu(_:)) ? .locked : .allowsChanges
+                item.state = lock == mine ? .on : .off
+                item.isEnabled = lock == mine || canLock(index)
+            case #selector(renameTabFromMenu(_:)):
+                item.isEnabled = true
+            default:
+                item.isEnabled = tabs.count > 1
+            }
             menu.addItem(item)
         }
         menu.autoenablesItems = false
         return menu
+    }
+
+    @objc private func lockTabFromMenu(_ sender: NSMenuItem) {
+        toggleLock(.locked, of: sender.tag)
+    }
+
+    @objc private func lockTabAllowingChangesFromMenu(_ sender: NSMenuItem) {
+        toggleLock(.allowsChanges, of: sender.tag)
+    }
+
+    @objc private func renameTabFromMenu(_ sender: NSMenuItem) {
+        renameTab(sender.tag)
     }
 
     @objc private func closeTabFromMenu(_ sender: NSMenuItem) {
@@ -136,6 +295,7 @@ extension FilePanelController {
             searchResults = nil
             isBranchView = false
             quickFilter = nil
+            onlyNames = nil
             watcher = nil
             listView.folderSizes = [:]
             remote = server
@@ -151,7 +311,12 @@ extension FilePanelController {
             }
         } else {
             clearRemote()
-            load(tab.directory, selecting: tab.selectedName, recordingHistory: false)
+            // A tab locked with folder changes allowed comes back to its folder.
+            if tab.lock == .allowsChanges, let locked = tab.lockedDirectory, locked != tab.directory.standardizedFileURL {
+                load(locked, recordingHistory: false)
+            } else {
+                load(tab.directory, selecting: tab.selectedName, recordingHistory: false)
+            }
         }
         updateTabBar()
         delegate?.filePanelDidChangeDirectory(self)

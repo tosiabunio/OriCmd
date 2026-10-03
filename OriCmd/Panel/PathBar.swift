@@ -101,7 +101,7 @@ final class PathBar: NSView {
 
     var isEditing: Bool { field != nil }
 
-    override var isFlipped: Bool { true }
+    nonisolated override var isFlipped: Bool { true }
     override var intrinsicContentSize: NSSize { NSSize(width: NSView.noIntrinsicMetric, height: isCompact ? 22 : 18) }
 
     private var attributes: [NSAttributedString.Key: Any] {

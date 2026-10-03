@@ -59,6 +59,11 @@ final class FileListView: NSView {
     private(set) var cursor = 0
     /// Names of marked entries, drawn in red.
     private(set) var marked: Set<String> = []
+    /// The Full view columns after Name (the panel's column set).
+    var columns = ColumnSet.standard {
+        didSet { if columns != oldValue { needsDisplay = true } }
+    }
+
     /// Calculated folder sizes by name, shown instead of <DIR>.
     var folderSizes: [String: Int64] = [:] {
         didSet { needsDisplay = true }
@@ -87,7 +92,8 @@ final class FileListView: NSView {
         return formatter
     }()
 
-    override var isFlipped: Bool { true }
+    // Asked off the main thread too (AppKit places the images of a drag of many files concurrently).
+    nonisolated override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
 
     override init(frame frameRect: NSRect) {
@@ -162,8 +168,9 @@ final class FileListView: NSView {
         let row = rowRect(cursor)
         var frame = row.insetBy(dx: 0, dy: -1)
         if viewMode == .full {
-            let layout = ColumnLayout(width: bounds.width)
-            frame.size.width = layout.rect(for: .ext, y: 0, height: 0).maxX
+            let layout = ColumnLayout(width: bounds.width, columns: columns)
+            frame.size.width = layout.contains(.ext) ? layout.rect(for: .ext, y: 0, height: 0).maxX
+                : layout.rect(for: .name, y: 0, height: 0).maxX
         }
         if viewMode == .thumbnails {
             frame = NSRect(x: row.minX, y: row.minY + Self.thumbnailSize + 8, width: row.width, height: rowHeight + 2)
@@ -437,7 +444,7 @@ final class FileListView: NSView {
         let highest = min(last, items.count - 1)
         guard lowest <= highest else { return }
         let range = lowest...highest
-        let layout = ColumnLayout(width: bounds.width)
+        let layout = ColumnLayout(width: bounds.width, columns: columns)
         for row in range {
             switch viewMode {
             case .full: drawRow(row, layout: layout)
@@ -582,10 +589,14 @@ final class FileListView: NSView {
         drawIcon(for: item, in: layout.rect(for: .name, y: y, height: rowHeight))
         let shown = nameAndExtension(of: item, layout: layout, y: y, font: textFont)
         drawText(shown.name, in: shown.nameRect, font: textFont, color: color)
-        drawText(shown.ext, in: layout.rect(for: .ext, y: y, height: rowHeight), font: textFont, color: color)
+        if layout.contains(.ext) {
+            drawText(shown.ext, in: layout.rect(for: .ext, y: y, height: rowHeight), font: textFont, color: color)
+        }
 
-        drawText(sizeText(of: item), in: layout.rect(for: .size, y: y, height: rowHeight),
-                 font: numberFont, color: color, alignment: .right)
+        if layout.contains(.size) {
+            drawText(sizeText(of: item), in: layout.rect(for: .size, y: y, height: rowHeight),
+                     font: numberFont, color: color, alignment: .right)
+        }
 
         if !item.isParent {
             for column in layout.extraColumns {
@@ -597,9 +608,11 @@ final class FileListView: NSView {
                          font: numeric || column == .created ? numberFont : textFont,
                          color: color, alignment: numeric ? .right : .left)
             }
-            drawText(Self.dateFormatter.string(from: item.modified),
-                     in: layout.rect(for: .date, y: y, height: rowHeight),
-                     font: numberFont, color: color)
+            if layout.contains(.date) {
+                drawText(Self.dateFormatter.string(from: item.modified),
+                         in: layout.rect(for: .date, y: y, height: rowHeight),
+                         font: numberFont, color: color)
+            }
             if layout.contains(.attr) {
                 drawText(item.permissions, in: layout.rect(for: .attr, y: y, height: rowHeight),
                          font: numberFont, color: color)
@@ -614,10 +627,10 @@ final class FileListView: NSView {
     private func nameAndExtension(of item: FileItem, layout: ColumnLayout, y: CGFloat,
                                   font: NSFont) -> (name: String, ext: String, nameRect: NSRect) {
         let nameRect = layout.rect(for: .name, y: y, height: rowHeight).divided(atDistance: 20, from: .minXEdge).remainder
-        guard Settings.extensionDisplay == .withName else {
+        guard Settings.extensionDisplay == .withName || !layout.contains(.ext) else {
             return (Settings.panelName(item.baseName, isFolder: item.isFolder), item.fileExtension, nameRect)
         }
-        let wideRect = nameRect.union(layout.rect(for: .ext, y: y, height: rowHeight))
+        let wideRect = layout.contains(.ext) ? nameRect.union(layout.rect(for: .ext, y: y, height: rowHeight)) : nameRect
         // drawText leaves 4 points on each side.
         let name = item.isFolder ? Settings.panelName(item.name, isFolder: true) : Self.fittedName(item, width: wideRect.width - 8, font: font)
         return (name, "", wideRect)
@@ -642,7 +655,7 @@ final class FileListView: NSView {
     /// The Name and Ext texts of the cursor row in Full view (for test runs).
     var cursorNameAndExtension: (name: String, ext: String)? {
         guard let item = currentItem else { return nil }
-        let shown = nameAndExtension(of: item, layout: ColumnLayout(width: bounds.width), y: 0,
+        let shown = nameAndExtension(of: item, layout: ColumnLayout(width: bounds.width, columns: columns), y: 0,
                                      font: Theme.font(marked: marked.contains(item.name)))
         return (shown.name, shown.ext)
     }

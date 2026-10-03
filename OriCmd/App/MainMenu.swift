@@ -13,9 +13,11 @@ enum MainMenu {
             [.list, .edit, .editNewFile],
             [.copy, .copySamePanel, .renMov, .renameOnly, .multiRenameFiles, .mkDir],
             [.delete, .deletePermanently],
-            [.setAttrib, .properties, .createSymlink, .compareFilesByContent],
-            [.packFiles, .unpackFiles],
+            [.setAttrib, .properties, .createSymlink, .createHardLink, .commentFiles, .compareFilesByContent],
+            [.packFiles, .unpackFiles, .testArchive],
             [.crcCreate, .crcCheck],
+            [.fileSpliter, .fileCombine, .uuEncode, .uuDecode],
+            [.printDir, .printDirSub, .printFile],
             [.internalAssociate],
         ])))
         mainMenu.addItem(container(for: editMenu()))
@@ -26,12 +28,19 @@ enum MainMenu {
             [.commandPalette, .operations],
             [.rereadSource, .exchange, .leftEqualRight, .rightEqualLeft],
             [.openNewTab, .openDirInNewTab, .closeCurrentTab, .switchToNextTab, .switchToPreviousTab],
+            [.toggleLockCurrentTab, .toggleLockDcaCurrentTab],
             [.searchFor, .directoryHotlist],
             [.compareDirs, .syncDirs, .syncChangeDir],
-            [.goToPrevDir, .goToNextDir, .directoryHistory, .goToParent, .goToRoot],
+            [.goToPrevDir, .goToNextDir, .directoryHistory, .goToParent, .goToRoot, .cdTree],
             [.transferLeft, .transferRight, .leftOpenDrives, .rightOpenDrives],
             [.executeDOS],
         ])
+        let favorites = NSMenu(title: String(localized: "Favorite Tabs"))
+        favorites.delegate = FavoriteTabsMenu.shared
+        let favoritesItem = container(for: favorites)
+        if let lock = commands.items.firstIndex(where: { $0.action == Command.toggleLockDcaCurrentTab.selector }) {
+            commands.insertItem(favoritesItem, at: lock + 1)
+        }
         mainMenu.addItem(container(for: commands))
 
         mainMenu.addItem(container(for: startMenu()))
@@ -39,23 +48,33 @@ enum MainMenu {
         let net = NSMenu(title: String(localized: "Net"))
         net.addItem(item(String(localized: "Connect to Server…"), #selector(MainViewController.connectToServer(_:)), "k"))
         net.addItem(commandItem(.ftpConnect))
+        net.addItem(item(String(localized: "Servers on the Network…"), #selector(MainViewController.browseNetwork(_:))))
+        net.addItem(item(String(localized: "Download from URL…"), #selector(MainViewController.downloadFromURL(_:))))
         net.addItem(item(String(localized: "Disconnect"), Command.ftpDisconnect.selector))
         net.addItem(.separator())
         (commandItems(.serverTerminal) + commandItems(.terminalChangeDir)).forEach(net.addItem)
         net.addItem(.separator())
         net.addItem(item(String(localized: "Eject"), #selector(MainViewController.ejectVolume(_:)), "e"))
         mainMenu.addItem(container(for: net))
-        mainMenu.addItem(container(for: commandMenu(String(localized: "Show"), [
-            [.srcShort, .srcLong, .srcThumbs, .srcTree, .srcQuickView],
-            [.srcAllFiles, .srcUserSpec, .quickFilter, .branchView],
+        let show = commandMenu(String(localized: "Show"), [
+            [.srcShort, .srcLong, .srcThumbs, .srcTree, .toggleSeparateTree1, .srcQuickView],
+            [.horizontalPanels],
+            [.srcAllFiles, .srcUserSpec, .showOnlySelected, .quickFilter, .branchView],
             [.countDirContent],
-            [.sortByName, .sortByExt, .sortByDateTime, .sortBySize, .reverseOrder],
-            [.switchHidSys],
+            [.sortByName, .sortByExt, .sortByDateTime, .sortBySize, .unsorted, .reverseOrder],
+            [.switchHidSys, .switchIgnoreList],
         ], extra: [
+            item(String(localized: "Ignore List…"), #selector(MainViewController.editIgnoreList(_:))),
             .separator(),
             item(String(localized: "Show Toolbar"), #selector(NSWindow.toggleToolbarShown(_:)), "t", [.command, .option]),
             item(String(localized: "Customize Toolbar…"), #selector(NSWindow.runToolbarCustomizationPalette(_:))),
-        ])))
+        ])
+        let columns = NSMenu(title: String(localized: "Columns"))
+        columns.delegate = ColumnSetsMenu.shared
+        if let long = show.items.firstIndex(where: { $0.action == Command.srcLong.selector }) {
+            show.insertItem(container(for: columns), at: long + 1)
+        }
+        mainMenu.addItem(container(for: show))
 
         let windowMenu = windowMenu()
         mainMenu.addItem(container(for: windowMenu))
@@ -65,6 +84,7 @@ enum MainMenu {
         mainMenu.addItem(container(for: helpMenu))
         NSApp.helpMenu = helpMenu
 
+        moveUserGroups(in: mainMenu)
         return mainMenu
     }
 
@@ -134,6 +154,12 @@ enum MainMenu {
             .separator(),
             item(Command.copyNamesToClip.title, Command.copyNamesToClip.selector),
             commandItem(.copyFullNamesToClip),
+            commandItem(.copyDetailsToClip),
+            commandItem(.copyFullDetailsToClip),
+            .separator(),
+            commandItem(.saveSelectionToFile),
+            commandItem(.loadSelectionFromFile),
+            commandItem(.loadSelectionFromClip),
         ]
     }
 
@@ -149,18 +175,47 @@ enum MainMenu {
     /// Total Commander's "Start" menu: the user's own commands.
     private static func startMenu() -> NSMenu {
         let menu = NSMenu(title: String(localized: "Start"))
-        for command in UserCommands.all {
-            let shortcut = Shortcut(text: command.keys)
-            let entry = item(command.title, #selector(MainViewController.runUserCommand(_:)),
-                             shortcut?.key ?? "", shortcut?.modifiers ?? [])
-            entry.representedObject = command.id.uuidString
-            menu.addItem(entry)
+        for command in UserCommands.all where (command.group ?? "").trimmingCharacters(in: .whitespaces).isEmpty {
+            menu.addItem(userCommandItem(command))
+        }
+        // Groups are submenus (those named as a menu of the bar go there: see make()).
+        for group in UserCommands.groups {
+            let submenu = NSMenu(title: group)
+            UserCommands.commands(in: group).map(userCommandItem).forEach(submenu.addItem)
+            menu.addItem(container(for: submenu))
         }
         if !menu.items.isEmpty {
             menu.addItem(.separator())
         }
         menu.addItem(item(String(localized: "Change Start Menu…"), #selector(AppDelegate.showStartMenuEditor(_:))))
         return menu
+    }
+
+    static func userCommandItem(_ command: UserCommand) -> NSMenuItem {
+        let shortcut = Shortcut(text: command.keys)
+        let entry = item(command.title, #selector(MainViewController.runUserCommand(_:)),
+                         shortcut?.key ?? "", shortcut?.modifiers ?? [])
+        entry.representedObject = command.id.uuidString
+        return entry
+    }
+
+    /// Start's groups named as another menu of the bar ("Files"…) are moved to the
+    /// end of that menu: the user's own items in the main menu.
+    private static func moveUserGroups(in mainMenu: NSMenu) {
+        guard let start = mainMenu.items.first(where: { $0.submenu?.title == String(localized: "Start") })?.submenu else {
+            return
+        }
+        for entry in start.items {
+            guard let group = entry.submenu,
+                  let target = mainMenu.items.first(where: { $0.submenu !== start && $0.submenu?.title == group.title })?
+                    .submenu else { continue }
+            start.removeItem(entry)
+            target.addItem(.separator())
+            for item in group.items {
+                group.removeItem(item)
+                target.addItem(item)
+            }
+        }
     }
 
     /// The command's item with its shortcut, plus hidden items for its other keys.

@@ -25,11 +25,21 @@ enum Command: String, CaseIterable {
     case properties = "cm_Properties"
     case compareFilesByContent = "cm_CompareFilesByContent"
     case createSymlink = "cm_CreateSymlink"
+    case commentFiles = "cm_CommentFiles"
+    case createHardLink = "cm_CreateHardLink"
+    case fileSpliter = "cm_FileSpliter"
+    case fileCombine = "cm_FileCombine"
+    case printDir = "cm_PrintDir"
+    case printDirSub = "cm_PrintDirSub"
+    case printFile = "cm_PrintFile"
+    case uuEncode = "cm_UUEncode"
+    case uuDecode = "cm_UUDecode"
     case crcCreate = "cm_CRCcreate"
     case crcCheck = "cm_CRCcheck"
     case internalAssociate = "cm_InternalAssociate"
     case packFiles = "cm_PackFiles"
     case unpackFiles = "cm_UnpackFiles"
+    case testArchive = "cm_TestArchive"
     case exit = "cm_Exit"
 
     // Mark
@@ -42,6 +52,11 @@ enum Command: String, CaseIterable {
     case copyNamesToClip = "cm_CopyNamesToClip"
     case copyFullNamesToClip = "cm_CopyFullNamesToClip"
     case exchangeSelection = "cm_ExchangeSelection"
+    case copyDetailsToClip = "cm_CopyDetailsToClip"
+    case copyFullDetailsToClip = "cm_CopyFullDetailsToClip"
+    case saveSelectionToFile = "cm_SaveSelectionToFile"
+    case loadSelectionFromFile = "cm_LoadSelectionFromFile"
+    case loadSelectionFromClip = "cm_LoadSelectionFromClip"
 
     // Commands
     case operations = "cm_Operations"
@@ -67,6 +82,8 @@ enum Command: String, CaseIterable {
     case closeCurrentTab = "cm_CloseCurrentTab"
     case switchToNextTab = "cm_SwitchToNextTab"
     case switchToPreviousTab = "cm_SwitchToPreviousTab"
+    case toggleLockCurrentTab = "cm_ToggleLockCurrentTab"
+    case toggleLockDcaCurrentTab = "cm_ToggleLockDcaCurrentTab"
     case directoryHotlist = "cm_DirectoryHotlist"
     case searchFor = "cm_SearchFor"
     case compareDirs = "cm_CompareDirs"
@@ -78,17 +95,23 @@ enum Command: String, CaseIterable {
     case quickFilter = "cm_QuickFilter"
     case srcAllFiles = "cm_SrcAllFiles"
     case srcUserSpec = "cm_SrcUserSpec"
+    case showOnlySelected = "cm_ShowOnlySelected"
     case srcShort = "cm_SrcShort"
     case srcLong = "cm_SrcLong"
     case srcThumbs = "cm_SrcThumbs"
     case srcTree = "cm_SrcTree"
+    case cdTree = "cm_CDtree"
+    case toggleSeparateTree1 = "cm_ToggleSeparateTree1"
+    case horizontalPanels = "cm_HorizontalPanels"
     case srcQuickView = "cm_SrcQuickview"
     case sortByName = "cm_SrcByName"
     case sortByExt = "cm_SrcByExt"
     case sortByDateTime = "cm_SrcByDateTime"
     case sortBySize = "cm_SrcBySize"
     case reverseOrder = "cm_SrcNegOrder"
+    case unsorted = "cm_SrcUnsorted"
     case switchHidSys = "cm_SwitchHidSys"
+    case switchIgnoreList = "cm_SwitchIgnoreList"
 
     // The terminal of a server under the panel (OriCmd's own)
     case serverTerminal = "cm_ServerTerminal"
@@ -123,11 +146,21 @@ enum Command: String, CaseIterable {
         case .properties: String(localized: "Get Info")
         case .compareFilesByContent: String(localized: "Compare by Content")
         case .createSymlink: String(localized: "Create Symbolic Link…")
+        case .commentFiles: String(localized: "Edit Comment…")
+        case .createHardLink: String(localized: "Create Hard Link…")
+        case .fileSpliter: String(localized: "Split File…")
+        case .fileCombine: String(localized: "Combine Files…")
+        case .printDir: String(localized: "Print File List…")
+        case .printDirSub: String(localized: "Print File List with Subfolders…")
+        case .printFile: String(localized: "Print File…")
+        case .uuEncode: String(localized: "Encode File (MIME, UUE, XXE)…")
+        case .uuDecode: String(localized: "Decode File…")
         case .crcCreate: String(localized: "Create Checksum File…")
         case .crcCheck: String(localized: "Verify Checksums")
         case .internalAssociate: String(localized: "Internal Associations…")
         case .packFiles: String(localized: "Pack…")
         case .unpackFiles: String(localized: "Unpack…")
+        case .testArchive: String(localized: "Test Archives")
         case .exit: String(localized: "Exit")
         case .spreadSelection: String(localized: "Select Group…  (+)")
         case .shrinkSelection: String(localized: "Unselect Group…  (−)")
@@ -137,6 +170,11 @@ enum Command: String, CaseIterable {
         case .unselectCurrentExtension: String(localized: "Unselect Same Extension  (⌥−)")
         case .copyNamesToClip: String(localized: "Copy Names")
         case .copyFullNamesToClip: String(localized: "Copy Full Paths")
+        case .copyDetailsToClip: String(localized: "Copy Names with Details")
+        case .copyFullDetailsToClip: String(localized: "Copy Full Paths with Details")
+        case .saveSelectionToFile: String(localized: "Save Selection to File…")
+        case .loadSelectionFromFile: String(localized: "Load Selection from File…")
+        case .loadSelectionFromClip: String(localized: "Load Selection from Clipboard")
         case .exchangeSelection: String(localized: "Invert Selection  (*)")
         case .rereadSource: String(localized: "Refresh")
         case .exchange: String(localized: "Swap Panels")
@@ -159,6 +197,8 @@ enum Command: String, CaseIterable {
         case .closeCurrentTab: String(localized: "Close Tab")
         case .switchToNextTab: String(localized: "Next Tab")
         case .switchToPreviousTab: String(localized: "Previous Tab")
+        case .toggleLockCurrentTab: String(localized: "Lock Tab")
+        case .toggleLockDcaCurrentTab: String(localized: "Lock Tab, Allow Folder Changes")
         case .directoryHotlist: String(localized: "Directory Hotlist…")
         case .searchFor: String(localized: "Find Files…")
         case .compareDirs: String(localized: "Compare Directories")
@@ -168,17 +208,23 @@ enum Command: String, CaseIterable {
         case .quickFilter: String(localized: "Quick Filter…")
         case .srcAllFiles: String(localized: "All Files")
         case .srcUserSpec: String(localized: "Filter…")
+        case .showOnlySelected: String(localized: "Only Selected Files")
         case .srcShort: String(localized: "Brief")
         case .srcLong: String(localized: "Full")
         case .srcThumbs: String(localized: "Thumbnails")
         case .srcTree: String(localized: "Tree")
+        case .cdTree: String(localized: "Go to Folder in Tree…")
+        case .toggleSeparateTree1: String(localized: "Separate Tree")
+        case .horizontalPanels: String(localized: "Horizontal Panels")
         case .srcQuickView: String(localized: "Quick View")
         case .sortByName: String(localized: "Sort by Name")
         case .sortByExt: String(localized: "Sort by Extension")
         case .sortByDateTime: String(localized: "Sort by Date")
         case .sortBySize: String(localized: "Sort by Size")
         case .reverseOrder: String(localized: "Reverse Order")
+        case .unsorted: String(localized: "Unsorted")
         case .switchHidSys: String(localized: "Show Hidden Files")
+        case .switchIgnoreList: String(localized: "Use the Ignore List")
         case .serverTerminal: String(localized: "Server Terminal")
         case .terminalChangeDir: String(localized: "Terminal: Go to Panel Folder")
         }
@@ -210,8 +256,10 @@ enum Command: String, CaseIterable {
         case .setAttrib: .cmd("i")
         case .properties: Shortcut("\r", [.option])
         case .createSymlink: .f(5, [.control, .shift])
+        case .commentFiles: .ctrl("z")
         case .packFiles: .f(5, .option)
         case .unpackFiles: .f(9, .option)
+        case .testArchive: .f(9, [.option, .shift])
         case .clearAll: .cmd("a", .option)
         case .copyFullNamesToClip: .cmd("c", .option)
         case .rereadSource: .cmd("r")
@@ -222,6 +270,8 @@ enum Command: String, CaseIterable {
         case .sortByExt: .f(4, .control)
         case .sortByDateTime: .f(5, .control)
         case .sortBySize: .f(6, .control)
+        case .unsorted: .f(7, .control)
+        case .cdTree: .f(10, .option)
         case .switchHidSys: .cmd(".", .shift)
         case .goToPrevDir: .cmd("[")
         case .goToNextDir: .cmd("]")
@@ -258,6 +308,7 @@ enum Command: String, CaseIterable {
         case .sortByExt: [.cmd("2", [.control, .option])]
         case .sortByDateTime: [.cmd("3", [.control, .option])]
         case .sortBySize: [.cmd("4", [.control, .option])]
+        case .unsorted: [.cmd("5", [.control, .option])]
         case .switchToNextTab: [.cmd("}")]
         case .switchToPreviousTab: [.cmd("{")]
         case .searchFor: [.cmd("f")]

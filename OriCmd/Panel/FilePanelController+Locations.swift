@@ -58,13 +58,29 @@ extension FilePanelController {
         var remote: RemoteLocation?
         var terminal: ShellTerminalView?
         var showsTerminal = false
+        var lock = Lock.none
+        /// The folder a locked tab keeps (or comes back to).
+        var lockedDirectory: URL?
+        /// A name given to the tab, shown instead of its folder's.
+        var name: String?
 
+        /// Total Commander's locked tabs: one that keeps its folder (going elsewhere
+        /// opens a new tab), or one that comes back to it when chosen again.
+        enum Lock: Int {
+            case none, locked, allowsChanges
+        }
+
+        /// The folder's name (or the server folder's), or the tab's own; a locked tab
+        /// is marked with *, as in Total Commander.
         var title: String {
+            let folder: String
             if let remote {
                 let name = (remote.path as NSString).lastPathComponent
-                return name.isEmpty || name == "/" ? remote.fileSystem.displayName : name
+                folder = name.isEmpty || name == "/" ? remote.fileSystem.displayName : name
+            } else {
+                folder = directory.path == "/" ? "/" : directory.lastPathComponent
             }
-            return directory.path == "/" ? "/" : directory.lastPathComponent
+            return (lock == .none ? "" : "*") + (name ?? folder)
         }
 
         /// The folder's own icon (Downloads, Desktop, an app's folder…) on the startup

@@ -38,6 +38,11 @@ enum Settings {
         static let sizeDisplay = "SizeDisplay"
         static let plainStatus = "PlainStatusLine"
         static let selectionMarkers = "SelectionMarkers"
+
+        static let separateTree = "SeparateTree"
+        static let horizontalPanels = "HorizontalPanels"
+        static let ignoreList = "IgnoreList"
+        static let usesIgnoreList = "UsesIgnoreList"
     }
 
     static var showsSelectionMarkers: Bool {
@@ -157,6 +162,40 @@ enum Settings {
     static var showsFunctionKeyCaps: Bool {
         get { bool(Key.functionKeyCaps, default: true) }
         set { set(newValue, Key.functionKeyCaps) }
+    }
+
+    /// Total Commander's ignore list: names, masks (`*.bak`) or full paths of
+    /// entries the panels leave out while it is used, one per line.
+    static var ignoreList: [String] {
+        get { (AppDefaults.store.string(forKey: Key.ignoreList) ?? "").split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty } }
+        set { set(newValue.joined(separator: "\n"), Key.ignoreList) }
+    }
+
+    static var usesIgnoreList: Bool {
+        get { bool(Key.usesIgnoreList, default: false) }
+        set { set(newValue, Key.usesIgnoreList) }
+    }
+
+    /// Whether the ignore list hides the entry `name` at `path`.
+    static func ignores(name: String, path: String, in list: [String]) -> Bool {
+        list.contains { entry in
+            entry.hasPrefix("/") || entry.hasPrefix("~")
+                ? (entry as NSString).expandingTildeInPath == path
+                : FileMask.matches(name, entry)
+        }
+    }
+
+    /// Show → Horizontal Panels: the left panel above the right one.
+    static var panelsOneAboveTheOther: Bool {
+        get { bool(Key.horizontalPanels, default: false) }
+        set { set(newValue, Key.horizontalPanels) }
+    }
+
+    /// Show → Separate Tree: one folder tree beside both panels.
+    static var showsSeparateTree: Bool {
+        get { bool(Key.separateTree, default: false) }
+        set { set(newValue, Key.separateTree) }
     }
 
     static var showsDriveButtons: Bool {
@@ -284,6 +323,11 @@ enum Settings {
 
     private static func bool(_ key: String, default value: Bool) -> Bool {
         AppDefaults.store.object(forKey: key) == nil ? value : AppDefaults.store.bool(forKey: key)
+    }
+
+    /// Tells the windows to show settings changed elsewhere (column sets).
+    static func notifyChange() {
+        NotificationCenter.default.post(name: didChange, object: nil)
     }
 
     private static func set(_ value: Any, _ key: String) {

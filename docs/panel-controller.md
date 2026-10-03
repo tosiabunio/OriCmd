@@ -8,9 +8,9 @@ delegates, task cancellation and tab state.
 | --- | --- |
 | `FilePanelController.swift` | Panel lifecycle, directory loading, commands, remote connections, and view delegates |
 | `FilePanelController+Locations.swift` | Archive locations, history entries, and state owned by a folder tab |
-| `FilePanelController+Tabs.swift` | Creating, moving and closing tabs; back/forward and recent-folder navigation |
-| `FilePanelController+Archives.swift` | Browsing nested archives, rereading entries, and applying archive edits |
-| `FilePanelController+Transfers.swift` | Uploads, downloads, clipboard copies, and promised-file delivery |
+| `FilePanelController+Tabs.swift` | Creating, moving, locking and naming tabs; saved and favorite tab state; back/forward navigation |
+| `FilePanelController+Archives.swift` | Browsing nested and encrypted archives, rereading entries, and applying archive edits |
+| `FilePanelController+Transfers.swift` | Uploads, downloads, clipboard and promised-file delivery, selection import/export, file lists and printing |
 
 These files are included automatically by the Xcode project's synchronized source
 group. They share the controller's main-actor isolation. Helpers used only within

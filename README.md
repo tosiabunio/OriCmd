@@ -133,28 +133,36 @@ layout `Ctrl+D`, `Ctrl+B`, `Ctrl+U` etc. work just like with the English one.
 | `Ctrl+Shift+←` / `Ctrl+Shift+→`, `Ctrl+←` / `Ctrl+→` (`⌥⌘←` / `⌥⌘→`) | Show in the left / right panel what is under the cursor: a folder's or an archive's contents, the folder of a file (with the file selected) |
 | `Alt+F1` / `Alt+F2` | Volume list of the left / right panel |
 | `Ctrl+\` | Root of the volume |
+| `Alt+F10` | A folder tree in a dialog: typing a folder's first letters finds it, `Enter` goes there |
 | `⌘T` / `⌘W` | New tab (or a double click on the empty part of the tab bar) / close tab (or its × button, shown under the mouse, or a click on it with the mouse wheel) |
 | Dragging a tab | To another place of its bar, or onto the other panel's tabs: it moves there, with its server and terminal (a panel's only tab is copied) |
+| Commands → Lock Tab / Lock Tab, Allow Folder Changes (also in the tab's context menu) | A locked tab (marked `*`) keeps its folder: going elsewhere opens a new tab beside it; one locked with folder changes allowed comes back to its folder when chosen again. Locks and names given in the tab menu (Rename Tab…) are kept between launches |
+| Commands → Favorite Tabs | The tabs of both panels saved under a name and shown again (locks and names too) |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` (`⇧⌘]` / `⇧⌘[`) | Next / previous tab |
 | `Ctrl+↑` (`⌥⌘↑`) | Open the folder under the cursor in a new tab |
 | `Ctrl+D` (`⌘D`) | Directory hotlist: go, add or remove the current folder |
 | `Alt`+letter, `Ctrl+Alt`+letter | Quick search by name (`↑`/`↓` — other matches, a leading `*` searches inside names) |
-| `Alt+F7` (`⌘F`) | Find files by mask and text; "Feed to Panel" shows the results as a list in the panel, where all commands work on them, `[..]` returns to the search folder |
+| `Alt+F7` (`⌘F`) | Find files by name, text, date, size and attributes, duplicates too (see [Find Files](#find-files-altf7)); "Feed to Panel" shows the results as a list in the panel, where all commands work on them, `[..]` returns to the search folder |
 | `Ctrl+F1` / `Ctrl+F2` (`⌘1` / `⌘2`) | Brief / Full view |
 | `Ctrl+Shift+F1` (`⌘4`) | Thumbnails (Quick Look previews) |
-| Right-click on the column headers | Optional columns: kind, date created, picture dimensions, duration, Finder tags (sortable like the others) |
+| Right-click on the column headers | The columns of the set shown: Ext, Size, Date, Attr and the optional ones — kind, date created, picture dimensions, duration, Finder tags, Finder comment (sortable like the others) |
+| Show → Columns | Column sets: the Default columns or a set of your own for the panel; Column Sets… makes them, and a set can be used by itself in folders matching masks (`~/Pictures*;*/Photos`) |
 | Settings → Panels → File list | File extensions in Full view: in their own column, or after the name (the Ext title still sorts by extension; a long name is cut short before its extension) |
 | Settings → Panels → File list → Sizes | Short sizes as the Finder counts them (`1,3 MB`; the default) or every byte, as Total Commander shows them; in the panels, the status line, the free space and when synchronizing |
 | Settings → Panels → File list → Status line | As the Finder words it (`2 of 15 selected · 35 KB of 1,2 MB`; the default) or as Total Commander (`35 k / 1 234 k in 2 / 12 file(s), 0 / 3 dir(s)`) |
 | `Ctrl+F8` (`⌘3`) | Directory tree; the other panel shows the chosen folder |
+| Show → Separate Tree | A folder tree left of both panels: a folder chosen there opens in the active panel, and the tree follows the active panel |
 | `Shift+F2` | Compare directories: mark unique and newer files in both panels |
 | Commands → Synchronous Directory Changes | Entering a subfolder or going up in one panel is repeated in the other (if it has such a folder) |
 | Commands → Synchronize Directories… | Compare two folders recursively and copy in the chosen directions (double-click or `Space` changes the direction) |
 | `Ctrl+U` | Swap panels |
+| Show → Horizontal Panels | The left panel above the right one (and back); kept between launches |
 | Commands → Left = Right / Right = Left | Show the folder of one panel in the other |
 | `⌘R` (`Ctrl+R`) | Reread the folder (changes are also picked up automatically) |
 | `⇧⌘.` | Show / hide hidden files |
+| Show → Ignore List… / Use the Ignore List | Entries the panels leave out — a name, a mask (`*.bak`) or a full path (`~/Library`) per line — while the list is used |
 | `Ctrl+F3` … `Ctrl+F6` (`⌃⌥⌘1` … `⌃⌥⌘4`) | Sort by name, extension, date, size; again — reverse order. Clicking a column header does the same |
+| `Ctrl+F7` (`⌃⌥⌘5`) | Unsorted: the order the folder (or archive) has its entries in, folders first |
 
 `Ctrl+F1`…`Ctrl+F8`, `Ctrl+↑` and `Ctrl+←/→` are taken by macOS by default
 (focus on the Dock and the menu bar, Mission Control, switching Spaces). Turn
@@ -172,9 +180,12 @@ shortcuts in parentheses.
 | `+` / `−` | Mark / unmark a group by mask (`*.txt;*.md`) |
 | `*` | Invert the marking of files |
 | `Num /` | Restore the previous selection |
+| Mark → Copy Names with Details / Copy Full Paths with Details | The name (or full path), size, date and permissions, tab-separated, a line per file |
+| Mark → Save Selection to File… / Load Selection from File… / Load Selection from Clipboard | The marked names, one per line (paths of this folder's files are taken too) |
 | `⌘A` / `⌥⌘A` | Mark all / unmark all |
 | `⌥+` / `⌥−` | Mark / unmark files with the extension of the one under the cursor |
 | Show → Filter… | Show only files matching a mask (the mask is shown in the path bar) |
+| Show → Only Selected Files | Only the marked files stay in the panel (`[selected only]` after the path) until All Files or another folder |
 | `Ctrl+B` (`⌘B`) | Branch view: all files of the folder and its subfolders in one list |
 | `Ctrl+S` | Quick filter: only names containing the typed text stay; `Enter` keeps the filter, `Esc` removes it |
 
@@ -182,19 +193,21 @@ shortcuts in parentheses.
 
 | Key | Action |
 |---|---|
-| `F3` | View (Lister): `1` text, `3` hex, `7` Quick Look (images, PDF, media and office documents — Word, Excel, PowerPoint, Pages, Numbers, Keynote, OpenDocument — open in it at once) or a table, an e-book, a web page, Markdown or a 3D model (see below), `W` word wrap; encodings: `8` UTF-8, `U` UTF-16, `A` Windows-1251, `S` DOS (866), `K` KOI8-R, all of them (and Automatically) in the text's context menu — the one used is in the title, kept for `N`/`P`; `H` syntax highlighting on/off, `F` formatting of JSON, XML and code (see below); `N`/`P` next/previous file, `F7`/`⌘F` find, `F3`/`⇧F3` find next/previous, `Esc` close |
+| `F3` | View (Lister): `1` text, `3` hex, `7` Quick Look (images, PDF, media and office documents — Word, Excel, PowerPoint, Pages, Numbers, Keynote, OpenDocument — open in it at once) or a table, an e-book, a web page, Markdown or a 3D model (see below), `W` word wrap; encodings: `8` UTF-8, `U` UTF-16, `A` Windows-1251, `S` DOS (866), `K` KOI8-R, all of them (and Automatically) in the text's context menu — the one used is in the title, kept for `N`/`P`; `H` syntax highlighting on/off, `F` formatting of JSON, XML and code (see below); `N`/`P` next/previous file, `F7`/`⌘F` find, `⇧F7` find with options (case, a regular expression, bytes in hex — found in the hex dump), `F3`/`⇧F3` find next/previous, `Esc` close |
 | `F4` | Open in the default text editor (or the program from the associations) |
 | `Shift+F4` | Create a new file and open it in the editor |
 | `F5` | Copy (to the other panel by default) |
 | `Shift+F5` | Copy within the same folder under another name |
 | `F6` | Move / rename |
 | `Shift+F6`, `F2` | Rename in place (the name is selected; `F2` again selects the extension, then the whole name) |
-| `Ctrl+M` | Multi-Rename Tool: masks `[N]`, `[N2-5]`, `[E]`, `[C]`, `[P]`, `[YMD]`, `[hms]`, search and replace (including regular expressions), case, preview and undo |
+| `Ctrl+M` | Multi-Rename Tool: masks `[N]`, `[N2-5]`, `[E]`, `[C]`, `[P]`, `[YMD]`, `[hms]`, search and replace (including regular expressions), case, preview and undo; rules saved under a name; the new names given one by one — edited as a list (Edit Names…) or read from a text file, a line per file |
 | `F7` (`⇧⌘N`) | New folder (`a/b/c` creates nested ones) |
 | `F8`, `Del` (`⌘⌫`) | Move to the Trash |
 | `Shift+F8`, `Shift+Del`, `Shift+⌫`, `⇧⌘⌫`, `⌥⌘⌫` | Delete permanently, past the Trash (in the context menu, Delete becomes Delete Permanently while Shift is held) |
 | `Ctrl+Shift+F5` | Create a symbolic link (in the other panel by default) |
-| Files → Compare by Content | Two marked files, or the files under the cursors of both panels. The compare window aligns the lines: changed ones are yellow (with the differing part highlighted), removed ones red, added ones green; `N`/`P` (`⌥↓`/`⌥↑`) — next/previous difference, "Ignore whitespace"; binary files are compared byte by byte in hex |
+| Files → Create Hard Link… | Another name of the same file, on the same volume (in the other panel by default) |
+| Files → Compare by Content | Two marked files, or the files under the cursors of both panels. The compare window aligns the lines: changed ones are yellow (with the differing part highlighted), removed ones red, added ones green; `N`/`P` (`⌥↓`/`⌥↑`) — next/previous difference, "Ignore whitespace"; text files can be edited: "Copy to Right →" / "← Copy to Left" puts a difference on the other side, "Edit Line…" (or a double click) changes both lines of a row, `⌘S` saves in the file's own encoding and line breaks (closing with changes asks first); binary files are compared byte by byte in hex |
+| `Ctrl+Z` | Edit the Finder comment of the file under the cursor (kept with the file, found by Spotlight); the Comment column shows it |
 | `⌘I` | Change attributes: rwx permissions, hidden, locked, modification date (also recursively) |
 | `Alt+Enter` (`⌥↩`) | Get Info: the Finder's info windows of the selected files (of the folder shown on `[..]`) |
 | `Ctrl+Q` | Quick View in the other panel |
@@ -205,14 +218,25 @@ shortcuts in parentheses.
 | `⌘K` | Connect to a server: `sftp://`, `ftp://`, `ftps://`, `ftpes://` open right in the panel; smb, afp, nfs and WebDAV are mounted as volumes (with a "Connecting…" window you can cancel; a server that does not answer is reported within seconds). The last ten servers connected to are listed under the address: a click picks one, a double click connects, `−` removes one; the window can be made taller |
 | `Ctrl+F` (`⇧⌘K`) | Saved connections (passwords are kept in the Keychain) |
 | Net → Disconnect | Close the server in the active panel |
+| Net → Servers on the Network… | The file servers this Mac sees through Bonjour (SMB, AFP, SFTP/SSH, FTP, WebDAV, NFS); choosing one puts its address into Connect to Server |
+| Net → Download from URL… | http(s) and ftp addresses, one per line (the one on the clipboard offered), downloaded into the active panel by the system curl |
 | `⌘E` | Eject the removable or network volume of the active panel |
-| `Alt+F5` | Pack into an archive (the format follows the extension: `.zip`, `.tar.gz`, `.tar.bz2`, `.tar.xz`, `.7z`) |
+| `Alt+F5` | Pack into an archive (the format follows the extension: `.zip`, `.tar.gz`, `.tar.bz2`, `.tar.xz`, `.7z`): the compression (normal, fastest, best, none), move to archive (the files are deleted once the archive reads back whole), one archive per file or folder, a password for zip archives (AES-256, or ZipCrypto for old programs) |
 | `Alt+F9` | Unpack the selected archives |
+| `Alt+Shift+F9` | Test the selected archives (or the one shown): they are read through, their checksums checked, and the damaged files named |
 | Files → Create Checksum File… | MD5 / SHA-1 / SHA-256 / SHA-512 for the selection (`shasum`/`md5sum` format) |
+| Files → Print File List… / with Subfolders… / Print File… | The entries shown (or marked) with sizes and dates, the files inside the folders too, or the text of the file under the cursor; `⌘P` in the Lister prints what it shows |
+| Files → Encode File… / Decode File… | A file as text for mail — MIME (Base64, with headers), UUE or XXE — and such a text back to the file it holds, under its name |
+| Files → Split File… / Combine Files… | A file cut into pieces of a size chosen (`name.001`, `name.002`… and `name.crc` with its name, size and CRC32, as Total Commander makes them); the pieces put together again from `name.001` or `name.crc`, checked against the .crc file |
 | Files → Verify Checksums | Check the `.md5`/`.sha1`/`.sha256`/`.sha512` file under the cursor |
 
 Long operations (copy, move, archives) show their progress; the "Background"
 button moves it to a separate window so you can keep working with the panels.
+"Pause" stops a copy (and a server transfer) until "Resume"; the speed pop-up limits
+copying (1 to 100 MB/s; a clone on the same APFS disk is instant anyway). When a
+server transfer meets a smaller file of the same name (a transfer cut off), "File
+already exists" offers "Resume": the rest is sent or fetched and appended (SFTP
+`reget`/`reput`, FTP `REST`/`APPE`).
 
 #### E-books in the viewer
 
@@ -282,6 +306,28 @@ notifications, take up shared memory until a restart and send back a wrong
 coloring, which OriCmd checks; nothing can leave the Mac through it. A highlighting
 that takes more than 5 seconds is stopped (the text stays plain).
 
+#### Find Files (`Alt+F7`)
+
+- **General:** masks (`*.txt;*.md`) or a regular expression for the name; the
+  folder and how many levels of subfolders; the text — case-sensitive or not,
+  whole words, a regular expression, or files *not* containing it — in UTF-8,
+  UTF-16, Windows-1251, DOS (866), KOI8-R or all of them, or bytes in hex
+  (`50 4B 03 04`).
+- **Inside archives** (zip, tar.\*, 7z… by name): names, attributes and text of
+  their files; Go to File opens the archive at the file, Feed to Panel shows the
+  archive itself.
+- **The Spotlight index:** files are taken by name from the index instead of going
+  through the folders — faster, but Spotlight leaves out hidden files, packages and
+  excluded folders (the other conditions are checked as usual).
+- **Advanced:** the modification date (between two dates or not older than), the
+  file size (`=` `<` `>`; "= 2 MB" takes 2 to 3 MB), attributes (folder, hidden,
+  locked, symbolic link, executable: has it, does not have it, any); duplicates —
+  files with the same name, size or contents (the beginning is compared first,
+  then the rest; hard links to one file count once, empty files are left out),
+  shown in groups. The tab's title says when a condition is set there.
+- **Templates:** a search saved under a name (all conditions but the folder) and
+  loaded back.
+
 #### The copy and move dialog (`F5` / `F6`)
 
 - **Target** with a name mask: `folder/*.*` keeps the names, `folder/*.bak`
@@ -319,6 +365,16 @@ temporary folder). rar, iso, cab and others are read-only. An archive inside an
 archive opens the same way (`Enter`, `Ctrl+PgDn`; `[..]` goes back to the outer one);
 it is read-only.
 
+Encrypted zip archives (ZipCrypto or AES) ask for the password when something is
+unpacked or viewed; it is checked before anything is written, asked for again while
+it is wrong and remembered until OriCmd quits. An encrypted zip is changed with its
+password and stays encrypted the same way; encrypted 7z and RAR archives cannot be
+unpacked (the system libarchive cannot decrypt them).
+
+Solid RAR 4 archives (old ones, made with "Create solid archive") cannot be read by
+the system libarchive either; with The Unarchiver's command line tools installed
+(`brew install unar`) OriCmd lists, views and unpacks them through `lsar` and `unar`.
+
 ### Button bar and drive buttons
 
 Under the window title there is a button bar with frequent commands (reread,
@@ -342,7 +398,8 @@ system `curl`. On a server navigation, `F3`, `Enter`, `F5`/`F6` both ways
 (download/upload), `F7`, `F8`, `Shift+F6`, paste from the clipboard and dropping
 files onto the server panel work. Transfers go file by file with byte progress
 (current file and total). SFTP keeps permissions and dates of files and folders,
-FTP keeps the dates of downloaded files.
+FTP keeps the dates of downloaded files. With a server in both panels, `F5`/`F6`
+copy or move from one to the other through this Mac (Total Commander's FXP).
 
 #### Server terminal
 
@@ -437,7 +494,9 @@ those stripes away again (not ones you turned on yourself).
 Settings → Keyboard → Keyboard Shortcuts…: any `cm_*` command can get its own
 shortcut (double-click a row and press the keys). The "Import wincmd.ini…"
 button takes the assignments from the `[Shortcuts]` section of a `wincmd.ini`
-file — they are added to the standard keys.
+file — they are added to the standard keys — and also the colors (`[Colors]`: file
+colors by mask, marked files, the cursor) and the hotlist entries whose folders exist
+on this Mac (`[DirMenu]`, `cd /path` or `cd ~/path`).
 
 ## Start menu
 
@@ -447,6 +506,11 @@ folder of the active panel; the parameters `%P` (folder of the active panel),
 file under the cursor in the other panel) are inserted already quoted. A command
 can have its own shortcut (`CM+E` is ⌃⌘E) and run in Terminal; Customize
 Toolbar… puts commands on the button bar.
+
+Commands with the same group make a submenu of Start; a group named like a menu
+of the bar (Files, Commands, Net…) puts its commands at the end of that menu instead,
+so the main menu gets commands of your own. On the button bar a group is one
+button with its commands in a dropdown.
 
 ## Internal associations
 

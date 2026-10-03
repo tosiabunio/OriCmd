@@ -26,7 +26,7 @@ final class FunctionKeyBar: NSView {
 
     private var pressedIndex: Int?
 
-    override var isFlipped: Bool { true }
+    nonisolated override var isFlipped: Bool { true }
     /// Key caps get some room above and below.
     static var height: CGFloat { Settings.showsFunctionKeyCaps ? 28 : 22 }
 

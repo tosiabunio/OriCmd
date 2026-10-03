@@ -828,6 +828,492 @@ check "a middle click closes another tab" "panels tabmiddle | grep -q '^left\*: 
 run tabmiddlecurrent "cmd+t wait alt+a wait text:lpha enter wait tabmiddleclick:1 wait wait"
 check "a middle click closes the current tab" "panels tabmiddlecurrent | grep -q '^left\*: .*/left |.*tabs: left$'"
 
+# Find Files, Advanced: the date (between, not older than), the size, attributes
+# (tri-state), the subfolder levels.
+scripts/test/mkdata.sh
+mkdir -p $L/found/sub/deeper $L/found/folder.dat
+head -c 5000 /dev/zero > $L/found/small.dat; head -c 4000000 /dev/zero > $L/found/big.dat
+head -c 2500000 /dev/zero > $L/found/sub/deeper/deep.dat; touch $L/found/.hidden.dat
+head -c 100 /dev/zero > $L/found/old.dat; touch -t 202001150000 $L/found/old.dat
+printf '#!/bin/sh\n' > $L/found/run.dat; chmod +x $L/found/run.dat; ln -s big.dat $L/found/link.dat
+head -c 10 /dev/zero > $L/found/sub/locked.dat; chflags uchg $L/found/sub/locked.dat
+findfiles() { run "$1" "alt+f7 wait set:findMask=*.dat set:findIn=$PWD/$L/found $2 click:Start_Search wait wait wait"; }
+found() { grep '^\[row\]' build/shots/reg-$1-win1.txt 2>/dev/null | sed 's|.*/found/||' | tr '\n' ' '; }
+findfiles fsize "click:Advanced set:findSizeOn=on set:findSizeOp=> set:findSize=2 set:findSizeUnit=MB"
+check "Find Files: size > 2 MB (a link to a big file too)" "[ \"\$(found fsize)\" = 'big.dat link.dat sub/deeper/deep.dat ' ]"
+findfiles fsizeeq "click:Advanced set:findSizeOn=on set:findSizeOp== set:findSize=2 set:findSizeUnit=MB"
+check "Find Files: size = 2 MB takes 2 to 3 MB" "[ \"\$(found fsizeeq)\" = 'sub/deeper/deep.dat ' ]"
+findfiles fdate "click:Advanced set:findBetween=on set:findFrom=2020-01-01 set:findTo=2020-02-01"
+check "Find Files: date between" "[ \"\$(found fdate)\" = 'old.dat ' ]"
+findfiles fage "click:Advanced set:findOlder=on set:findAge=1 set:findAgeUnit=days"
+check "Find Files: not older than a day" "found fage | grep -q 'big.dat' && ! found fage | grep -q 'old.dat'"
+findfiles fexec "click:Advanced set:findAttr-executable=on"
+check "Find Files: executable" "[ \"\$(found fexec)\" = 'run.dat ' ]"
+findfiles flocked "click:Advanced set:findAttr-locked=on"
+check "Find Files: locked" "[ \"\$(found flocked)\" = 'sub/locked.dat ' ]"
+findfiles flink "click:Advanced set:findAttr-symbolicLink=on"
+check "Find Files: symbolic link" "[ \"\$(found flink)\" = 'link.dat ' ]"
+findfiles fnot "click:Advanced set:findAttr-folder=off set:findAttr-hidden=off"
+check "Find Files: neither a folder nor hidden" "[ \"\$(found fnot)\" = 'big.dat link.dat old.dat run.dat small.dat sub/deeper/deep.dat sub/locked.dat ' ]"
+findfiles fdepth0 "set:findDepth=None"
+check "Find Files: no subfolders" "! found fdepth0 | grep -q sub/"
+findfiles fdepth1 "set:findDepth=1"
+check "Find Files: one level of subfolders" "found fdepth1 | grep -q 'sub/locked.dat' && ! found fdepth1 | grep -q deeper"
+findfiles fbadsize "click:Advanced set:findSizeOn=on set:findSize=lots"
+check "Find Files: a wrong number is not searched with" "grep -qx 'Enter a whole number.' build/shots/reg-fbadsize-win1.txt && [ -z \"\$(found fbadsize)\" ]"
+chflags nouchg $L/found/sub/locked.dat
+
+# Find Files, text: encodings (one, all of them), case, whole words, regular
+# expressions (for the text and for the name), files not containing the text, hex.
+scripts/test/mkdata.sh
+mkdir -p $L/texts; T=$L/texts
+printf 'Привет, мир!\n' > $T/utf8.txt
+for e in CP1251:cp1251 KOI8-R:koi8 CP866:dos866; do printf 'Привет, мир!\n' | iconv -f UTF-8 -t ${e%%:*} > $T/${e#*:}.txt; done
+{ printf '\xff\xfe'; printf 'Привет, мир!\n' | iconv -f UTF-8 -t UTF-16LE; } > $T/utf16.txt
+echo 'the cat sat' > $T/english.txt; echo 'concatenate' > $T/concat.txt; echo 'word42 here' > $T/words.txt
+# A zip of known contents (random bytes could hold the words looked for).
+printf 'zzzz' > $L/z.txt; (cd $L && zip -q texts/packed.zip z.txt)
+textfind() { run "$1" "alt+f7 wait set:findIn=$PWD/$T $2 click:Start_Search wait wait wait"; }
+textfound() { grep '^\[row\]' build/shots/reg-$1-win1.txt 2>/dev/null | sed 's|.*/texts/||' | tr '\n' ' '; }
+textfind tutf8 "set:findText=привет"
+check "Find Files: a text in UTF-8, whatever the case" "[ \"\$(textfound tutf8)\" = 'utf8.txt ' ]"
+textfind tall "set:findText=привет set:findEncoding=All_of_them"
+check "Find Files: a text in all the encodings" "[ \"\$(textfound tall)\" = 'cp1251.txt dos866.txt koi8.txt utf8.txt utf16.txt ' ]"
+textfind t1251 "set:findText=Привет set:findCase=on set:findEncoding=Windows-1251"
+check "Find Files: a case-sensitive text in Windows-1251" "[ \"\$(textfound t1251)\" = 'cp1251.txt ' ]"
+textfind tsub "set:findText=cat"
+check "Find Files: a text inside a word" "[ \"\$(textfound tsub)\" = 'concat.txt english.txt ' ]"
+textfind twhole "set:findText=cat set:findWholeWords=on"
+check "Find Files: whole words" "[ \"\$(textfound twhole)\" = 'english.txt ' ]"
+textfind tregex "set:findText=word[0-9]+_here set:findTextRegex=on"
+check "Find Files: a regular expression for the text" "[ \"\$(textfound tregex)\" = 'words.txt ' ]"
+textfind tnot "set:findMask=*.txt set:findText=cat set:findNot=on"
+check "Find Files: files not containing the text" "[ \"\$(textfound tnot)\" = 'cp1251.txt dos866.txt koi8.txt utf8.txt utf16.txt words.txt ' ]"
+textfind tname "set:findMask=^(koi|dos) set:findNameRegex=on"
+check "Find Files: a regular expression for the name" "[ \"\$(textfound tname)\" = 'dos866.txt koi8.txt ' ]"
+textfind thex "set:findText=50_4B_03_04 set:findEncoding=Hex"
+check "Find Files: bytes in hex" "[ \"\$(textfound thex)\" = 'packed.zip ' ]"
+textfind tbadregex "set:findText=( set:findTextRegex=on"
+check "Find Files: a wrong regular expression is said so" "grep -qx 'The regular expression for the text is not valid.' build/shots/reg-tbadregex-win1.txt"
+textfind tbadhex "set:findText=5 set:findEncoding=Hex"
+check "Find Files: wrong hex is said so" "grep -qx 'Enter the bytes in hex, as 50 4B 03 04.' build/shots/reg-tbadhex-win1.txt"
+
+# Find Files, duplicates: by contents (the beginning, then the rest), name, size;
+# a hard link is the file once, empty files are not compared.
+scripts/test/mkdata.sh
+D=$L/dups; mkdir -p $D/a $D/b $D/c $D/d
+head -c 100000 /dev/urandom > $D/a/photo.jpg; cp $D/a/photo.jpg $D/b/photo.jpg; cp $D/a/photo.jpg $D/c/copy.bin
+head -c 100000 /dev/urandom > $D/d/photo.jpg; ln $D/a/photo.jpg $D/hard.jpg; touch $D/e1.txt $D/e2.txt
+head -c 150000 /dev/urandom > $D/big1.dat; cp $D/big1.dat $D/big2.dat; printf 'x' >> $D/big1.dat; printf 'y' >> $D/big2.dat
+dupfind() { run "$1" "alt+f7 wait set:findIn=$PWD/$D click:Advanced set:findDuplicates=on $2 click:Start_Search wait wait wait"; }
+dupfound() { grep '^\[row\]' build/shots/reg-$1-win1.txt 2>/dev/null | sed 's|^\[row\] ||; s|.*/dups/||' | tr '\n' '/'; }
+dupfind dupcontents ""
+check "Find Files: duplicates by contents" "[ \"\$(dupfound dupcontents)\" = '3 files, 100 KB each/a/photo.jpg/b/photo.jpg/c/copy.bin/' ]"
+dupfind dupname "set:findSameName=on set:findSameContents=off"
+check "Find Files: duplicates by name" "[ \"\$(dupfound dupname)\" = '3 files/a/photo.jpg/b/photo.jpg/d/photo.jpg/' ]"
+dupfind dupsize "set:findSameSize=on set:findSameContents=off"
+check "Find Files: duplicates by size" "[ \"\$(dupfound dupsize)\" = '4 files, 100 KB each/a/photo.jpg/b/photo.jpg/c/copy.bin/d/photo.jpg/2 files, 150 KB each/big1.dat/big2.dat/' ]"
+dupfind dupboth "set:findSameName=on"
+check "Find Files: duplicates by name and contents" "[ \"\$(dupfound dupboth)\" = '2 files, 100 KB each/a/photo.jpg/b/photo.jpg/' ]"
+dupfind dupnone "set:findSameContents=off"
+check "Find Files: duplicates need something in common" "grep -qx 'Choose what the duplicates have in common.' build/shots/reg-dupnone-win1.txt"
+
+# Find Files in archives: names and text inside zip and tar.gz (a damaged archive
+# is passed over); Go to File opens the archive at the entry.
+scripts/test/mkdata.sh
+A=$L/arch; mkdir -p $A; cp $L/archive-test.zip $L/bundle.tar.gz $A/; echo 'hello from disk' > $A/inside.txt
+head -c 3000 /dev/urandom > $A/broken.zip
+archfind() { run "$1" "alt+f7 wait set:findIn=$PWD/$A $2 click:Start_Search wait wait wait $3"; }
+archfound() { grep '^\[row\]' build/shots/reg-$1-win1.txt 2>/dev/null | sed 's|.*/arch/||' | tr '\n' ' '; }
+archfind aname "set:findMask=inside.txt set:findArchives=on"
+check "Find Files: names in archives" "[ \"\$(archfound aname)\" = 'archive-test.zip/alpha/inside.txt bundle.tar.gz/alpha/inside.txt inside.txt ' ]"
+archfind anoarch "set:findMask=inside.txt"
+check "Find Files: archives are not looked into unless asked" "[ \"\$(archfound anoarch)\" = 'inside.txt ' ]"
+archfind atext "set:findText=hello_from_alpha set:findArchives=on"
+# (The zip keeps so short a text unpacked: the zip itself has it too.)
+check "Find Files: a text in archives" "[ \"\$(archfound atext)\" = 'archive-test.zip archive-test.zip/alpha/inside.txt bundle.tar.gz/alpha/inside.txt ' ]"
+archfind afolder "set:findMask=deeper set:findArchives=on click:Advanced set:findAttr-folder=on"
+check "Find Files: a folder in an archive" "[ \"\$(archfound afolder)\" = 'archive-test.zip/beta/deep/deeper ' ]"
+archfind agoto "set:findMask=inside.txt set:findArchives=on" "click:Go_to_File wait wait wait"
+check "Find Files: Go to File opens the archive at the entry" "panels agoto | grep -q '^left\*: .*/arch/archive-test.zip/alpha | cursor: inside.txt'"
+
+# Find Files with the Spotlight index: the files come from the index (only those
+# named so are looked at), by the subfolder levels too. Skipped without indexing.
+if mdutil -s / 2>/dev/null | grep -q 'Indexing enabled'; then
+  scripts/test/mkdata.sh
+  mkdir -p $L/spot/sub; touch $L/spot/spot-a.txt $L/spot/spot-b.txt $L/spot/sub/spot-c.txt
+  for i in {1..20}; do [ "$(mdfind -onlyin $PWD/$L/spot 'kMDItemFSName == "spot-*"' | wc -l)" -ge 3 ] && break; sleep 1; done
+  run spotall "alt+f7 wait set:findMask=spot-*.txt set:findIndex=on click:Start_Search wait wait wait"
+  check "Find Files: names from the Spotlight index" "[ \"\$(grep '^\[row\]' build/shots/reg-spotall-win1.txt | sed 's|.*/left/||' | tr '\n' ' ')\" = 'spot/spot-a.txt spot/spot-b.txt spot/sub/spot-c.txt ' ] && grep -qx 'Done: 3 found, 3 scanned' build/shots/reg-spotall-win1.txt"
+  run spotdepth "alt+f7 wait set:findMask=spot-*.txt set:findIndex=on set:findDepth=1 click:Start_Search wait wait wait"
+  check "Find Files: the index by the subfolder levels" "[ \"\$(grep '^\[row\]' build/shots/reg-spotdepth-win1.txt | sed 's|.*/left/||' | tr '\n' ' ')\" = 'spot/spot-a.txt spot/spot-b.txt ' ]"
+fi
+
+# Find Files templates: a search saved, the dialog changed, the search loaded back
+# (the General tab shown) and run; a template deleted.
+scripts/test/mkdata.sh
+mkdir -p $L/tpl; head -c 4000000 /dev/zero > $L/tpl/big.dat; head -c 5000 /dev/zero > $L/tpl/small.dat; touch $L/tpl/big.txt
+tplsave="alt+f7 wait set:findIn=$PWD/$L/tpl set:findMask=*.dat click:Advanced set:findSizeOn=on set:findSize=2 set:findSizeUnit=MB click:Templates click:Save… wait text:bigfiles enter wait"
+run tplload "$tplsave set:findMask=*.txt click:Advanced set:findSizeOn=off click:Templates set:findTemplates=bigfiles click:Load wait click:Start_Search wait wait wait"
+check "Find Files: a saved search loaded back" "[ \"\$(grep '^\[row\]' build/shots/reg-tplload-win1.txt | sed 's|.*/tpl/||' | tr '\n' ' ')\" = 'big.dat ' ] && grep -qx '\*.dat' build/shots/reg-tplload-win1.txt"
+run tplsaved "$tplsave"
+run tpldelete "$tplsave set:findTemplates=bigfiles click:Delete wait"
+check "Find Files: a saved search listed, then deleted" "grep -qx '\[row\] bigfiles' build/shots/reg-tplsaved-win1.txt && ! grep -q '^\[row\] bigfiles' build/shots/reg-tpldelete-win1.txt"
+
+# Encrypted zip archives: the password is asked for (again while wrong, nothing
+# unpacked meanwhile), F3 inside asks too, so does a change.
+scripts/test/mkdata.sh
+(cd $L && echo 'the secret text' > secret.txt && zip -q -P secret crypto.zip secret.txt && rm secret.txt)
+run encok "alt+c wait text:rypto escape alt+f9 wait enter wait text:secret enter wait wait wait"
+check "An encrypted zip is unpacked with its password" "[ \"\$(cat $R/secret.txt 2>/dev/null)\" = 'the secret text' ]"
+rm -f $R/secret.txt
+run encwrong "alt+c wait text:rypto escape alt+f9 wait enter wait text:wrong enter wait wait"
+check "A wrong password is asked for again, nothing unpacked" "grep -qx 'The password is wrong. Enter it again:' build/shots/reg-encwrong-sheet.txt && [ ! -e $R/secret.txt ]"
+run encview "alt+c wait text:rypto enter wait wait alt+s wait text:ecret escape f3 wait text:secret enter wait wait wait"
+check "F3 in an encrypted zip asks for the password" "grep -q 'the secret text' build/shots/reg-encview-win1.txt"
+run encedit "alt+c wait text:rypto enter wait wait alt+s wait text:ecret escape f8 wait enter wait wait"
+check "A change of an encrypted zip asks for its password" "grep -qx 'The archive is encrypted. Enter its password:' build/shots/reg-encedit-sheet.txt && unzip -l $L/crypto.zip | grep -q secret.txt"
+
+# Alt+F5 options: the compression (store, best), a password (AES-256, ZipCrypto;
+# Pack only with the same password twice), moving into the archive, one archive per
+# file; an AES archive read back and changed (it keeps its password and AES).
+scripts/test/mkdata.sh
+echo 'packed secret' > $L/secret.txt; yes 'compressible line of text' | head -5000 > $L/plain.txt
+echo one > $L/sep1.txt; echo two > $L/sep2.txt; echo moving > $L/movable.txt
+run pstore "alt+p wait text:lain escape alt+f5 wait set:packCompression=Store_(no_compression) enter wait wait"
+check "Alt+F5: a zip without compression" "unzip -v $R/plain.zip | grep plain.txt | grep -q Stored"
+run pbest "alt+p wait text:lain escape alt+f5 wait set:packPath=$PWD/$R/plain.tar.gz set:packCompression=Best enter wait wait"
+check "Alt+F5: a tar.gz with the best compression" "[ \"\$(xxd -s 8 -l 1 -p $R/plain.tar.gz)\" = 02 ]"
+run paes "alt+s wait text:ecret escape alt+f5 wait set:packEncrypt=on set:packPassword=pw set:packRepeat=pw enter wait wait"
+check "Alt+F5: a zip encrypted with AES-256" "[ \"\$(xxd -s 8 -l 2 -p $R/secret.zip)\" = 6300 ]"
+run pcrypto "alt+s wait text:ecret escape alt+f5 wait set:packPath=$PWD/$R/zc.zip set:packEncrypt=on set:packEncryption=ZipCrypto_(weak,_for_old_programs) set:packPassword=pw set:packRepeat=pw enter wait wait"
+check "Alt+F5: a zip encrypted with ZipCrypto (unzip reads it)" "[ \"\$(unzip -P pw -p $R/zc.zip)\" = 'packed secret' ]"
+run pdiffer "alt+s wait text:ecret escape alt+f5 wait set:packPath=$PWD/$R/no.zip set:packEncrypt=on set:packPassword=pw set:packRepeat=px enter wait wait"
+check "Alt+F5: different passwords pack nothing" "grep -qx 'The passwords differ.' build/shots/reg-pdiffer-sheet.txt && [ ! -e $R/no.zip ] && ! grep -qx 'px' build/shots/reg-pdiffer-sheet.txt"
+run pmove "alt+m wait text:ovable escape alt+f5 wait set:packMove=on enter wait wait wait"
+check "Alt+F5: moved into the archive" "[ \"\$(unzip -p $R/movable.zip)\" = moving ] && [ ! -e $L/movable.txt ]"
+run psep "plus wait cmd+a text:sep*.txt enter wait alt+f5 wait set:packSeparate=on enter wait wait wait"
+check "Alt+F5: one archive per file" "[ \"\$(unzip -p $R/sep1.zip)\" = one ] && [ \"\$(unzip -p $R/sep2.zip)\" = two ]"
+rm -f $L/secret.txt
+run paesread "tab wait alt+s wait text:ecret escape alt+f9 wait enter wait text:pw enter wait wait wait"
+check "An AES zip is read back with its password" "[ \"\$(cat $L/secret.txt 2>/dev/null)\" = 'packed secret' ]"
+run paesedit "tab wait alt+s wait text:ecret enter wait wait tab wait alt+s wait text:ep1 escape f5 wait enter wait text:pw enter wait wait wait"
+check "An encrypted zip is changed with its password, still AES" "unzip -l $R/secret.zip | grep -q sep1.txt && unzip -l $R/secret.zip | grep -q secret.txt && [ \"\$(xxd -s 8 -l 2 -p $R/secret.zip)\" = 6300 ]"
+
+# Alt+Shift+F9 tests archives: intact ones, a damaged one (its file named), an
+# encrypted one with its password.
+scripts/test/mkdata.sh
+mkdir -p $L/tests; cp $L/archive-test.zip $L/tests/good.zip; cp $L/bundle.tar.gz $L/tests/good.tar.gz
+python3 -c "d=bytearray(open('$L/archive-test.zip','rb').read()); d[len(d)//2]^=0xFF; open('$L/tests/bad.zip','wb').write(d)"
+(cd $L/tests && echo 'the secret text' > s.txt && zip -q -P secret crypto.zip s.txt && rm s.txt)
+run tok "alt+t wait text:ests enter wait plus wait cmd+a text:good* enter wait alt+shift+f9 wait wait wait"
+check "Alt+Shift+F9: intact archives" "grep -qx '2 archives were read through: their contents are intact.' build/shots/reg-tok-sheet.txt"
+run tbad "alt+t wait text:ests enter wait plus wait cmd+a text:*d.zip enter wait alt+shift+f9 wait wait wait"
+check "Alt+Shift+F9: a damaged archive and its file" "grep -q '^“bad.zip”: “beta/deep/deeper/blob.bin” is damaged' build/shots/reg-tbad-sheet.txt && grep -qx 'The other archives (1) are intact.' build/shots/reg-tbad-sheet.txt"
+run tenc "alt+t wait text:ests enter wait alt+c wait text:rypto escape alt+shift+f9 wait text:secret enter wait wait wait"
+check "Alt+Shift+F9: an encrypted archive with its password" "grep -qx '“crypto.zip” was read through: its contents are intact.' build/shots/reg-tenc-sheet.txt"
+
+# Locked tabs: one keeps its folder (going elsewhere opens a new tab), one locked
+# with folder changes allowed comes back to its folder; a tab renamed; the tab
+# menu shows the lock.
+scripts/test/mkdata.sh
+run lock "cmd:cm_ToggleLockCurrentTab alt+a wait text:lpha enter wait wait"
+check "A locked tab keeps its folder, a new tab opens" "panels lock | grep -q '^left\*: .*/left/alpha | cursor: .. | tabs: \*left, alpha$'"
+run lockback "cmd:cm_ToggleLockCurrentTab alt+a wait text:lpha enter wait wait ctrl+shift+tab wait wait"
+check "Back in the locked tab, as it was" "panels lockback | grep -q '^left\*: .*/left | cursor: alpha | tabs: \*left, alpha$'"
+run dcastay "cmd:cm_ToggleLockDcaCurrentTab alt+a wait text:lpha enter wait wait"
+check "A tab locked with changes allowed changes its folder" "panels dcastay | grep -q '^left\*: .*/left/alpha |.*tabs: \*alpha$'"
+run dca "cmd:cm_ToggleLockDcaCurrentTab alt+a wait text:lpha enter wait wait cmd+t wait ctrl+shift+tab wait wait"
+check "...and comes back to its folder when chosen again" "panels dca | grep -q '^left\*: .*/left |.*tabs: \*left, alpha$'"
+run tabrename "cmd+t wait tabmenu:0|Rename_Tab wait text:Work enter wait"
+check "A tab renamed" "panels tabrename | grep -q 'tabs: Work, left$'"
+run lockmenu "cmd+t wait tabmenu:0|Lock_Tab, wait tabmenu:0"
+check "The tab menu shows the lock" "grep -qx '✓Lock Tab, Allow Folder Changes' build/shots/reg-lockmenu-menu.txt && grep -qx 'Lock Tab' build/shots/reg-lockmenu-menu.txt"
+
+# Favorite tabs: both panels' tabs saved under a name (a lock too) and shown
+# again; a favorite removed.
+scripts/test/mkdata.sh
+run favload "cmd+t wait alt+a wait text:lpha enter wait wait cmd:cm_ToggleLockCurrentTab menuitem:Save_Current_Tabs… wait text:proj enter wait cmd:cm_ToggleLockCurrentTab ctrl+shift+tab wait cmd+w wait wait menuitem:proj wait wait wait"
+check "Favorite tabs shown again, the lock too" "panels favload | grep -q '^left\*: .*/left/alpha |.*tabs: left, \*alpha$' && panels favload | grep -q '^right: .*tabs: right$'"
+run favkeep "cmd+t wait menuitem:Save_Current_Tabs… wait text:proj enter wait wait cmd+w wait wait menuitem:proj wait wait"
+check "Favorite tabs bring back a closed tab" "panels favkeep | grep -q 'tabs: left, left$'"
+run favremove "cmd+t wait menuitem:Save_Current_Tabs… wait text:proj enter wait wait menuitem:Remove>proj wait cmd+w wait wait menuitem:proj wait wait"
+check "Favorite tabs removed" "panels favremove | grep -q '^left\*: .*tabs: left$'"
+
+# Selection: only the selected files shown (until All Files or another folder),
+# names with details copied, the selection saved to a file and loaded from one
+# (names, or paths of this folder's files) and from the clipboard.
+scripts/test/mkdata.sh
+items() { grep "^$2 items: " build/shots/reg-$1-panels.txt 2>/dev/null | sed "s/^$2 items: //"; }
+testclip() { osascript -l JavaScript -e 'ObjC.import("AppKit"); $.NSPasteboard.pasteboardWithName("ru.themmag.OriCmd.tests").stringForType($.NSPasteboardTypeString).js'; }
+run onlysel "alt+r wait text:eadme escape space alt+n wait text:otes escape space cmd:cm_ShowOnlySelected wait"
+check "Only the selected files shown" "[ \"\$(items onlysel left)\" = '*notes.md, *readme.txt' ]"
+run onlyoff "alt+r wait text:eadme escape space cmd:cm_ShowOnlySelected wait cmd:cm_SrcAllFiles wait"
+check "All Files shows them all again" "items onlyoff left | grep -q 'beta'"
+run onlyleave "alt+a wait text:lpha escape space cmd:cm_ShowOnlySelected wait alt+a wait text:lpha enter wait backspace wait wait"
+check "Another folder shows them all again" "panels onlyleave | grep -q '^left\*: .*/left |' && items onlyleave left | grep -q 'beta'"
+run details "alt+r wait text:eadme escape space cmd:cm_CopyDetailsToClip wait"
+check "Names copied with size, date and permissions" "testclip | grep -qE \"^readme.txt	\$(stat -f %z $L/readme.txt)	[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9:]{8}	-rw-r--r--\$\""
+printf 'readme.txt\nnotes.md\n%s/data.csv\n/elsewhere/file2.txt\nmissing.txt\n' "$PWD/$L" > $L/sel.txt
+run selload "file:$PWD/$L/sel.txt cmd:cm_LoadSelectionFromFile wait"
+check "A selection loaded from a file" "[ \"\$(items selload left | tr ',' '\n' | grep -c '\*')\" = 3 ] && items selload left | grep -q '\*data.csv' && ! items selload left | grep -q '\*file2.txt'"
+run selsave "alt+r wait text:eadme escape space alt+n wait text:otes escape space file:$PWD/$R/saved.txt cmd:cm_SaveSelectionToFile wait"
+check "A selection saved to a file" "[ \"\$(cat $R/saved.txt)\" = \"\$(printf 'notes.md\nreadme.txt')\" ]"
+run selclip "alt+r wait text:eadme escape space alt+n wait text:otes escape space cmd:cm_CopyNamesToClip cmd:cm_ClearAll wait cmd:cm_LoadSelectionFromClip wait"
+check "A selection loaded from the clipboard" "[ \"\$(items selclip left | tr ',' '\n' | grep -c '\*')\" = 2 ]"
+
+# Pause and the speed limit of a copy (a real copy, not an APFS clone): limited, it
+# is still under way after a few seconds; paused at once, hardly anything is copied.
+# The limit is given before the copy starts (speed:): set in the sheet, it raced the copy.
+scripts/test/mkdata.sh
+head -c 40000000 /dev/urandom > $L/big.bin
+defaults write ru.themmag.OriCmd.tests CopyAttributes -bool false
+run climit "alt+b wait text:ig escape speed:5_MB/s f5 wait enter wait wait wait wait"
+part=$(print -l $R/.oricmd-*.part(N) | head -1)
+check "A copy keeps to the speed limit" "[ ! -e $R/big.bin ] && [ -n \"$part\" ] && [ \$(stat -f %z $part) -gt 1000000 ] && [ \$(stat -f %z $part) -lt 36000000 ]"
+check "Both bars of a copy under way show how far it is (the whole too, before the file is done)" "[ \"\$(grep -c '^\[progress: [1-9][0-9]%\]\$' build/shots/reg-climit-sheet.txt)\" = 2 ]"
+rm -f $R/.oricmd-*.part(N)
+rm -f $R/big.bin
+defaults write ru.themmag.OriCmd.tests CopyAttributes -bool false
+run cpause "alt+b wait text:ig escape speed:1_MB/s f5 wait enter wait click:Pause wait wait wait"
+check "A paused copy waits" "grep -qx 'Copying (paused)' build/shots/reg-cpause-sheet.txt && grep -qx '\\[button\\] Resume' build/shots/reg-cpause-sheet.txt && [ ! -e $R/big.bin ]"
+rm -f $R/.oricmd-*.part(N)
+
+# Column sets: the Default columns, a set used by itself in the folders matching
+# its masks (and left there), a set chosen in Show → Columns, a column turned on in
+# the header menu, a set made in the Column Sets window.
+scripts/test/mkdata.sh
+columns() { grep "^$2 columns: " build/shots/reg-$1-panels.txt | sed "s/^$2 columns: //"; }
+run cdef "wait"
+check "The Default columns" "[ \"\$(columns cdef left)\" = 'ext, size, date, attr' ]"
+defaults write ru.themmag.OriCmd.tests ColumnSets -array '{name=Photos;columns=(size,dimensions);folders="*/left/alpha";}'
+run cauto "alt+a wait text:lpha enter wait wait"
+check "A column set used by itself in its folders" "[ \"\$(columns cauto left)\" = 'size, dimensions' ] && [ \"\$(columns cauto right)\" = 'ext, size, date, attr' ]"
+defaults write ru.themmag.OriCmd.tests ColumnSets -array '{name=Photos;columns=(size,dimensions);folders="*/left/alpha";}'
+run cautoback "alt+a wait text:lpha enter wait wait backspace wait wait"
+check "...and not outside them" "[ \"\$(columns cautoback left)\" = 'ext, size, date, attr' ]"
+defaults write ru.themmag.OriCmd.tests ColumnSets -array '{name=Photos;columns=(size,dimensions);folders="";}'
+run cchoose "menuitem:Columns>Photos wait"
+check "A column set chosen for a panel" "[ \"\$(columns cchoose left)\" = 'size, dimensions' ]"
+run cheader "headermenu:Kind wait"
+check "A column turned on in the header menu" "[ \"\$(columns cheader left)\" = 'ext, size, date, kind, attr' ] && [ \"\$(columns cheader right)\" = 'ext, size, date, kind, attr' ]"
+run cwindow "menuitem:Column_Sets… wait click:+ wait set:columnSetName=Wide set:columnSet-kind=on set:columnSet-attr=off wait escape wait menuitem:Columns>Wide wait"
+check "A column set made in the Column Sets window" "[ \"\$(columns cwindow left)\" = 'ext, size, date, kind' ]"
+
+# The separate tree: a folder chosen in it is shown in the active panel (the other
+# one too after Tab), and it follows the active panel.
+scripts/test/mkdata.sh
+run streepick "cmd:cm_ToggleSeparateTree1 wait tree:$PWD/$L/beta wait wait tab wait tree:$PWD/$L/alpha wait wait"
+check "The separate tree shows its folder in the active panel" "panels streepick | grep -q '^left: .*/left/beta |' && panels streepick | grep -q '^right\*: .*/left/alpha |'"
+
+# Multi-Rename Tool: a rule saved and loaded back, new names from a file (and
+# renamed so), new names edited one by one.
+scripts/test/mkdata.sh
+printf 'one.txt\ntwo.txt\nthree.txt\n' > $L/names.lst
+rows() { grep '^\[row\]' build/shots/reg-$1-win1.txt | tr '\n' ';'; }
+run rtpl "plus wait cmd+a text:file*.txt enter wait ctrl+m wait wait set:renameMask=doc-[C] wait set:renameTemplates=Save_the_Rule… wait text:docs enter wait set:renameMask=[N]-x wait set:renameTemplates=docs wait"
+check "Multi-Rename: a saved rule loaded back" "[ \"\$(rows rtpl)\" = '[row] file2.txt | doc-1.txt;[row] file10.txt | doc-2.txt;' ]"
+run rfile "plus wait cmd+a text:file*.txt enter wait ctrl+m wait wait file:$PWD/$L/names.lst click:Names_from_File… wait"
+check "Multi-Rename: names from a file (more lines than files)" "[ \"\$(rows rfile)\" = '[row] file2.txt | one.txt;[row] file10.txt | two.txt;' ] && grep -qx '3 names for 2 files' build/shots/reg-rfile-win1.txt"
+run rfiledo "plus wait cmd+a text:file*.txt enter wait ctrl+m wait wait file:$PWD/$L/names.lst click:Names_from_File… wait enter wait wait"
+check "Multi-Rename: renamed by the names from a file" "[ -e $L/one.txt ] && [ -e $L/two.txt ] && [ ! -e $L/file2.txt ]"
+scripts/test/mkdata.sh
+run redit 'plus wait cmd+a text:file*.txt enter wait ctrl+m wait wait click:Edit_Names… wait set:renameNames=first.txt\nsecond.txt click:OK wait'
+check "Multi-Rename: names edited one by one" "[ \"\$(rows redit)\" = '[row] file2.txt | first.txt;[row] file10.txt | second.txt;' ]"
+
+# Compare by content, editing: a difference copied right or left, a line changed,
+# saved as written (CRLF kept; a side without lines removes them); closing with
+# changes asks first and keeps the files.
+scripts/test/mkdata.sh
+cprep() { printf 'a\nb\nc\n' > $L/c1.txt; printf 'a\nB\nc\n' > $L/c2.txt; printf 'one\r\ntwo\r\n' > $L/w1.txt; printf 'one\r\nTWO\r\nthree\r\n' > $L/w2.txt; }
+compare() { echo "plus wait cmd+a text:$1 enter wait cmd:cm_CompareFilesByContent wait wait"; }
+cprep; run crt "$(compare 'c?.txt') click:Copy_to_Right_→ wait click:Save wait"
+check "Compare: a difference copied to the right and saved" "[ \"\$(cat $L/c2.txt)\" = \"\$(printf 'a\nb\nc')\" ]"
+cprep; run clt "$(compare 'c?.txt') click:←_Copy_to_Left wait click:Save wait"
+check "Compare: a difference copied to the left and saved" "[ \"\$(cat $L/c1.txt)\" = \"\$(printf 'a\nB\nc')\" ]"
+cprep; run ced "$(compare 'c?.txt') click:Edit_Line… wait set:compareLeftLine=X click:OK wait click:Save wait"
+check "Compare: a line changed and saved" "[ \"\$(cat $L/c1.txt)\" = \"\$(printf 'a\nX\nc')\" ]"
+cprep; run cwin "$(compare 'w?.txt') click:Copy_to_Right_→ wait click:Save wait"
+check "Compare: CRLF line breaks kept, lines removed" "cmp -s $L/w2.txt <(printf 'one\r\ntwo\r\n')"
+cprep; run cclose "$(compare 'c?.txt') click:Copy_to_Right_→ wait escape wait"
+check "Compare: closing with changes asks first" "grep -qx 'Save the changes?' build/shots/reg-cclose-win1-sheet.txt && grep -qx \"\\[button\\] Don't Save\" build/shots/reg-cclose-win1-sheet.txt && [ \"\$(cat $L/c2.txt)\" = \"\$(printf 'a\nB\nc')\" ]"
+
+# Ctrl+Z: a file's Finder comment written, shown again for editing, removed.
+scripts/test/mkdata.sh
+comment() { xattr -px com.apple.metadata:kMDItemFinderComment $1 2>/dev/null | xxd -r -p | plutil -p - 2>/dev/null | tr -d '"'; }
+run cmt "alt+r wait text:eadme escape ctrl+z wait text:my-note enter wait"
+check "Ctrl+Z: a Finder comment written" "[ \"\$(comment $L/readme.txt)\" = my-note ]"
+run cmtread "alt+r wait text:eadme escape ctrl+z wait"
+check "Ctrl+Z: the comment shown for editing" "grep -qx 'my-note' build/shots/reg-cmtread-sheet.txt"
+run cmtclear "alt+r wait text:eadme escape ctrl+z wait backspace enter wait"
+check "Ctrl+Z: an empty comment removes it" "[ -z \"\$(comment $L/readme.txt)\" ] && ! xattr $L/readme.txt | grep -q FinderComment"
+
+# Ctrl+F7 (Unsorted): the order the folder is read in (as ls -f), folders first;
+# Ctrl+F3 sorts by name again.
+scripts/test/mkdata.sh
+mkdir -p $L/uns/dir; for n in zeta alpha mike bravo; do touch $L/uns/$n.txt; done
+run uns "alt+u wait text:ns enter wait cmd:cm_SrcUnsorted wait wait"
+check "Unsorted: as the folder is read" "[ \"\$(grep '^left items: ' build/shots/reg-uns-panels.txt | sed 's/^left items: //')\" = \"dir, \$(ls -f $L/uns | grep '\.txt\$' | paste -sd, - | sed 's/,/, /g')\" ]"
+run unsback "alt+u wait text:ns enter wait cmd:cm_SrcUnsorted wait wait ctrl+f3 wait"
+check "...and sorted by name again" "grep -qx 'left items: dir, alpha.txt, bravo.txt, mike.txt, zeta.txt' build/shots/reg-unsback-panels.txt"
+
+# Show → Horizontal Panels: one above the other, and side by side again.
+scripts/test/mkdata.sh
+run horiz "cmd:cm_HorizontalPanels wait wait"
+check "Horizontal Panels: one above the other" "grep -qx 'arrangement: one above the other' build/shots/reg-horiz-panels.txt"
+run horizback "cmd:cm_HorizontalPanels wait cmd:cm_HorizontalPanels wait wait"
+check "...and side by side again" "grep -qx 'arrangement: side by side' build/shots/reg-horizback-panels.txt"
+
+# The ignore list: a mask, a name and a full path left out of the panels, shown
+# again when it is switched off.
+scripts/test/mkdata.sh
+run ignore "menuitem:Ignore_List… wait set:ignoreList=*.csv\\nalpha\\n$PWD/$L/beta click:OK wait wait"
+check "The ignore list leaves out a mask, a name, a path" "! grep '^left items: ' build/shots/reg-ignore-panels.txt | grep -qE 'data.csv|alpha|beta' && grep -q '^left items: .*many' build/shots/reg-ignore-panels.txt"
+run ignoreoff "menuitem:Ignore_List… wait set:ignoreList=*.csv\\nalpha click:OK wait cmd:cm_SwitchIgnoreList wait wait"
+check "...and shows them again when switched off" "grep '^left items: ' build/shots/reg-ignoreoff-panels.txt | grep -q 'alpha'"
+
+# Alt+F10: a folder tree in a dialog; Enter goes to the folder chosen, Esc stays.
+scripts/test/mkdata.sh
+run cdtree "alt+f10 wait wait tree:$PWD/$L/beta/deep wait enter wait wait"
+check "Alt+F10: the folder chosen in the tree" "panels cdtree | grep -q '^left\*: .*/left/beta/deep |'"
+run cdtreeesc "alt+f10 wait wait tree:$PWD/$L/beta/deep wait escape wait"
+check "Alt+F10: Esc stays where the panel was" "panels cdtreeesc | grep -q '^left\*: .*/left |'"
+
+# Files → Create Hard Link: another name of the same file (in the other panel by
+# default); not for a folder.
+scripts/test/mkdata.sh
+run hardlink "alt+r wait text:eadme escape cmd:cm_CreateHardLink wait enter wait wait"
+check "A hard link made in the other panel" "[ \"\$(stat -f %i $R/readme.txt 2>/dev/null)\" = \"\$(stat -f %i $L/readme.txt)\" ]"
+run hardlinkdir "alt+a wait text:lpha escape cmd:cm_CreateHardLink wait enter wait wait"
+check "No hard link to a folder" "[ ! -e $R/alpha ] && [ ! -f build/shots/reg-hardlinkdir-sheet.png ]"
+
+# Split File / Combine Files: pieces name.001… and name.crc (the name, size and
+# CRC32 as zlib counts them); put together again, the same file; a damaged piece is
+# said so; an existing file is asked about.
+scripts/test/mkdata.sh
+head -c 2500000 /dev/urandom > $L/big.bin
+run split "alt+b wait text:ig.bin escape cmd:cm_FileSpliter wait set:splitSize=1_MB enter wait wait"
+check "Split: three pieces and the .crc file" "[ \"\$(stat -f %z $R/big.001 $R/big.002 $R/big.003 | paste -sd' ' -)\" = '1048576 1048576 402848' ] && grep -q \"crc32=\$(python3 -c \"import zlib;print('%08X'%zlib.crc32(open('$L/big.bin','rb').read()))\")\" $R/big.crc && grep -q 'filename=big.bin' $R/big.crc"
+run combine "tab wait alt+b wait text:ig.001 escape cmd:cm_FileCombine wait text:$PWD/$R/ enter wait wait"
+check "Combine: the pieces make the file again" "cmp -s $R/big.bin $L/big.bin"
+run combineask "tab wait alt+b wait text:ig.001 escape cmd:cm_FileCombine wait enter wait wait"
+check "Combine: an existing file is asked about" "grep -q 'already exists. Replace?' build/shots/reg-combineask-sheet.txt"
+rm -f $R/big.bin; printf 'X' | dd of=$R/big.002 bs=1 seek=1000 conv=notrunc 2>/dev/null
+run combinebad "tab wait alt+b wait text:ig.001 escape cmd:cm_FileCombine wait text:$PWD/$R/ enter wait wait"
+check "Combine: a damaged piece is said so" "grep -q 'do not make' build/shots/reg-combinebad-sheet.txt && [ ! -e $R/big.bin ]"
+
+# Lister, Shift+F7: a regular expression (F3 finds the next), case, bytes in hex
+# (found in the hex dump).
+scripts/test/mkdata.sh
+printf 'alpha word42 beta\nword7 gamma\n' > $L/find.txt
+selected() { grep '^\[selected: ' build/shots/reg-$1-win1.txt | sed 's/^\[selected: //; s/\]$//'; }
+run lre "alt+f wait text:ind escape f3 wait wait shift+f7 wait set:listerFind=word[0-9]+ set:listerFindRegex=on enter wait"
+check "Lister: a regular expression found" "[ \"\$(selected lre)\" = word42 ]"
+run lre2 "alt+f wait text:ind escape f3 wait wait shift+f7 wait set:listerFind=word[0-9]+ set:listerFindRegex=on enter wait f3 wait"
+check "Lister: F3 finds the next match" "[ \"\$(selected lre2)\" = word7 ]"
+run lplain "alt+f wait text:ind escape f3 wait wait shift+f7 wait set:listerFind=GAMMA enter wait"
+check "Lister: a text whatever its case" "[ \"\$(selected lplain)\" = gamma ]"
+run lcase "alt+f wait text:ind escape f3 wait wait shift+f7 wait set:listerFind=GAMMA set:listerFindCase=on enter wait"
+check "Lister: case sensitive, not found" "[ -z \"\$(selected lcase)\" ]"
+run lhex "alt+a wait text:rchive-t escape f3 wait wait 1 wait shift+f7 wait set:listerFind=50_4B_03_04 set:listerFindHex=on enter wait wait"
+check "Lister: bytes in hex found in the hex dump" "[ \"\$(selected lhex)\" = '50 4B 03 04' ]"
+
+# Printing (a test run writes what would be printed to -print.txt): the file list,
+# with the subfolders' files, a text file (its encoding read), the Lister's text.
+scripts/test/mkdata.sh
+printf 'alpha word42 beta\n' > $L/find.txt
+printed() { cat build/shots/reg-$1-print.txt 2>/dev/null; }
+run pdir "cmd:cm_PrintDir wait"
+check "Print File List" "printed pdir | grep -qE '^alpha +<DIR>' && ! printed pdir | grep -q 'alpha/inside.txt'"
+run pdirsub "cmd:cm_PrintDirSub wait"
+check "Print File List with Subfolders" "printed pdirsub | grep -qE '^alpha/inside.txt +17 '"
+run pfile "alt+c wait text:p1251 escape cmd:cm_PrintFile wait"
+check "Print File: a text in its encoding" "printed pfile | grep -q 'Привет, мир!'"
+run plister "alt+f wait text:ind escape f3 wait wait cmd+p wait"
+check "Lister: ⌘P prints what is shown" "printed plister | grep -qx 'alpha word42 beta'"
+
+# Encode File / Decode File: MIME (Python's base64 reads it), UUE (binascii reads
+# it), XXE; each decoded back to the same file under the name it gives.
+scripts/test/mkdata.sh
+head -c 3000 /dev/urandom > $L/blob.dat; cp $L/blob.dat $L/orig.dat
+for f in 'MIME_(Base64):b64' 'UUE:uue' 'XXE:xxe'; do
+  run enc${f#*:} "alt+b wait text:lob escape cmd:cm_UUEncode wait set:encodeFormat=${f%%:*} enter wait"
+done
+check "Encode: MIME as base64 with headers" "python3 -c \"import base64,sys; b=open('$R/blob.b64','rb').read().split(b'\\r\\n\\r\\n',1); sys.exit(0 if b'filename=\\\"blob.dat\\\"' in b[0] and base64.b64decode(b[1])==open('$L/blob.dat','rb').read() else 1)\""
+check "Encode: UUE" "python3 -c \"import binascii,sys; u=open('$R/blob.uue').read().splitlines(); sys.exit(0 if u[0]=='begin 644 blob.dat' and b''.join(binascii.a2b_uu(l) for l in u[1:] if l not in ('end','\\x60'))==open('$L/blob.dat','rb').read() else 1)\""
+rm $L/blob.dat; for e in b64 uue xxe; do cp $R/blob.$e $L/in.$e; done
+for e in b64 uue xxe; do
+  rm -f $R/blob.dat; run dec$e "alt+i wait text:n.$e escape cmd:cm_UUDecode wait enter wait"
+  check "Decode: $e back to the file" "cmp -s $R/blob.dat $L/orig.dat"
+done
+
+# Import wincmd.ini: keys, colors (a filter by mask, marked files, the cursor) and
+# the hotlist folders of this Mac; an unknown command, a filter by search template
+# and a Windows path are skipped.
+scripts/test/mkdata.sh
+printf '[Shortcuts]\nCS+F5=cm_CopyNamesToClip\nA+X=cm_NoSuchCommand\n[Colors]\nMarkColor=255\nCursorColor=16711680\nColorFilter1=*.zip;*.rar\nColorFilter1Color=32768\nColorFilter2=>Archives\nColorFilter2Color=255\n[DirMenu]\nmenu1=Test\ncmd1=cd %s\nmenu2=Windows\ncmd2=cd C:\\Windows\n' "$PWD/$L/alpha" > $L/wincmd.ini
+run tcimport "keybindings wait file:$PWD/$L/wincmd.ini click:Import_wincmd.ini… wait"
+check "wincmd.ini: keys, colors and hotlist folders taken over" "grep -qx 'Imported 1 keys, 3 colors, 1 hotlist folders; skipped 3' build/shots/reg-tcimport-win1.txt"
+
+# Solid RAR 4 (libarchive refuses it): said so without The Unarchiver's tools;
+# with them (fake ones reading stored archives) listed, unpacked and viewed.
+scripts/test/mkdata.sh
+echo "first file" > $L/r1.txt; echo "second file, solid" > $L/r2.txt
+python3 scripts/test/mkrar4.py $L/solid.rar one.txt=$L/r1.txt docs/two.txt=$L/r2.txt
+run rarnone "alt+s wait text:olid escape enter wait wait"
+check "Solid RAR 4: the tools to install are named" "grep -q 'is a solid RAR 4 archive.*brew install unar' build/shots/reg-rarnone-sheet.txt"
+ORICMD_UNAR_DIR=$PWD/scripts/test/fakeunar run rarlist "alt+s wait text:olid escape enter wait wait"
+check "Solid RAR 4: listed through lsar" "grep -qx 'left items: docs, one.txt' build/shots/reg-rarlist-panels.txt"
+ORICMD_UNAR_DIR=$PWD/scripts/test/fakeunar run rarf5 "alt+s wait text:olid escape enter wait wait alt+d wait text:ocs escape f5 wait enter wait wait"
+check "Solid RAR 4: a folder unpacked through unar" "[ \"\$(cat $R/docs/two.txt 2>/dev/null)\" = 'second file, solid' ]"
+ORICMD_UNAR_DIR=$PWD/scripts/test/fakeunar run rarview "alt+s wait text:olid escape enter wait wait alt+o wait text:ne escape f3 wait wait"
+check "Solid RAR 4: a file viewed" "grep -qx 'first file' build/shots/reg-rarview-win1.txt"
+
+# Net → Download from URL (a local http server): a file downloaded into the active
+# panel; a missing one said so, nothing left behind.
+scripts/test/mkdata.sh
+python3 -m http.server 8765 --bind 127.0.0.1 --directory $L >/dev/null 2>&1 &
+httpd=$!
+for i in {1..20}; do curl -s -o /dev/null http://127.0.0.1:8765/ && break; sleep 0.2; done
+run dl "tab wait menuitem:Download_from_URL… wait set:downloadURLs=http://127.0.0.1:8765/readme.txt click:Download wait wait wait"
+check "Download from URL: the file in the active panel" "cmp -s $R/readme.txt $L/readme.txt"
+run dl404 "tab wait menuitem:Download_from_URL… wait set:downloadURLs=http://127.0.0.1:8765/nothing.txt click:Download wait wait wait"
+check "Download from URL: a missing file is said so" "grep -q '404' build/shots/reg-dl404-sheet.txt && [ ! -e $R/nothing.txt ] && [ -z \"\$(print -l $R/.oricmd-*.part(N))\" ]"
+kill $httpd
+
+# Net → Servers on the Network: a Bonjour service (registered here with dns-sd) is
+# listed, and choosing it fills Connect to Server with its host name and port.
+dns-sd -R "OriTest FTP" _ftp._tcp local 2121 >/dev/null 2>&1 &
+dnssd=$!
+sleep 1
+run netlist "menuitem:Servers_on_the_Network… wait wait wait"
+check "Servers on the Network: a Bonjour service listed" "grep -qx '\[row\] OriTest FTP | FTP' build/shots/reg-netlist-win1.txt"
+run netconnect "menuitem:Servers_on_the_Network… wait wait wait set:networkServers=OriTest_FTP click:Connect… wait wait wait"
+check "Servers on the Network: its address put in Connect to Server" "grep -qx \"ftp://\$(scutil --get LocalHostName).local:2121/\" build/shots/reg-netconnect-sheet.txt"
+kill $dnssd
+
+# Start menu groups: a submenu of Start, a group named as a menu of the bar (its
+# commands at the end of that menu), and a command of Start itself.
+scripts/test/mkdata.sh
+usercommands() { python3 -c "
+import json,uuid
+print(json.dumps([{'id':str(uuid.uuid4()).upper(),'title':'Hello','command':'touch hello-group.txt','keys':'','runsInTerminal':False,'group':'Tools'},{'id':str(uuid.uuid4()).upper(),'title':'Hi Files','command':'touch hello-files.txt','keys':'','runsInTerminal':False,'group':'Files'},{'id':str(uuid.uuid4()).upper(),'title':'Plain','command':'touch plain.txt','keys':'','runsInTerminal':False}]).encode().hex())"; }
+defaults write ru.themmag.OriCmd.tests UserCommands -data $(usercommands)
+run ugroup "menuitem:Start>Tools>Hello wait wait"
+check "Start: a command in a submenu" "[ -e $L/hello-group.txt ]"
+defaults write ru.themmag.OriCmd.tests UserCommands -data $(usercommands)
+run umenu "menuitem:Files>Hi_Files wait wait"
+check "Start: a group named Files puts its command in the Files menu" "[ -e $L/hello-files.txt ]"
+defaults write ru.themmag.OriCmd.tests UserCommands -data $(usercommands)
+run uplain "menuitem:Start>Plain wait wait"
+check "Start: a command of Start itself" "[ -e $L/plain.txt ]"
+
+# A drag of many files: AppKit places their images on other threads and asks the
+# views whether they are flipped there; a main-actor override stopped the app.
+scripts/test/mkdata.sh
+run flipped "flippedoffmain wait"
+check "The views answer whether they are flipped off the main thread (a drag of many files)" "grep -q '^flipped: [1-9][0-9]* of ' build/shots/reg-flipped-flipped.txt"
+
 # Ctrl+PgDn never starts a file: it opens it as an archive whatever its name (a zip
 # named .bin or .docx, an archive inside an archive named .dat); a file that is none
 # stays as it is, without a word.
@@ -1005,6 +1491,31 @@ check "a parent in the path bar goes there on a server" "shown crumbserver 'left
 scripts/test/mkdata.sh
 run recentserver "$(connect sftp://oritest$PWD/$L) wait cmd:cm_FtpDisconnect wait wait cmd:connectToServer wait cmd+a text:x down enter wait wait wait"
 check "Connect to Server lists recent servers" "grep -q 'left %' build/shots/reg-recentserver-terminal.txt"
+# Between two servers (Total Commander's FXP, here through this Mac): a file copied
+# from one SFTP panel to the other; moved, it leaves the first server.
+scripts/test/mkdata.sh
+run relay "$(connect sftp://oritest$PWD/$L) tab $(connect sftp://oritest$PWD/$R) tab alt+r wait text:eadme escape f5 wait enter wait wait wait wait"
+check "Server to server: copied" "cmp -s $L/readme.txt $R/readme.txt"
+run relaymove "$(connect sftp://oritest$PWD/$L) tab $(connect sftp://oritest$PWD/$R) tab alt+n wait text:otes escape f6 wait enter wait wait wait wait"
+check "Server to server: moved" "[ -f $R/notes.md ] && [ ! -e $L/notes.md ]"
+
+# Resume after a break: a smaller file met by a server transfer (zeros in it, to
+# tell an append from a new copy) is completed with "Resume" — SFTP and FTP, both ways.
+scripts/test/mkdata.sh
+resprep() { head -c 2000000 /dev/urandom > $L/big.dat; head -c 1000000 /dev/zero > $R/big.dat; head -c 2000000 /dev/urandom > $R/up.dat; head -c 1000000 /dev/zero > $L/up.dat; }
+resumed() { [ "$(stat -f %z $1)" = 2000000 ] && [ "$(head -c 1000000 $1 | tr -d '\0' | wc -c | tr -d ' ')" = 0 ] && cmp -s <(tail -c +1000001 $1) <(tail -c +1000001 $2); }
+resprep; run sres "$(connect sftp://oritest$PWD/$L) alt+b wait text:ig.dat escape f5 wait enter wait wait click:Resume wait wait wait"
+check "SFTP: a download resumed" "resumed $R/big.dat $L/big.dat"
+resprep; run sresup "$(connect sftp://oritest$PWD/$L) tab alt+u wait text:p.dat escape f5 wait enter wait wait click:Resume wait wait wait"
+check "SFTP: an upload resumed" "resumed $L/up.dat $R/up.dat"
+resprep; run fres "$(connect ftp://tester@127.0.0.1:2121/left 'text:secret enter wait') alt+b wait text:ig.dat escape f5 wait enter wait wait click:Resume wait wait wait"
+check "FTP: a download resumed" "resumed $R/big.dat $L/big.dat"
+resprep; run fresup "$(connect ftp://tester@127.0.0.1:2121/left 'text:secret enter wait') tab alt+u wait text:p.dat escape f5 wait enter wait wait click:Resume wait wait wait"
+check "FTP: an upload resumed" "resumed $L/up.dat $R/up.dat"
+resprep; cp $L/big.dat $R/big.dat
+run snores "$(connect sftp://oritest$PWD/$L) alt+b wait text:ig.dat escape f5 wait enter wait wait"
+check "No Resume for a file as big as the source" "grep -qx 'File already exists' build/shots/reg-snores-sheet2.txt && grep -qx '\[button\] Skip' build/shots/reg-snores-sheet2.txt && ! grep -qx '\[button\] Resume' build/shots/reg-snores-sheet2.txt"
+
 scripts/test/servers.sh stop
 
 echo "passed: $pass, failed: $fail"

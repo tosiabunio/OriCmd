@@ -13,13 +13,18 @@ final class TransferController {
 
     private let sheet = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 480, height: 150),
                                 styleMask: [.titled], backing: .buffered, defer: true)
+    private let heading = NSTextField(labelWithString: "")
     private let fromLabel = NSTextField(labelWithString: "")
     private let toLabel = NSTextField(labelWithString: "")
-    private let fileBar = NSProgressIndicator()
-    private let totalBar = NSProgressIndicator()
+    private var fileBar = TransferController.makeBar()
+    private var totalBar = TransferController.makeBar()
     private var timer: Timer?
     private var operationID: UUID?
     private let backgroundButton = NSButton(title: String(localized: "Background"), target: nil, action: nil)
+    private let pauseButton = NSButton(title: String(localized: "Pause"), target: nil, action: nil)
+    private let speedPopup = NSPopUpButton()
+    /// The speed limits offered, in megabytes per second (0: none).
+    private static let speeds: [Int64] = [0, 1, 5, 10, 20, 50, 100]
     /// After "Background" the progress is a separate window and the main window stays usable.
     private var isInBackground = false
 
@@ -61,6 +66,12 @@ final class TransferController {
         }
         operationID = OperationsStore.shared.start(title: title, source: source, target: target) { [weak self] in self?.cancel(nil) }
         refresh()
+        #if DEBUG
+        if let speed = DebugAutomation.takeTransferSpeed() {
+            speedPopup.selectItem(withTitle: speed)
+            speedChanged(nil)
+        }
+        #endif
         if startsInBackground {
             showInOwnWindow()
         } else {
@@ -100,26 +111,33 @@ final class TransferController {
     }
 
     private func buildSheet() {
-        let heading = NSTextField(labelWithString: title)
+        heading.stringValue = title
         heading.font = .boldSystemFont(ofSize: 13)
         for label in [fromLabel, toLabel] {
             label.font = Theme.chromeFont
             label.lineBreakMode = .byTruncatingMiddle
             label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         }
-        for bar in [fileBar, totalBar] {
-            bar.isIndeterminate = false
-            bar.minValue = 0
-            bar.maxValue = 100
-        }
         let cancel = NSButton(title: String(localized: "Cancel"), target: self, action: #selector(cancel(_:)))
         cancel.keyEquivalent = "\u{1b}"
 
         backgroundButton.target = self
         backgroundButton.action = #selector(moveToBackground(_:))
+        pauseButton.target = self
+        pauseButton.action = #selector(togglePause(_:))
+        speedPopup.addItems(withTitles: Self.speeds.map { megabytes in
+            megabytes == 0 ? String(localized: "No speed limit") : String(localized: "\(megabytes) MB/s")
+        })
+        speedPopup.target = self
+        speedPopup.action = #selector(speedChanged(_:))
+        speedPopup.toolTip = String(localized: "Speed limit (copying files; a clone on the same disk is instant)")
+        pauseButton.identifier = NSUserInterfaceItemIdentifier("transferPause")
+        speedPopup.identifier = NSUserInterfaceItemIdentifier("transferSpeed")
         let buttonRow = NSStackView()
         let operations = NSButton(title: String(localized: "Operations"), target: self, action: #selector(showOperations(_:)))
         buttonRow.addView(operations, in: .leading)
+        buttonRow.addView(speedPopup, in: .leading)
+        buttonRow.addView(pauseButton, in: .trailing)
         buttonRow.addView(backgroundButton, in: .trailing)
         buttonRow.addView(cancel, in: .trailing)
         sheet.hidesOnDeactivate = false
@@ -136,12 +154,42 @@ final class TransferController {
         }
     }
 
+    private static func makeBar() -> NSProgressIndicator {
+        let bar = NSProgressIndicator()
+        bar.isIndeterminate = false
+        bar.minValue = 0
+        bar.maxValue = 100
+        return bar
+    }
+
+    /// A new determinate bar in the place of `bar`.
+    private func replace(_ bar: NSProgressIndicator) -> NSProgressIndicator {
+        guard let stack = bar.superview as? NSStackView, let index = stack.arrangedSubviews.firstIndex(of: bar) else {
+            return bar
+        }
+        let new = Self.makeBar()
+        bar.stopAnimation(nil)
+        stack.removeArrangedSubview(bar)
+        bar.removeFromSuperview()
+        stack.insertArrangedSubview(new, at: index)
+        new.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40).isActive = true
+        return new
+    }
+
     private func refresh() {
         let state = progress.snapshot
         if let operationID { OperationsStore.shared.update(operationID, progress: state) }
-        for bar in [fileBar, totalBar] where bar.isIndeterminate != (state.totalBytes == 0) {
-            bar.isIndeterminate = state.totalBytes == 0
-            if bar.isIndeterminate { bar.startAnimation(nil) }
+        // Indeterminate until the total is known (while the sources are measured).
+        if state.totalBytes == 0, !fileBar.isIndeterminate {
+            for bar in [fileBar, totalBar] {
+                bar.isIndeterminate = true
+                bar.startAnimation(nil)
+            }
+        } else if state.totalBytes > 0, fileBar.isIndeterminate {
+            // A bar that was indeterminate, made determinate again, empties and
+            // fills with every new value (it swings to and fro): new bars instead.
+            fileBar = replace(fileBar)
+            totalBar = replace(totalBar)
         }
         fromLabel.stringValue = state.source.isEmpty ? "" : String(localized: "From: \(state.source)")
         toLabel.stringValue = state.target.isEmpty ? "" : String(localized: "To: \(state.target)")
@@ -171,11 +219,25 @@ final class TransferController {
     @objc private func showOperations(_ sender: Any?) { OperationsWindowController.shared.show() }
 
     @objc private func cancel(_ sender: Any?) {
+        progress.setPaused(false)
         progress.cancel()
         if let question = sheet.attachedSheet {
             sheet.endSheet(question, returnCode: .cancel)
             question.orderOut(nil)
         }
+    }
+
+    /// Pause / Resume: the copying waits between blocks of data.
+    @objc private func togglePause(_ sender: Any?) {
+        let paused = !progress.snapshot.isPaused
+        progress.setPaused(paused)
+        pauseButton.title = paused ? String(localized: "Resume") : String(localized: "Pause")
+        heading.stringValue = paused ? String(localized: "\(title) (paused)") : title
+    }
+
+    @objc private func speedChanged(_ sender: Any?) {
+        let megabytes = Self.speeds[max(speedPopup.indexOfSelectedItem, 0)]
+        progress.setSpeedLimit(megabytes == 0 ? nil : megabytes << 20)
     }
 
     private func askOverwrite(_ source: ConflictItem, _ target: ConflictItem) async -> ConflictDecision {
@@ -189,6 +251,10 @@ final class TransferController {
                       String(localized: "Skip All"), String(localized: "Overwrite All Older")] {
             alert.addButton(withTitle: title)
         }
+        // A smaller file on the other side of a server transfer can be completed.
+        if target.resumable {
+            alert.addButton(withTitle: String(localized: "resume.transfer", defaultValue: "Resume"))
+        }
         alert.addCancelButton()
         let response = await alert.beginSheetModal(for: sheet)
         switch response.rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue {
@@ -197,6 +263,7 @@ final class TransferController {
         case 2: return .skip
         case 3: return .skipAll
         case 4: return .overwriteAllOlder
+        case 5 where target.resumable: return .resume
         default: return .cancel
         }
     }
