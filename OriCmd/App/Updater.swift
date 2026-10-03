@@ -32,7 +32,7 @@ enum Updater {
             case assets
         }
 
-        /// "v0.2" → "0.2".
+        /// "v2026.10.0" → "2026.10.0".
         var version: String {
             tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName
         }
@@ -116,9 +116,9 @@ enum Updater {
         return try JSONDecoder().decode(Release.self, from: data)
     }
 
-    /// Compares dotted versions numerically: 0.10 is newer than 0.9. A letter
-    /// suffix marks a pre-release: 0.2b is newer than 0.1 but older than 0.2,
-    /// and 0.2b2 is newer than 0.2b.
+    /// Compares calendar versions numerically across release counters, months and
+    /// years. Legacy versions are supported so 2026.10.0 upgrades a 0.13b build;
+    /// a letter suffix still sorts before the matching version without one.
     nonisolated static func isVersion(_ version: String, newerThan other: String) -> Bool {
         func parse(_ text: String) -> (numbers: [Int], suffix: String) {
             let numeric = text.prefix { $0.isNumber || $0 == "." }

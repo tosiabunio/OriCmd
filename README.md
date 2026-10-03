@@ -131,15 +131,22 @@ The icon is drawn by `swift scripts/make-icon.swift`.
 
 ## Release versions
 
-Future fork releases will use independent version numbers. Imported upstream
-versions and commits belong in release notes as provenance, separate from the
-fork's release number.
+This fork uses `YEAR.MONTH.RELEASE` calendar versions, starting with `2026.10.0`.
+The year has four digits, the month is 1–12 without a leading zero, and the release
+counter starts at 0 each month. Each release in the same month increments that
+counter: `2026.10.0` → `2026.10.1` → `2026.10.2`; the first release in November
+is `2026.11.0`. Numbers advance when preparing a release, not automatically when
+building or importing upstream changes.
 
-The current app still reports `0.13b`; an independent numbering scheme has not
-been adopted yet. The latest imported upstream checkpoint is
-[OriCmd 0.13b, commit 096ccd3](https://github.com/mmag/OriCmd/commit/096ccd3).
-The About window identifies the fork; builds installed with
+Tags use `v2026.10.0`; disk images use `OriCmd-2026.10.0.dmg`. The app's internal
+build number and the local install counter advance independently of the calendar
+version. The About window identifies the fork; builds installed with
 `scripts/install-local.sh` also show their local build number and commit.
+
+Imported upstream versions and commits are recorded separately in release notes.
+The latest imported upstream checkpoint is
+[OriCmd 0.13b, commit 096ccd3](https://github.com/mmag/OriCmd/commit/096ccd3).
+Upstream imports preserve this fork's release numbering.
 
 ## Keys
 
