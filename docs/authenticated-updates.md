@@ -39,12 +39,20 @@ not generate a replacement key as part of a normal release.
 
 ## Preparing a release
 
+Fork releases use `YEAR.MONTH.RELEASE`, starting with `2026.10.0`. Increase the
+last component for each release in the same month and start at 0 for the first
+release of a new month. Months have no leading zero (`2027.1.0`). The release
+script accepts the current version or a newer one, and rejects older versions
+and legacy upstream numbering. The internal build number continues increasing.
+Record imported upstream versions and commits separately in the release notes;
+an upstream import does not change the fork's version.
+
 The release script targets the fork and uploads all three signed assets. It does
 not update the upstream Homebrew tap. Set `ORICMD_UPDATE_SIGNING_KEY` to the private
 key's location when publishing from another worktree or using a backed-up key.
 
 ```sh
-ORICMD_UPDATE_SIGNING_KEY=/secure/path/private.key scripts/release.sh 1.0 notes.md
+ORICMD_UPDATE_SIGNING_KEY=/secure/path/private.key scripts/release.sh 2026.10.0 notes.md
 ```
 
 That command commits, tags, pushes and publishes a release. Preparation during
@@ -56,7 +64,7 @@ To sign an already-built image without publishing:
 ```sh
 scripts/build-update-signer.sh
 build/update-signer sign /secure/path/private.key OriCmd/UpdateSigningPublicKey.txt \
-  build/OriCmd-1.0.dmg tosiabunio/OriCmd 1.0
+  build/OriCmd-2026.10.0.dmg tosiabunio/OriCmd 2026.10.0
 ```
 
 The signer refuses a private key that does not match the app's public key. Run
