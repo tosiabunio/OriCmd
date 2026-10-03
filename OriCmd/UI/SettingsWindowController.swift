@@ -246,6 +246,8 @@ private final class PanelsPane: SettingsPane {
         note(String(localized: "Optional columns (kind, created, dimensions, duration, tags) are chosen by right-clicking a panel's column headers."))
 
         section(String(localized: "File list"))
+        row(nil, checkbox(String(localized: "Show checkmarks on marked items"), Settings.showsSelectionMarkers,
+                          #selector(selectionMarkersChanged(_:))))
         let extensions = NSPopUpButton()
         extensions.addItems(withTitles: [String(localized: "In their own column"), String(localized: "After the name")])
         extensions.selectItem(at: Settings.extensionDisplay == .column ? 0 : 1)
@@ -285,6 +287,7 @@ private final class PanelsPane: SettingsPane {
         Settings.extensionDisplay = sender.indexOfSelectedItem == 0 ? .column : .withName
     }
 
+    @objc private func selectionMarkersChanged(_ sender: NSButton) { Settings.showsSelectionMarkers = sender.state == .on }
     @objc private func statusLineChanged(_ sender: NSPopUpButton) { Settings.plainStatusLine = sender.indexOfSelectedItem == 0 }
 
     @objc private func sizeDisplayChanged(_ sender: NSPopUpButton) {

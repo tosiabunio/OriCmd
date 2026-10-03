@@ -37,6 +37,12 @@ enum Settings {
         static let extensionDisplay = "ExtensionDisplay"
         static let sizeDisplay = "SizeDisplay"
         static let plainStatus = "PlainStatusLine"
+        static let selectionMarkers = "SelectionMarkers"
+    }
+
+    static var showsSelectionMarkers: Bool {
+        get { bool(Key.selectionMarkers, default: true) }
+        set { set(newValue, Key.selectionMarkers) }
     }
 
     static let defaultFontSize: CGFloat = 12

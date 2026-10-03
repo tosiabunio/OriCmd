@@ -12,6 +12,8 @@ keep working as always.
 Full, Brief and Thumbnails file panels expose file names, types, sizes, dates,
 selection and open actions through macOS accessibility, including VoiceOver.
 
+Marked items carry a checkmark on their icon in Full, Brief and Thumbnails views, so selection does not depend on text color. Disable it in Settings → Panels → Show checkmarks on marked items for the traditional appearance.
+
 ## Features
 
 - **Panels:** tabs, history, directory hotlist, tree, filters, quick search, a
