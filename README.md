@@ -69,10 +69,12 @@ Or remove the quarantine:
 xattr -dr com.apple.quarantine /Applications/OriCmd.app
 ```
 
-After that OriCmd updates itself: once a day (can be turned off in Settings) and
-with OriCmd → Check for Updates… it looks for the latest release on GitHub,
-downloads the image, replaces the app and relaunches. Updates are not
-quarantined, so there is no need to allow the app again.
+This fork checks releases from [tosiabunio/OriCmd](https://github.com/tosiabunio/OriCmd/releases)
+once a day (can be turned off in Settings) and with OriCmd → Check for Updates….
+It installs and relaunches only after verifying the publisher's signature and the
+downloaded image's checksum. Unsigned releases open their release page instead.
+See [authenticated updates](docs/authenticated-updates.md) for publishing signed
+fork releases and managing the signing key.
 
 ## Building
 
@@ -471,7 +473,8 @@ the regression suite and local test servers.
 
 Release: `scripts/release.sh 0.2 [notes.md]` sets the version, builds the disk
 image, commits, tags `v0.2`, pushes to GitHub, publishes the release with the
-image and updates the Homebrew cask in `mmag/homebrew-tap` (needs `gh auth login`).
+image, signed manifest and signature in the fork (needs `gh auth login` and the
+local publishing key).
 
 ## License
 
