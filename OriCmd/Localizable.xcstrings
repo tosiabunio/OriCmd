@@ -3719,6 +3719,16 @@
         }
       }
     },
+    "No matching commands": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет подходящих команд"
+          }
+        }
+      }
+    },
     "No operations this session": {
       "localizations": {
         "ru": {
@@ -4869,6 +4879,26 @@
         }
       }
     },
+    "Run": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выполнить"
+          }
+        }
+      }
+    },
+    "Run Command…": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выполнить команду…"
+          }
+        }
+      }
+    },
     "Run in Terminal": {
       "localizations": {
         "ru": {
@@ -5145,6 +5175,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Краткие размеры считаются как в Finder (1 КБ = 1000 байт): в панелях, строке состояния, свободном месте и при синхронизации папок."
+          }
+        }
+      }
+    },
+    "Shortcut": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сочетание клавиш"
           }
         }
       }

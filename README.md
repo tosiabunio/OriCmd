@@ -20,6 +20,8 @@ Active filters appear in the path header with their match count and a clear butt
 
 Commands → Operations, the panel indicator, and progress dialogs open a shared Operations window. It shows queued and running jobs, progress and session results, including errors, cancellations and skipped local items. Cancel a waiting job before it starts or request cancellation of a running job; Clear Finished preserves active and queued work. The most recent 100 finished results are kept until the app quits.
 
+Commands → Run Command… (⇧⌘P) opens a searchable command palette. Search localized names or cm_* command names, use ↑/↓ and Return to run a command, or Esc to dismiss. Current shortcuts are shown, unavailable actions are disabled, and recent commands appear first on the next opening.
+
 ## Features
 
 - **Panels:** tabs, history, directory hotlist, tree, filters, quick search, a

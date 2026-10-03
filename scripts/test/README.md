@@ -71,3 +71,5 @@ window while an overwrite question is open, and clearing completed results. The
 core test target also checks cancellation of a waiting job before execution,
 continued queue processing, and retention of running jobs when history is cleared.
 `tablepick:N` in the Debug harness selects a row in the frontmost window's table.
+
+`ux-palette.sh` checks search, keyboard execution, Escape, empty results, imported shortcuts and Russian command names.

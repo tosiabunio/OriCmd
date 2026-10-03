@@ -232,6 +232,17 @@ final class MainViewController: NSViewController {
 extension MainViewController: NSMenuItemValidation {
     @objc(cm_Operations:)
     func showOperations(_ sender: Any?) { OperationsWindowController.shared.show() }
+    @objc(cm_CommandPalette:)
+    func commandPalette(_ sender: Any?) {
+        guard let window = view.window else { return }
+        CommandPaletteController(parent: window) { [weak self] command in
+            guard let self else { return nil }
+            if responds(to: command.selector) { return self }
+            if let panel = supplementalTarget(forAction: command.selector, sender: nil) { return panel as AnyObject }
+            if let delegate = NSApp.delegate, delegate.responds(to: command.selector) { return delegate }
+            return nil
+        }.show()
+    }
 
     @objc(cm_SwitchHidSys:)
     func switchHidSys(_ sender: Any?) {
