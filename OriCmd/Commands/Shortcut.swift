@@ -91,7 +91,7 @@ extension Shortcut {
         if modifiers.contains(.option) { prefix += "⌥" }
         if modifiers.contains(.shift) { prefix += "⇧" }
         if modifiers.contains(.command) { prefix += "⌘" }
-        let name = text.split(separator: "+").last.map(String.init) ?? key.uppercased()
+        let name = key == "+" ? "+" : text.split(separator: "+").last.map(String.init) ?? key.uppercased()
         let glyphs = ["Up": "↑", "Down": "↓", "Left": "←", "Right": "→", "Tab": "⇥", "Enter": "↩", "Esc": "⎋", "Back": "⌫", "Del": "⌦", "Home": "↖", "End": "↘", "Pgup": "⇞", "Pgdn": "⇟"]
         return prefix + (glyphs[name] ?? name)
     }
