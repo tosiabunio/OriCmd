@@ -12,6 +12,8 @@ keep working as always.
 Full, Brief and Thumbnails file panels expose file names, types, sizes, dates,
 selection and open actions through macOS accessibility, including VoiceOver.
 
+Commands → Operations, the panel indicator, and progress dialogs open a shared Operations window. It shows queued and running jobs, progress and session results, including errors, cancellations and skipped local items. Cancel a waiting job before it starts or request cancellation of a running job; Clear Finished preserves active and queued work. The most recent 100 finished results are kept until the app quits.
+
 ## Features
 
 - **Panels:** tabs, history, directory hotlist, tree, filters, quick search, a

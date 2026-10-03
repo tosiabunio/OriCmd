@@ -59,3 +59,9 @@ Thumbnails views, selection, refresh identity and stale-row safety, then uses Pi
 and Press on disposable files and folders. `accessibilitycheck` writes its API
 checks to `<name>-accessibility.txt`; `accessibilitydump` writes row descriptions
 and selection there. `axpick:filename` selects a row and `axpress:filename` opens it.
+
+`ux-operations.sh` checks session history, skips, cancellation from the Operations
+window while an overwrite question is open, and clearing completed results. The
+core test target also checks cancellation of a waiting job before execution,
+continued queue processing, and retention of running jobs when history is cleared.
+`tablepick:N` in the Debug harness selects a row in the frontmost window's table.

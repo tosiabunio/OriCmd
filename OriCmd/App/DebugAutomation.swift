@@ -444,6 +444,15 @@ enum DebugAutomation {
                         return view.subviews.lazy.compactMap(find).first
                     }
                     find(topmost(window).contentView)?.performClick(nil)
+                } else if token.hasPrefix("tablepick:"), let index = Int(token.dropFirst(10)) {
+                    @MainActor func findTable(_ view: NSView?) -> NSTableView? {
+                        guard let view else { return nil }
+                        if let table = view as? NSTableView { return table }
+                        return view.subviews.lazy.compactMap(findTable).first
+                    }
+                    if let table = findTable(topmost(window).contentView), index >= 0, index < table.numberOfRows {
+                        table.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+                    }
                 } else if token.hasPrefix("cmd:") {
                     perform(Selector(String(token.dropFirst(4)) + ":"), in: window)
                 } else if token.hasPrefix("text:") {

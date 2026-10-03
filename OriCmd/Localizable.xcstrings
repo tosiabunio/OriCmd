@@ -141,6 +141,58 @@
         }
       }
     },
+    "%lld completed items": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld completed item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld completed items"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Завершено %lld элемента"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Завершено %lld элементов"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Завершён %lld элемент"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Завершено %lld элементов"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld conflicting names": {
       "localizations": {
         "ru": {
@@ -301,6 +353,58 @@
           "stringUnit": {
             "state": "translated",
             "value": "страниц: %lld"
+          }
+        }
+      }
+    },
+    "%lld skipped items": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld skipped item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld skipped items"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Пропущено %lld элемента"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Пропущено %lld элементов"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Пропущен %lld элемент"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Пропущено %lld элементов"
+                }
+              }
+            }
           }
         }
       }
@@ -815,6 +919,36 @@
         }
       }
     },
+    "Cancel Operation": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отменить операцию"
+          }
+        }
+      }
+    },
+    "Cancelled": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отменено"
+          }
+        }
+      }
+    },
+    "Cancelling…": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отмена…"
+          }
+        }
+      }
+    },
     "Cannot change attributes": {
       "localizations": {
         "ru": {
@@ -1225,6 +1359,16 @@
         }
       }
     },
+    "Clear Finished": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Очистить завершённые"
+          }
+        }
+      }
+    },
     "Close Other Tabs": {
       "localizations": {
         "ru": {
@@ -1401,6 +1545,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сравнение…"
+          }
+        }
+      }
+    },
+    "Completed": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завершено"
           }
         }
       }
@@ -2305,6 +2459,16 @@
         }
       }
     },
+    "Failed": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ошибка"
+          }
+        }
+      }
+    },
     "Feed to Panel": {
       "localizations": {
         "ru": {
@@ -2481,6 +2645,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "С текстом:"
+          }
+        }
+      }
+    },
+    "Finished with skipped items": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завершено с пропусками"
           }
         }
       }
@@ -3475,6 +3649,16 @@
         }
       }
     },
+    "No operations this session": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В этом сеансе ещё нет операций"
+          }
+        }
+      }
+    },
     "Not supported inside archives": {
       "localizations": {
         "ru": {
@@ -3681,6 +3865,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Операции"
+          }
+        }
+      }
+    },
+    "Operations: %lld running · %lld queued · %lld finished": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Операции: выполняется %lld · в очереди %lld · завершено %lld"
           }
         }
       }
@@ -4091,6 +4285,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "В очередь (F2)"
+          }
+        }
+      }
+    },
+    "Queued": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В очереди"
           }
         }
       }
@@ -4585,6 +4789,16 @@
         }
       }
     },
+    "Running": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выполняется"
+          }
+        }
+      }
+    },
     "Save": {
       "localizations": {
         "ru": {
@@ -4711,6 +4925,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Выделить файлы того же типа  (⌥+)"
+          }
+        }
+      }
+    },
+    "Select an operation to inspect its result or cancel it.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите операцию, чтобы посмотреть результат или отменить её."
           }
         }
       }

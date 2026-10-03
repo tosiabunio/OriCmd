@@ -161,6 +161,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AssociationsWindowController.shared.showWindow(sender)
     }
 
+    @objc(cm_Operations:)
+    func showOperations(_ sender: Any?) { OperationsWindowController.shared.show() }
+
     @objc func showSettings(_ sender: Any?) {
         SettingsWindowController.shared.showWindow(sender)
     }

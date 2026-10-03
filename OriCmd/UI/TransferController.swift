@@ -18,6 +18,7 @@ final class TransferController {
     private let fileBar = NSProgressIndicator()
     private let totalBar = NSProgressIndicator()
     private var timer: Timer?
+    private var operationID: UUID?
     private let backgroundButton = NSButton(title: String(localized: "Background"), target: nil, action: nil)
     /// After "Background" the progress is a separate window and the main window stays usable.
     private var isInBackground = false
@@ -58,6 +59,7 @@ final class TransferController {
             $0.source = source
             $0.target = target
         }
+        operationID = OperationsStore.shared.start(title: title, source: source, target: target) { [weak self] in self?.cancel(nil) }
         refresh()
         if startsInBackground {
             showInOwnWindow()
@@ -86,8 +88,10 @@ final class TransferController {
         }
         switch result {
         case .success(let done):
+            if let operationID { OperationsStore.shared.finish(operationID, progress: progress.snapshot, completedItems: done.count) }
             return done
         case .failure(let error):
+            if let operationID { OperationsStore.shared.finish(operationID, progress: progress.snapshot, error: error) }
             if !(error is CancellationError) {
                 Prompt.error(failureTitle, error, in: window)
             }
@@ -114,6 +118,8 @@ final class TransferController {
         backgroundButton.target = self
         backgroundButton.action = #selector(moveToBackground(_:))
         let buttonRow = NSStackView()
+        let operations = NSButton(title: String(localized: "Operations"), target: self, action: #selector(showOperations(_:)))
+        buttonRow.addView(operations, in: .leading)
         buttonRow.addView(backgroundButton, in: .trailing)
         buttonRow.addView(cancel, in: .trailing)
         sheet.hidesOnDeactivate = false
@@ -132,6 +138,7 @@ final class TransferController {
 
     private func refresh() {
         let state = progress.snapshot
+        if let operationID { OperationsStore.shared.update(operationID, progress: state) }
         for bar in [fileBar, totalBar] where bar.isIndeterminate != (state.totalBytes == 0) {
             bar.isIndeterminate = state.totalBytes == 0
             if bar.isIndeterminate { bar.startAnimation(nil) }
@@ -161,8 +168,14 @@ final class TransferController {
         window.makeKeyAndOrderFront(nil)
     }
 
+    @objc private func showOperations(_ sender: Any?) { OperationsWindowController.shared.show() }
+
     @objc private func cancel(_ sender: Any?) {
         progress.cancel()
+        if let question = sheet.attachedSheet {
+            sheet.endSheet(question, returnCode: .cancel)
+            question.orderOut(nil)
+        }
     }
 
     private func askOverwrite(_ source: ConflictItem, _ target: ConflictItem) async -> ConflictDecision {

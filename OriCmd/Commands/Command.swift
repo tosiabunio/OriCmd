@@ -44,6 +44,7 @@ enum Command: String, CaseIterable {
     case exchangeSelection = "cm_ExchangeSelection"
 
     // Commands
+    case operations = "cm_Operations"
     case rereadSource = "cm_RereadSource"
     case exchange = "cm_Exchange"
     case leftEqualRight = "cm_LeftEqualRight"
@@ -103,6 +104,7 @@ enum Command: String, CaseIterable {
 
     var title: String {
         switch self {
+        case .operations: String(localized: "Operations")
         case .list: String(localized: "View")
         case .edit: String(localized: "Edit")
         case .copy: String(localized: "Copy…")

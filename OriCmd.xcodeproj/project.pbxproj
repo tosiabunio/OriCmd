@@ -15,6 +15,8 @@
 		A11000000000000000000203 = {isa = PBXBuildFile; fileRef = A11000000000000000000103; };
 		A11000000000000000000204 = {isa = PBXBuildFile; fileRef = A11000000000000000000104; };
 		A11000000000000000000205 = {isa = PBXBuildFile; fileRef = A11000000000000000000105; };
+		A11000000000000000000206 = {isa = PBXBuildFile; fileRef = A11000000000000000000106; };
+		A11000000000000000000207 = {isa = PBXBuildFile; fileRef = A11000000000000000000107; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -51,6 +53,8 @@
 		A11000000000000000000104 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriCmd/FileSystem/DirectoryListing.swift; sourceTree = SOURCE_ROOT; };
 		A11000000000000000000105 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriCmd/Tools/TextDiff.swift; sourceTree = SOURCE_ROOT; };
 		A11000000000000000000001 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = OriCmdCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A11000000000000000000106 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriCmd/UI/OperationsStore.swift; sourceTree = SOURCE_ROOT; };
+		A11000000000000000000107 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriCmd/UI/TransferQueue.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -107,7 +111,7 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A11000000000000000000003 = {isa = PBXGroup; name = "Core test sources"; children = (A11000000000000000000100,A11000000000000000000101,A11000000000000000000102,A11000000000000000000103,A11000000000000000000104,A11000000000000000000105,); sourceTree = "<group>"; };
+		A11000000000000000000003 = {isa = PBXGroup; name = "Core test sources"; children = (A11000000000000000000100,A11000000000000000000101,A11000000000000000000102,A11000000000000000000103,A11000000000000000000104,A11000000000000000000105,A11000000000000000000106,A11000000000000000000107,); sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -243,7 +247,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		A11000000000000000000005 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A11000000000000000000200,A11000000000000000000201,A11000000000000000000202,A11000000000000000000203,A11000000000000000000204,A11000000000000000000205,); runOnlyForDeploymentPostprocessing = 0; };
+		A11000000000000000000005 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A11000000000000000000200,A11000000000000000000201,A11000000000000000000202,A11000000000000000000203,A11000000000000000000204,A11000000000000000000205,A11000000000000000000206,A11000000000000000000207,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
