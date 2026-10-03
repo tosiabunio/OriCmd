@@ -18,6 +18,8 @@ Marked items carry a checkmark on their icon in Full, Brief and Thumbnails views
 
 Active filters appear in the path header with their match count and a clear button. Text and filename-mask rules are shown together; clearing restores all entries allowed by the hidden-file setting. Counts exclude the parent-folder row.
 
+Commands → Operations, the panel indicator, and progress dialogs open a shared Operations window. It shows queued and running jobs, progress and session results, including errors, cancellations and skipped local items. Cancel a waiting job before it starts or request cancellation of a running job; Clear Finished preserves active and queued work. The most recent 100 finished results are kept until the app quits.
+
 ## Features
 
 - **Panels:** tabs, history, directory hotlist, tree, filters, quick search, a

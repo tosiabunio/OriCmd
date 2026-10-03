@@ -9,6 +9,8 @@ final class MainViewController: NSViewController {
     private static let splitRatioKey = "PanelSplitRatio"
     private let commandLine = CommandLineController()
     private let functionKeyBar = FunctionKeyBar()
+    private let operationsButton = NSButton(title: String(localized: "Operations"), target: nil, action: nil)
+    private var operationsHeight: NSLayoutConstraint!
 
     private var didAppear = false
     private var commandLineHeight: NSLayoutConstraint!
@@ -60,6 +62,8 @@ final class MainViewController: NSViewController {
         leftPanel.showsHidden = showsHidden
         rightPanel.showsHidden = showsHidden
 
+        NotificationCenter.default.addObserver(self, selector: #selector(operationsDidChange(_:)),
+                                               name: OperationsStore.didChange, object: nil)
         let workspace = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification,
                      NSWorkspace.didRenameVolumeNotification] {
@@ -89,20 +93,29 @@ final class MainViewController: NSViewController {
         splitView.onDoubleClickDivider = { [weak self] in self?.splitView.setRatio(0.5) }
 
         let root = NSView(frame: NSRect(x: 0, y: 0, width: 1100, height: 720))
-        for view in [splitView, commandLine.view, functionKeyBar] {
+        operationsButton.target = self
+        operationsButton.action = Command.operations.selector
+        operationsButton.bezelStyle = .inline
+        operationsButton.setAccessibilityLabel(String(localized: "Operations"))
+        for view in [splitView, operationsButton, commandLine.view, functionKeyBar] {
             view.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(view)
         }
+        operationsHeight = operationsButton.heightAnchor.constraint(equalToConstant: 0)
         commandLineHeight = commandLine.view.heightAnchor.constraint(equalToConstant: CommandLineView.height)
         functionKeyBarHeight = functionKeyBar.heightAnchor.constraint(equalToConstant: FunctionKeyBar.height)
         NSLayoutConstraint.activate([
+            operationsHeight,
             commandLineHeight,
             functionKeyBarHeight,
             splitView.topAnchor.constraint(equalTo: root.topAnchor),
             splitView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             splitView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
 
-            commandLine.view.topAnchor.constraint(equalTo: splitView.bottomAnchor),
+            operationsButton.topAnchor.constraint(equalTo: splitView.bottomAnchor),
+            operationsButton.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 6),
+            operationsButton.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -6),
+            commandLine.view.topAnchor.constraint(equalTo: operationsButton.bottomAnchor),
             commandLine.view.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             commandLine.view.trailingAnchor.constraint(equalTo: root.trailingAnchor),
 
@@ -112,6 +125,19 @@ final class MainViewController: NSViewController {
             functionKeyBar.bottomAnchor.constraint(equalTo: root.bottomAnchor),
         ])
         view = root
+        operationsDidChange(nil)
+    }
+
+    @objc private func operationsDidChange(_ notification: Notification?) {
+        guard isViewLoaded else { return }
+        let running = OperationsStore.shared.runningCount
+        let queued = TransferQueue.shared.waitingCount
+        let finished = OperationsStore.shared.entries.count - running
+        let title = String(localized: "Operations: \(running) running · \(queued) queued · \(finished) finished")
+        if operationsButton.title == title { return }
+        operationsButton.title = title
+        operationsButton.isHidden = running + queued + finished == 0
+        operationsHeight.constant = operationsButton.isHidden ? 0 : 24
     }
 
     override func viewDidLoad() {
@@ -204,6 +230,9 @@ final class MainViewController: NSViewController {
 // MARK: - Commands
 
 extension MainViewController: NSMenuItemValidation {
+    @objc(cm_Operations:)
+    func showOperations(_ sender: Any?) { OperationsWindowController.shared.show() }
+
     @objc(cm_SwitchHidSys:)
     func switchHidSys(_ sender: Any?) {
         showsHidden.toggle()
@@ -315,7 +344,8 @@ extension MainViewController: NSMenuItemValidation {
             self?.rightPanel.reread()
         }
         if result.queued {
-            TransferQueue.shared.add(operation)
+            TransferQueue.shared.add(title: result.kind == .copy ? String(localized: "Copying") : String(localized: "Moving"),
+                                     source: items.first?.url.path ?? "", target: jobs.first?.destination.path ?? "", operation)
         } else {
             Task { await operation() }
         }

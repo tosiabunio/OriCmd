@@ -64,6 +64,7 @@ nonisolated final class TransferProgress: Sendable {
         var fileDoneBytes: Int64 = 0
         var source = ""
         var target = ""
+        var skippedItems = 0
         var isCancelled = false
     }
 
@@ -279,7 +280,7 @@ nonisolated final class TransferEngine {
     /// Counts a skipped or filtered-out item as done for the progress.
     private func skipped(_ source: URL) -> Bool {
         let size = Self.totalSize(of: source)
-        progress.update { $0.doneBytes += size }
+        progress.update { $0.doneBytes += size; $0.skippedItems += 1 }
         return false
     }
 

@@ -65,3 +65,9 @@ and selection there. `axpick:filename` selects a row and `axpress:filename` open
 `ux-selection.sh` captures checkmarks in Full, Brief and Thumbnails views and checks that accessible selection is preserved when markers are disabled.
 
 `ux-filters.sh` checks combined text and mask rules, match counts, clearing and Escape, both header styles and Russian labels. `filterdump` writes the active summary; `clearfilters` clicks the header’s clear button.
+
+`ux-operations.sh` checks session history, skips, cancellation from the Operations
+window while an overwrite question is open, and clearing completed results. The
+core test target also checks cancellation of a waiting job before execution,
+continued queue processing, and retention of running jobs when history is cleared.
+`tablepick:N` in the Debug harness selects a row in the frontmost window's table.

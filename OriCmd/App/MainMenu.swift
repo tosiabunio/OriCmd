@@ -23,6 +23,7 @@ enum MainMenu {
             [.spreadSelection, .shrinkSelection],
         ], extra: markItems())))
         let commands = commandMenu(String(localized: "Commands"), [
+            [.operations],
             [.rereadSource, .exchange, .leftEqualRight, .rightEqualLeft],
             [.openNewTab, .openDirInNewTab, .closeCurrentTab, .switchToNextTab, .switchToPreviousTab],
             [.searchFor, .directoryHotlist],
