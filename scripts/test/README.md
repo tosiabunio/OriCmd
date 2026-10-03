@@ -61,3 +61,5 @@ checks to `<name>-accessibility.txt`; `accessibilitydump` writes row description
 and selection there. `axpick:filename` selects a row and `axpress:filename` opens it.
 
 `ux-copy.sh` verifies dialog scope, filename previews, overwrite summaries, file filters, F2 queue and the Russian interface.
+
+`ux-selection.sh` captures checkmarks in Full, Brief and Thumbnails views and checks that accessible selection is preserved when markers are disabled.

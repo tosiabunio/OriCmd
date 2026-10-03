@@ -14,6 +14,8 @@ selection and open actions through macOS accessibility, including VoiceOver.
 
 Copy and move dialogs show the source, destination, affected names and whether marked items or the cursor item will be used. Their Copy/Move button names the action, and the overwrite rule remains visible when advanced options are collapsed.
 
+Marked items carry a checkmark on their icon in Full, Brief and Thumbnails views, so selection does not depend on text color. Disable it in Settings → Panels → Show checkmarks on marked items for the traditional appearance.
+
 ## Features
 
 - **Panels:** tabs, history, directory hotlist, tree, filters, quick search, a

@@ -4945,6 +4945,16 @@
         }
       }
     },
+    "Show checkmarks on marked items": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показывать галочки на отмеченных элементах"
+          }
+        }
+      }
+    },
     "Show command line": {
       "localizations": {
         "ru": {

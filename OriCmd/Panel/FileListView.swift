@@ -475,11 +475,33 @@ final class FileListView: NSView {
     }
 
     private func drawIcon(for item: FileItem, in rect: NSRect) {
+        let iconRect = NSRect(x: rect.minX + 3, y: rect.minY + (rowHeight - 16) / 2, width: 16, height: 16)
         FileIcons.icon(for: item).draw(
-            in: NSRect(x: rect.minX + 3, y: rect.minY + (rowHeight - 16) / 2, width: 16, height: 16),
+            in: iconRect,
             from: .zero, operation: .sourceOver, fraction: item.isHidden ? 0.5 : 1,
             respectFlipped: true, hints: nil
         )
+        drawSelectionMarker(for: item, in: iconRect)
+    }
+
+    /// A checkmark gives marked items a shape as well as a text color.
+    private func drawSelectionMarker(for item: FileItem, in rect: NSRect, size: CGFloat = 11) {
+        guard Settings.showsSelectionMarkers, !item.isParent, marked.contains(item.name) else { return }
+        let badge = NSRect(x: rect.maxX - size + 2, y: rect.maxY - size + 1, width: size, height: size)
+        let circle = NSBezierPath(ovalIn: badge)
+        NSColor.controlAccentColor.setFill()
+        circle.fill()
+        NSColor.white.setStroke()
+        circle.lineWidth = 0.7
+        circle.stroke()
+        let tick = NSBezierPath()
+        tick.move(to: NSPoint(x: badge.minX + size * 0.23, y: badge.minY + size * 0.50))
+        tick.line(to: NSPoint(x: badge.minX + size * 0.43, y: badge.minY + size * 0.69))
+        tick.line(to: NSPoint(x: badge.minX + size * 0.78, y: badge.minY + size * 0.31))
+        tick.lineWidth = 1.4
+        tick.lineCapStyle = .round
+        tick.lineJoinStyle = .round
+        tick.stroke()
     }
 
     private func drawInactiveCursorFrame(_ row: Int, in rect: NSRect) {
@@ -533,6 +555,7 @@ final class FileListView: NSView {
                    from: .zero, operation: .sourceOver, fraction: item.isHidden ? 0.5 : 1,
                    respectFlipped: true, hints: nil)
 
+        drawSelectionMarker(for: item, in: imageArea.insetBy(dx: 2, dy: 2), size: 18)
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
         paragraph.lineBreakMode = .byTruncatingMiddle
