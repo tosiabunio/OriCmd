@@ -1,0 +1,61 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 2 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build and test core behavior
+        run: scripts/test/check.sh
+      - name: Save test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: core-test-results
+          path: |
+            build/logs/
+            build/DerivedData/Logs/Test/
+
+  interface:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install the regression runner's timeout command
+        run: brew install coreutils
+      - name: Build and test core behavior
+        run: scripts/test/check.sh
+      - name: Run interface and file-operation regressions
+        run: scripts/test/regress.sh
+      - name: Stop disposable test servers
+        if: always()
+        run: scripts/test/servers.sh stop
+      - name: Save regression evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: interface-test-results
+          path: |
+            build/shots/
+            build/testlogs/
+            build/logs/

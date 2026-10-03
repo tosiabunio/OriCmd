@@ -4,7 +4,13 @@ cd "$(dirname $0)/../.."
 L=build/testdata/left; R=build/testdata/right
 pass=0; fail=0
 check() { if eval "$2"; then pass=$((pass+1)); echo "ok   $1"; else fail=$((fail+1)); echo "FAIL $1"; fi; }
-run() { timeout 120 scripts/test/run.sh "reg-$1" "$2" >/dev/null 2>&1; }
+mkdir -p build/testlogs
+run() {
+  if ! timeout 120 scripts/test/run.sh "reg-$1" "$2" >"build/testlogs/$1.log" 2>&1; then
+    fail=$((fail+1))
+    echo "FAIL test $1 did not finish (see build/testlogs/$1.log)"
+  fi
+}
 
 scripts/test/mkdata.sh
 run copy "home down space space f5 wait enter wait wait"
