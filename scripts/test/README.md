@@ -34,3 +34,22 @@ real keyboard and mouse, so working elsewhere meanwhile changes nothing.
   or adds Russian translations from a JSON file.
 
 Build the Debug app first (`xcodebuild … -derivedDataPath build/DerivedData build`).
+
+## Core checks and continuous integration
+
+`scripts/test/check.sh` builds the app, runs the independent `OriCmdCoreTests`
+logic-test target, and checks for missing translations. The tests use temporary
+folders and do not launch the file manager or use either settings suite. They
+cover masks, filters, renaming masks, diff alignment, Unicode ranges, verified
+copies, skipped moves, cancellation and self-copy protection.
+
+Pushes and pull requests run these checks on macOS. Scheduled and manually
+started workflows also run the full interface regressions and save their logs
+and snapshots. Interface runs are sequential because they share the test suite.
+
+`run.sh` refuses overlapping UI runs, removes all artifacts for that run's name,
+and requires both a fresh snapshot and the completion marker written after key
+playback. Launch failures, crashes, missing snapshots and timeouts fail the
+regression run; the individual launcher logs are in `build/testlogs`. If a runner
+is killed with SIGKILL, remove the stale `oricmd-ui-tests.lock` folder in the
+user's temporary directory only after confirming no UI test is still running.

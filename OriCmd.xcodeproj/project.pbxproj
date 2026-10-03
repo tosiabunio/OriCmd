@@ -9,6 +9,12 @@
 /* Begin PBXBuildFile section */
 		0C1D00000000000000000022 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = 0C1D00000000000000000021 /* SwiftTerm */; };
 		0C1D0000000000000000003B /* OriCmdHighlighter.xpc in Embed XPC Services */ = {isa = PBXBuildFile; fileRef = 0C1D00000000000000000030 /* OriCmdHighlighter.xpc */; };
+		A11000000000000000000200 = {isa = PBXBuildFile; fileRef = A11000000000000000000100; };
+		A11000000000000000000201 = {isa = PBXBuildFile; fileRef = A11000000000000000000101; };
+		A11000000000000000000202 = {isa = PBXBuildFile; fileRef = A11000000000000000000102; };
+		A11000000000000000000203 = {isa = PBXBuildFile; fileRef = A11000000000000000000103; };
+		A11000000000000000000204 = {isa = PBXBuildFile; fileRef = A11000000000000000000104; };
+		A11000000000000000000205 = {isa = PBXBuildFile; fileRef = A11000000000000000000105; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,6 +44,13 @@
 /* Begin PBXFileReference section */
 		0C1D00000000000000000001 /* OriCmd.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OriCmd.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C1D00000000000000000030 /* OriCmdHighlighter.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = OriCmdHighlighter.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
+		A11000000000000000000100 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriCmd/FileSystem/Transfer.swift; sourceTree = SOURCE_ROOT; };
+		A11000000000000000000101 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriCmd/FileSystem/TransferOptions.swift; sourceTree = SOURCE_ROOT; };
+		A11000000000000000000102 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriCmd/FileSystem/FileMask.swift; sourceTree = SOURCE_ROOT; };
+		A11000000000000000000103 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriCmd/FileSystem/FileItem.swift; sourceTree = SOURCE_ROOT; };
+		A11000000000000000000104 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriCmd/FileSystem/DirectoryListing.swift; sourceTree = SOURCE_ROOT; };
+		A11000000000000000000105 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OriCmd/Tools/TextDiff.swift; sourceTree = SOURCE_ROOT; };
+		A11000000000000000000001 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = OriCmdCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -51,6 +64,7 @@
 			path = Highlighter;
 			sourceTree = "<group>";
 		};
+		A11000000000000000000002 = {isa = PBXFileSystemSynchronizedRootGroup; path = Tests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -76,6 +90,8 @@
 			isa = PBXGroup;
 			children = (
 				0C1D00000000000000000002 /* OriCmd */,
+				A11000000000000000000002,
+				A11000000000000000000003,
 				0C1D00000000000000000031 /* Highlighter */,
 				0C1D00000000000000000005 /* Products */,
 			);
@@ -86,10 +102,12 @@
 			children = (
 				0C1D00000000000000000001 /* OriCmd.app */,
 				0C1D00000000000000000030 /* OriCmdHighlighter.xpc */,
+				A11000000000000000000001,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
+		A11000000000000000000003 = {isa = PBXGroup; name = "Core test sources"; children = (A11000000000000000000100,A11000000000000000000101,A11000000000000000000102,A11000000000000000000103,A11000000000000000000104,A11000000000000000000105,); sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -138,6 +156,18 @@
 			productReference = 0C1D00000000000000000030 /* OriCmdHighlighter.xpc */;
 			productType = "com.apple.product-type.xpc-service";
 		};
+		A11000000000000000000004 = {
+            isa = PBXNativeTarget;
+            buildConfigurationList = A11000000000000000000007;
+            buildPhases = (A11000000000000000000005,);
+            buildRules = ();
+            dependencies = ();
+            fileSystemSynchronizedGroups = (A11000000000000000000002,);
+            name = OriCmdCoreTests;
+            productName = OriCmdCoreTests;
+            productReference = A11000000000000000000001;
+            productType = "com.apple.product-type.bundle.unit-test";
+        };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -176,6 +206,7 @@
 			targets = (
 				0C1D00000000000000000006 /* OriCmd */,
 				0C1D00000000000000000032 /* OriCmdHighlighter */,
+				A11000000000000000000004,
 			);
 		};
 /* End PBXProject section */
@@ -212,6 +243,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A11000000000000000000005 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A11000000000000000000200,A11000000000000000000201,A11000000000000000000202,A11000000000000000000203,A11000000000000000000204,A11000000000000000000205,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -369,6 +401,24 @@
 			};
 			name = Release;
 		};
+        A11000000000000000000008 = {isa = XCBuildConfiguration; buildSettings = {
+            CODE_SIGN_IDENTITY = "-";
+            CODE_SIGN_STYLE = Manual;
+            GENERATE_INFOPLIST_FILE = YES;
+            PRODUCT_BUNDLE_IDENTIFIER = ru.themmag.OriCmd.CoreTests;
+            PRODUCT_NAME = "$(TARGET_NAME)";
+            SWIFT_VERSION = 6.0;
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+        }; name = Debug; };
+        A11000000000000000000009 = {isa = XCBuildConfiguration; buildSettings = {
+            CODE_SIGN_IDENTITY = "-";
+            CODE_SIGN_STYLE = Manual;
+            GENERATE_INFOPLIST_FILE = YES;
+            PRODUCT_BUNDLE_IDENTIFIER = ru.themmag.OriCmd.CoreTests;
+            PRODUCT_NAME = "$(TARGET_NAME)";
+            SWIFT_VERSION = 6.0;
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+        }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -399,6 +449,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+        A11000000000000000000007 = {isa = XCConfigurationList; buildConfigurations = (A11000000000000000000008,A11000000000000000000009,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */

@@ -450,6 +450,15 @@ enum DebugAutomation {
                     }
                 }
             }
+            if let snapshot {
+                do {
+                    try "complete\n".write(toFile: snapshot.replacingOccurrences(of: ".png", with: ".complete"),
+                                           atomically: true, encoding: .utf8)
+                } catch {
+                    NSLog("Cannot record test completion: \(error)")
+                    exit(1)
+                }
+            }
             if environment["ORICMD_QUIT"] != nil {
                 exit(0)
             }
