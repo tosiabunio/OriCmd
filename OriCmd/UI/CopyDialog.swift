@@ -1,10 +1,10 @@
 import AppKit
 
 /// Total Commander's F5 / F6 dialog: the target with a name mask ("*.*"),
-/// "Only files of this type", Verify, one row of buttons (OK, F2 Queue, Tree,
+/// "Only files of this type", Verify, one row of buttons (Copy or Move, F2 Queue, Tree,
 /// Cancel, Options >>) and, under Options, the overwrite mode and more.
 ///
-/// Keys: Return OK, F2 queue, F7 adds/removes the target in the target list,
+/// Keys: Return confirms, F2 queue, F7 adds/removes the target in the target list,
 /// F8 filter menu, ⌃D directory hotlist, Esc cancels. Right click on OK or
 /// F2 Queue switches between copying and moving.
 final class CopyDialog: NSObject {
@@ -45,6 +45,7 @@ final class CopyDialog: NSObject {
     private let okButton = NSButton(title: String(localized: "OK"), target: nil, action: nil)
     private let queueButton = NSButton(title: String(localized: "F2 Queue"), target: nil, action: nil)
     private let optionsButton = NSButton(title: String(localized: "Options >>"), target: nil, action: nil)
+    private let optionsSummary = NSTextField(wrappingLabelWithString: "")
     private let advanced = NSBox()
     private let pinButton = NSButton()
     private let overwritePopUp = NSPopUpButton()
@@ -58,11 +59,13 @@ final class CopyDialog: NSObject {
 
     /// Shows the dialog as a sheet of `window`. `target` is the folder (ending in "/");
     /// `selectedTargetFolders` is the number of folders marked in the target panel.
-    static func show(kind: TransferJob.Kind, files: Int, folders: Int, target: String, selectedTargetFolders: Int,
+    static func show(kind: TransferJob.Kind, files: Int, folders: Int, source: String, names: [String], marked: Bool,
+                     target: String, selectedTargetFolders: Int,
                      in window: NSWindow, completion: @escaping (Result) -> Void) {
         let dialog = CopyDialog(kind: kind, completion: completion)
         current = dialog
-        dialog.present(files: files, folders: folders, target: target, selectedTargetFolders: selectedTargetFolders,
+        dialog.present(files: files, folders: folders, source: source, names: names, marked: marked,
+                       target: target, selectedTargetFolders: selectedTargetFolders,
                        in: window)
     }
 
@@ -74,9 +77,29 @@ final class CopyDialog: NSObject {
 
     // MARK: - Layout
 
-    private func present(files: Int, folders: Int, target: String, selectedTargetFolders: Int, in window: NSWindow) {
+    private func present(files: Int, folders: Int, source: String, names: [String], marked: Bool,
+                         target: String, selectedTargetFolders: Int, in window: NSWindow) {
         parent = window
-        let message = NSTextField(labelWithString: Self.message(kind: kind, files: files, folders: folders))
+        let message = NSTextField(labelWithString: kind == .copy
+            ? String(localized: "copy.button", defaultValue: "Copy") : String(localized: "move.button", defaultValue: "Move"))
+        message.font = .boldSystemFont(ofSize: 15)
+        var counts: [String] = []
+        if files > 0 { counts.append(String(localized: "\(files) files")) }
+        if folders > 0 { counts.append(String(localized: "\(folders) folders")) }
+        let scope = marked ? String(localized: "Marked selection") : String(localized: "Item under cursor")
+        let selection = NSTextField(labelWithString: scope + " · " + counts.joined(separator: ", "))
+        var preview = names.prefix(3).joined(separator: " · ")
+        if names.count > 3 { preview += " · " + String(localized: "and \(names.count - 3) more") }
+        let previewLabel = NSTextField(labelWithString: preview)
+        previewLabel.lineBreakMode = .byTruncatingMiddle
+        previewLabel.toolTip = names.joined(separator: "\n")
+        let from = NSTextField(labelWithString: String(localized: "From: \(source)"))
+        from.lineBreakMode = .byTruncatingMiddle
+        from.toolTip = source
+        from.isSelectable = true
+        from.textColor = .secondaryLabelColor
+        optionsSummary.textColor = .secondaryLabelColor
+        optionsSummary.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
 
         targetBox.stringValue = target + "*.*"
         targetBox.completes = false
@@ -86,6 +109,7 @@ final class CopyDialog: NSObject {
         targetListButton.action = #selector(toggleTargetList(_:))
         targetListButton.keyEquivalent = Self.functionKey(7)
         targetListButton.toolTip = String(localized: "Add the target to the target list, or remove it (F7). ⌃D: directory hotlist")
+        filterBox.delegate = self
         filterBox.completes = false
         filterBox.numberOfVisibleItems = 12
         filterButton.target = self
@@ -104,6 +128,7 @@ final class CopyDialog: NSObject {
         attributesBox.state = Settings.copyAttributes ? .on : .off
         verifyBox.state = Settings.copyVerifies ? .on : .off
 
+        okButton.title = message.stringValue
         okButton.keyEquivalent = "\r"
         let cancelButton = NSButton(title: String(localized: "Cancel"), target: self, action: #selector(cancel(_:)))
         cancelButton.keyEquivalent = "\u{1b}"
@@ -130,18 +155,20 @@ final class CopyDialog: NSObject {
         let spacer = NSView()
         spacer.setContentHuggingPriority(.init(1), for: .horizontal)
         let stack = NSStackView(views: [
-            message,
+            message, selection, previewLabel, from,
+            NSTextField(labelWithString: String(localized: "To:")),
             row(targetBox, targetListButton),
             NSTextField(labelWithString: String(localized: "Only files of this type:")),
             row(filterBox, filterButton),
             row(attributesBox, spacer, verifyBox),
+            optionsSummary,
             buttonRow,
             advanced,
         ])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 8
-        stack.setCustomSpacing(12, after: stack.arrangedSubviews[4])
+        stack.setCustomSpacing(12, after: optionsSummary)
         stack.setCustomSpacing(14, after: buttonRow)
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 20, bottom: 18, right: 20)
         for view in stack.arrangedSubviews where view !== message && view !== buttonRow {
@@ -158,6 +185,7 @@ final class CopyDialog: NSObject {
         optionsButton.isHidden = !advanced.isHidden
         panel.setContentSize(stack.fittingSize)
 
+        updateOptionsSummary()
         window.beginSheet(panel)
         DispatchQueue.main.async { [targetBox] in
             targetBox.currentEditor()?.selectAll(nil)
@@ -179,6 +207,8 @@ final class CopyDialog: NSObject {
             overwritePopUp.addItem(withTitle: mode.title)
         }
         overwritePopUp.selectItem(at: Settings.copyOverwriteMode.rawValue - 1)
+        overwritePopUp.target = self
+        overwritePopUp.action = #selector(optionsChanged(_:))
         saveButton.bezelStyle = .toolbar
         saveButton.image = NSImage(systemSymbolName: "square.and.arrow.down",
                                    accessibilityDescription: String(localized: "Save as default"))
@@ -188,6 +218,10 @@ final class CopyDialog: NSObject {
 
         skipUnreadableBox.state = Settings.copySkipsUnreadable ? .on : .off
         overwriteLockedBox.state = Settings.copyOverwritesLocked ? .on : .off
+        for button in [skipUnreadableBox, overwriteLockedBox, allFoldersBox] {
+            button.target = self
+            button.action = #selector(optionsChanged(_:))
+        }
         allFoldersBox.isEnabled = selectedTargetFolders > 0
         if selectedTargetFolders > 0 {
             allFoldersBox.title = String(localized: "Copy to all \(selectedTargetFolders) selected folders in the target panel")
@@ -231,15 +265,17 @@ final class CopyDialog: NSObject {
         return row
     }
 
-    private static func message(kind: TransferJob.Kind, files: Int, folders: Int) -> String {
-        switch (kind, files, folders) {
-        case (.copy, _, 0): String(localized: "Copy \(files) file(s) to:")
-        case (.copy, 0, _): String(localized: "Copy \(folders) folder(s) to:")
-        case (.copy, _, _): String(localized: "Copy \(files) file(s) and \(folders) folder(s) to:")
-        case (.move, _, 0): String(localized: "Rename/move \(files) file(s) to:")
-        case (.move, 0, _): String(localized: "Rename/move \(folders) folder(s) to:")
-        case (.move, _, _): String(localized: "Rename/move \(files) file(s) and \(folders) folder(s) to:")
-        }
+    @objc private func optionsChanged(_ sender: Any?) { updateOptionsSummary(); resize() }
+
+    private func updateOptionsSummary() {
+        let mode = overwritePopUp.titleOfSelectedItem ?? OverwriteMode.ask.title
+        var parts = [String(localized: "Existing files: \(mode)")]
+        let filter = filterBox.stringValue.trimmingCharacters(in: .whitespaces)
+        if !filter.isEmpty { parts.append(String(localized: "Only: \(filter)")) }
+        if skipUnreadableBox.state == .on { parts.append(String(localized: "Skip unreadable files")) }
+        if overwriteLockedBox.state == .on { parts.append(String(localized: "Replace locked files")) }
+        if allFoldersBox.isEnabled && allFoldersBox.state == .on { parts.append(allFoldersBox.title) }
+        optionsSummary.stringValue = parts.joined(separator: " · ")
     }
 
     private static func functionKey(_ number: Int) -> String {
@@ -358,10 +394,14 @@ final class CopyDialog: NSObject {
 
     @objc private func chooseFilter(_ sender: NSMenuItem) {
         filterBox.stringValue = sender.representedObject as? String ?? ""
+        updateOptionsSummary()
+        resize()
     }
 
     @objc private func clearFilter(_ sender: Any?) {
         filterBox.stringValue = ""
+        updateOptionsSummary()
+        resize()
     }
 
     /// ⌃D: a folder from the directory hotlist becomes the target.
@@ -520,10 +560,16 @@ final class CopyDialog: NSObject {
 extension CopyDialog: NSComboBoxDelegate {
     func controlTextDidChange(_ notification: Notification) {
         updateTargetListButton()
+        updateOptionsSummary()
+        resize()
     }
 
     func comboBoxSelectionDidChange(_ notification: Notification) {
-        DispatchQueue.main.async { [weak self] in self?.updateTargetListButton() }
+        DispatchQueue.main.async { [weak self] in
+            self?.updateTargetListButton()
+            self?.updateOptionsSummary()
+            self?.resize()
+        }
     }
 }
 

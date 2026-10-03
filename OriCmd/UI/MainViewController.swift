@@ -269,7 +269,11 @@ extension MainViewController: NSMenuItemValidation {
             .filter { $0.isFolder && !$0.isParent && target.listView.marked.contains($0.name) }
             .map(\.url)
         let folders = items.filter(\.isFolder).count
+        let sourceFolders = Set(items.map { $0.url.deletingLastPathComponent().path })
+        let sourceText = sourceFolders.count == 1 ? (sourceFolders.first ?? source.directory.path)
+            : String(localized: "Multiple folders")
         CopyDialog.show(kind: kind, files: items.count - folders, folders: folders,
+                        source: sourceText, names: items.map(\.name), marked: !source.listView.marked.isEmpty,
                         target: Self.folderText(target.directory), selectedTargetFolders: targetFolders.count,
                         in: window) { [weak self] result in
             self?.transfer(result, items: items, from: source, targetFolders: result.toAllSelectedFolders ? targetFolders : [])

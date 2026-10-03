@@ -12,6 +12,8 @@ keep working as always.
 Full, Brief and Thumbnails file panels expose file names, types, sizes, dates,
 selection and open actions through macOS accessibility, including VoiceOver.
 
+Copy and move dialogs show the source, destination, affected names and whether marked items or the cursor item will be used. Their Copy/Move button names the action, and the overwrite rule remains visible when advanced options are collapsed.
+
 ## Features
 
 - **Panels:** tabs, history, directory hotlist, tree, filters, quick search, a
