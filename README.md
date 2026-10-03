@@ -140,8 +140,10 @@ building or importing upstream changes.
 
 Tags use `v2026.10.0`; disk images use `OriCmd-2026.10.0.dmg`. The app's internal
 build number and the local install counter advance independently of the calendar
-version. The About window identifies the fork; builds installed with
-`scripts/install-local.sh` also show their local build number and commit.
+version. About shows only the version and build, for example `2026.10.0 (21)`,
+with `tosiabunio fork` below. Builds installed with `scripts/install-local.sh`
+use their local install counter in parentheses; other builds use the internal
+build number.
 
 Imported upstream versions and commits are recorded separately in release notes.
 The latest imported upstream checkpoint is
@@ -609,7 +611,8 @@ GPL-3.0 — see [LICENSE](LICENSE). The terminal uses
 [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) (MIT License), syntax
 highlighting [highlight.js](https://highlightjs.org) (BSD 3-Clause License); DjVu
 text layers are decompressed as [DjVuLibre](https://djvu.sourceforge.net) does
-(GPL-2.0-or-later, used under version 3); their notices are in About OriCmd.
+(GPL-2.0-or-later, used under version 3). Their [notices](OriCmd/Credits.rtf)
+are bundled in `OriCmd.app/Contents/Resources/Credits.rtf`.
 
 OriCmd is not affiliated with Ghisler Software GmbH. Total Commander is a
 trademark of its owner.
