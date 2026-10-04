@@ -69,12 +69,11 @@ keep working as always.
 
 ## Screenshots
 
-The screenshots in this README come from upstream and may not show this fork's
-interface changes yet.
+The screenshots show this fork's interface with its default settings.
 
 | | |
 |---|---|
-| ![Copy dialog](docs/screenshots/en/copy-dialog.png)<br>Copy (`F5`): file type filter, name masks, overwrite modes | ![Settings](docs/screenshots/en/settings.png)<br>Settings with a panel preview |
+| ![Copy dialog](docs/screenshots/en/copy-dialog.png)<br>Copy (`F5`): source, destination and scope, file type filter, overwrite modes | ![Settings](docs/screenshots/en/settings.png)<br>Settings with a panel preview |
 | ![Compare by content](docs/screenshots/en/compare.png)<br>Compare files by content | ![Multi-Rename Tool](docs/screenshots/en/multi-rename.png)<br>Multi-Rename Tool (`Ctrl+M`) |
 | ![Synchronize directories](docs/screenshots/en/sync.png)<br>Synchronize directories | ![Dark theme](docs/screenshots/en/main-dark.png)<br>Dark theme |
 
