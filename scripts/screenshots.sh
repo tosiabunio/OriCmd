@@ -1,6 +1,7 @@
 #!/bin/zsh
 # Regenerates the README screenshots in docs/screenshots/{en,ru}: plays key
-# scenarios on demo folders (/tmp/OriCmd, removed afterwards) in both languages.
+# scenarios on demo folders (/tmp/OriCmd, removed afterwards) in both languages,
+# each with its own region formats and the light theme unless THEME says otherwise.
 # Needs the Debug build (see scripts/test/README.md).
 setopt nullglob
 cd "$(dirname $0)/.."
@@ -25,9 +26,10 @@ shot() {
   rm -f $SHOTS/$name*.png
   defaults delete ru.themmag.OriCmd.tests 2>/dev/null
   defaults write ru.themmag.OriCmd.tests FileColorRules -data $RULES
-  [ -n "$THEME" ] && defaults write ru.themmag.OriCmd.tests Appearance $THEME
+  # Light unless THEME says otherwise, whatever the system appearance.
+  defaults write ru.themmag.OriCmd.tests Appearance ${THEME:-light}
   env ORICMD_DEMO=1 ORICMD_LEFT=$left ORICMD_RIGHT=$right "ORICMD_KEYS=$keys" \
-    ORICMD_SNAPSHOT=$PWD/$SHOTS/$name.png ORICMD_QUIT=1 "$@" $APP -AppleLanguages "($UI)" >/dev/null 2>&1
+    ORICMD_SNAPSHOT=$PWD/$SHOTS/$name.png ORICMD_QUIT=1 "$@" $APP -AppleLanguages "($UI)" -AppleLocale $LOCALE >/dev/null 2>&1
   defaults delete ru.themmag.OriCmd.tests 2>/dev/null
 }
 
@@ -41,8 +43,8 @@ publish() {
 # The English set for README.md, the Russian one for README.ru.md.
 for UI in en ru; do
   case $UI in
-    en) OPTIONS="Options_>>"; COMPARE=Compare; MASK="Holiday_[C]" ;;
-    ru) OPTIONS="Параметры_>>"; COMPARE=Сравнить; MASK="Отпуск_[C]" ;;
+    en) LOCALE=en_GB; OPTIONS="Options_>>"; COMPARE=Compare; MASK="Holiday_[C]" ;;
+    ru) LOCALE=ru_RU; OPTIONS="Параметры_>>"; COMPARE=Сравнить; MASK="Отпуск_[C]" ;;
   esac
   shot main $P $D/Downloads \
     "cmd+t wait home down enter wait ctrl+tab wait alt+l wait text:ICENSE escape insert alt+p wait text:ackage escape insert alt+r wait text:EADME escape wait"

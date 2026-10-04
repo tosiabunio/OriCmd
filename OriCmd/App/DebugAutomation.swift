@@ -1,6 +1,7 @@
 #if DEBUG
 import AppKit
 import ApplicationServices
+import ScreenCaptureKit
 import WebKit
 
 /// Development aids driven by environment variables (Debug builds only):
@@ -23,6 +24,8 @@ import WebKit
 ///   shows in a `.txt` beside it) is rendered there after the keys are played; a server
 ///   terminal of the active panel as `<name>-terminal.png` and `.txt`.
 /// - `ORICMD_QUIT`: exit when done (even with a sheet open).
+/// - `ORICMD_DEMO`: README screenshots (`scripts/screenshots.sh`): only the startup
+///   volume, and windows pictured as the window server shows them.
 enum DebugAutomation {
     /// Calls the accessibility APIs against live panel geometry and state.
     private static func checkAccessibility(of list: FileListView) -> String {
@@ -654,6 +657,7 @@ enum DebugAutomation {
             try? await Task.sleep(for: .milliseconds(400))
             if let snapshot {
                 save(window, to: snapshot)
+                if environment["ORICMD_DEMO"] != nil { await saveComposited(window, to: snapshot) }
                 // Where the panels are: the path shown, the cursor's name, the tabs.
                 if let main = window.contentViewController as? MainViewController {
                     let lines = zip(["left", "right"], main.panels).map { side, panel in
@@ -706,6 +710,9 @@ enum DebugAutomation {
                 let others = NSApp.windows.filter { $0 !== window && $0.isVisible && $0.sheetParent == nil }
                 for (index, other) in others.enumerated() {
                     save(other, to: snapshot.replacingOccurrences(of: ".png", with: "-win\(index + 1).png"))
+                    if environment["ORICMD_DEMO"] != nil {
+                        await saveComposited(other, to: snapshot.replacingOccurrences(of: ".png", with: "-win\(index + 1).png"))
+                    }
                     saveTexts(of: other, to: snapshot.replacingOccurrences(of: ".png", with: "-win\(index + 1).txt"))
                     // A sheet on it (a question of the compare window) as -winN-sheet.txt.
                     if let sheet = other.attachedSheet {
@@ -1077,6 +1084,24 @@ enum DebugAutomation {
         guard let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
         view.cacheDisplay(in: view.bounds, to: rep)
         try? rep.representation(using: .png, properties: [:])?.write(to: URL(filePath: path))
+    }
+
+    /// The window as the window server shows it, over the picture `save` made: a
+    /// view's own drawing paints the toolbar's glass as blank white. An app may
+    /// capture its own windows without the Screen Recording permission.
+    private static func saveComposited(_ window: NSWindow, to path: String) async {
+        guard #available(macOS 14.4, *),
+              let content = try? await SCShareableContent.currentProcess,
+              let shown = content.windows.first(where: { $0.windowID == CGWindowID(window.windowNumber) }) else { return }
+        let filter = SCContentFilter(desktopIndependentWindow: shown)
+        let configuration = SCStreamConfiguration()
+        configuration.width = Int(filter.contentRect.width * CGFloat(filter.pointPixelScale))
+        configuration.height = Int(filter.contentRect.height * CGFloat(filter.pointPixelScale))
+        configuration.ignoreShadowsSingleWindow = true
+        configuration.showsCursor = false
+        guard let image = try? await SCScreenshotManager.captureImage(contentFilter: filter,
+                                                                      configuration: configuration) else { return }
+        try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: URL(filePath: path))
     }
 }
 
