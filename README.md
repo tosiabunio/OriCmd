@@ -83,10 +83,9 @@ The screenshots are made by `scripts/screenshots.sh` on demo folders
 
 ## Installation
 
-Packaged builds will be published on this fork's
-[Releases](https://github.com/tosiabunio/OriCmd/releases) page. There are no packaged
-fork releases yet; build from this repository for now (a universal app for Apple
-Silicon and Intel, macOS 14+):
+Download `OriCmd-<version>.dmg` from the latest release on this fork's
+[Releases](https://github.com/tosiabunio/OriCmd/releases) page (a universal app for
+Apple Silicon and Intel, macOS 14+). Or build the same image from this repository:
 
 ```sh
 git clone https://github.com/tosiabunio/OriCmd.git

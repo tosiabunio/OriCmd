@@ -87,10 +87,10 @@
 
 ## Установка
 
-Готовые сборки будут публиковаться на странице
-[Releases этого форка](https://github.com/tosiabunio/OriCmd/releases). Готовых релизов
-форка пока нет; сейчас приложение можно собрать из этого репозитория
-(универсальное приложение для Apple Silicon и Intel, macOS 14+):
+Скачайте `OriCmd-<версия>.dmg` из последнего релиза на странице
+[Releases этого форка](https://github.com/tosiabunio/OriCmd/releases) (универсальное
+приложение для Apple Silicon и Intel, macOS 14+). Или соберите такой же образ из
+этого репозитория:
 
 ```sh
 git clone https://github.com/tosiabunio/OriCmd.git
