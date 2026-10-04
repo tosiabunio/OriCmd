@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import os
 
 @Suite("File masks, filters and names")
 struct FileNameTests {
@@ -60,6 +61,11 @@ struct TransferTests {
         try await body(source, target)
     }
 
+    /// Answers every "already exists" question with `conflict`; a failed item stops the operation.
+    private func prompts(_ conflict: ConflictDecision) -> TransferPrompts {
+        TransferPrompts(resolveConflict: { _, _ in conflict }, resolveError: { _ in .cancel })
+    }
+
     @Test func copyVerifiesContentsAndPreservesSource() async throws {
         try await withFolders { source, target in
             let file = source.appending(path: "file.txt")
@@ -69,7 +75,7 @@ struct TransferTests {
             options.verify = true
             let job = TransferJob(kind: .copy, sources: [file], destination: target, newName: nil, options: options)
             let progress = TransferProgress()
-            let done = try await TransferEngine(job: job, progress: progress, resolveConflict: { _, _ in .cancel }).run()
+            let done = try await TransferEngine(job: job, progress: progress, prompts: prompts(.cancel)).run()
             #expect(progress.snapshot.skippedItems == 0)
             #expect(done == [file])
             #expect(try Data(contentsOf: target.appending(path: "file.txt")) == data)
@@ -84,7 +90,7 @@ struct TransferTests {
             try Data("target".utf8).write(to: existing)
             let job = TransferJob(kind: .move, sources: [file], destination: target, newName: nil)
             let progress = TransferProgress()
-            let done = try await TransferEngine(job: job, progress: progress, resolveConflict: { _, _ in .skip }).run()
+            let done = try await TransferEngine(job: job, progress: progress, prompts: prompts(.skip)).run()
             #expect(progress.snapshot.skippedItems == 1)
             #expect(done.isEmpty)
             #expect(try Data(contentsOf: file) == Data("source".utf8))
@@ -101,7 +107,7 @@ struct TransferTests {
             progress.cancel()
             let job = TransferJob(kind: .copy, sources: [file], destination: target, newName: nil)
             await #expect(throws: CancellationError.self) {
-                try await TransferEngine(job: job, progress: progress, resolveConflict: { _, _ in .overwrite }).run()
+                try await TransferEngine(job: job, progress: progress, prompts: prompts(.overwrite)).run()
             }
             #expect(try Data(contentsOf: existing) == Data("target".utf8))
         }
@@ -113,9 +119,14 @@ struct TransferTests {
             try Data("keep".utf8).write(to: file)
             try FileManager.default.createSymbolicLink(at: link, withDestinationURL: source)
             let job = TransferJob(kind: .copy, sources: [file], destination: link, newName: nil)
-            await #expect(throws: TransferError.self) {
-                try await TransferEngine(job: job, progress: TransferProgress(), resolveConflict: { _, _ in .overwrite }).run()
-            }
+            let failures = OSAllocatedUnfairLock(initialState: [String]())
+            let skipping = TransferPrompts(resolveConflict: { _, _ in .overwrite }, resolveError: { message in
+                failures.withLock { $0.append(message) }
+                return .skip
+            })
+            let done = try await TransferEngine(job: job, progress: TransferProgress(), prompts: skipping).run()
+            #expect(done.isEmpty)
+            #expect(failures.withLock { $0.count } == 1)
             #expect(try Data(contentsOf: file) == Data("keep".utf8))
         }
     }
