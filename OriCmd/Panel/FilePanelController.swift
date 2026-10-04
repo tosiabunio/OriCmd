@@ -1994,7 +1994,8 @@ extension FilePanelController: NSMenuItemValidation {
                     initial: item.name, selection: selection,
                     okTitle: String(localized: "copy.button", defaultValue: "Copy"), in: window) { [weak self] name in
             guard let self, !name.isEmpty, name != item.name, !name.contains("/") else { return }
-            let job = TransferJob(kind: .copy, sources: [item.url], destination: directory, newName: name)
+            var job = TransferJob(kind: .copy, sources: [item.url], destination: directory, newName: name)
+            job.options.skipsDSStore = Settings.copySkipsDSStore
             Task {
                 _ = await TransferController.run(job, in: window)
                 self.load(self.directory, selecting: name)

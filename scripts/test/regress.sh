@@ -302,6 +302,65 @@ defaults write ru.themmag.OriCmd.tests CopyOverwriteMode -int 2
 run hardlink "home down f5 wait enter wait wait"
 check "A hard link to the source inside the target does not stop copying" "[ -f $R/alpha/extra.txt ]"
 
+# Finder's .DS_Store files inside the copied folders are left out by default (a move
+# across volumes drops them, leaving no folder behind); one chosen itself is copied,
+# and the option of the dialog or of Settings copies them all.
+dsprep() { scripts/test/mkdata.sh; echo view > $L/alpha/.DS_Store; }
+dsprep; run dsskip "home down f5 wait enter wait wait"
+check "F5 leaves out .DS_Store inside folders" "[ -f $R/alpha/inside.txt ] && [ ! -e $R/alpha/.DS_Store ]"
+dsprep; run dspaste "home down cmd+c tab cmd+v wait wait wait"
+check "Pasting leaves out .DS_Store inside folders" "[ -f $R/alpha/inside.txt ] && [ ! -e $R/alpha/.DS_Store ]"
+dsprep; run dskeep "home down f5 wait click:Options_>> wait set:copySkipDSStore=off enter wait wait"
+check "F5 with .DS_Store not skipped copies it" "cmp -s $L/alpha/.DS_Store $R/alpha/.DS_Store"
+dsprep; defaults write ru.themmag.OriCmd.tests CopySkipDSStore -bool false
+run dskeepset "home down f5 wait enter wait wait"
+check "Settings: .DS_Store not skipped is copied" "cmp -s $L/alpha/.DS_Store $R/alpha/.DS_Store"
+scripts/test/mkdata.sh; echo view > $L/.DS_Store; defaults write ru.themmag.OriCmd.tests ShowHiddenFiles -bool true
+run dschosen "alt+. wait text:DS_ escape f5 wait enter wait wait"
+check "F5 on a .DS_Store itself copies it" "cmp -s $L/.DS_Store $R/.DS_Store"
+dsprep
+if hdiutil create -quiet -size 4m -fs HFS+ -volname OriVeto build/testdata/veto.dmg \
+   && mkdir -p build/testdata/mnt && hdiutil attach -quiet -nobrowse build/testdata/veto.dmg -mountroot $PWD/build/testdata/mnt; then
+  M=$PWD/build/testdata/mnt/OriVeto
+  RIGHT_PANEL=$M run dsmove "home down f6 wait enter wait wait"
+  check "F6 to another volume drops .DS_Store with the folder" "[ -f $M/alpha/inside.txt ] && [ ! -e $M/alpha/.DS_Store ] && [ ! -e $L/alpha ]"
+  hdiutil detach -quiet -force $M
+fi
+
+# A server's "veto files" (Samba on a NAS) refuse .DS_Store and the like: putting the
+# copy in place under that name fails with ENOENT (ORICMD_VETO plays such a server).
+# Finder's and Explorer's own files are left out and the copy goes on.
+dsprep; echo thumbs > $L/alpha/Thumbs.db; echo after > $L/alpha/zzz.txt; defaults write ru.themmag.OriCmd.tests CopySkipDSStore -bool false
+ORICMD_VETO=/.DS_Store/thumbs.db/ run veto "home down f5 wait enter wait wait"
+check "A server refusing .DS_Store and Thumbs.db does not stop copying" "[ -f $R/alpha/zzz.txt ] && [ -f $R/alpha/inside.txt ] && [ ! -e $R/alpha/.DS_Store ] && [ ! -e $R/alpha/Thumbs.db ] && [ ! -f build/shots/reg-veto-sheet.png ] && ! ls -a $R/alpha | grep -q oricmd"
+
+# An item that cannot be copied is asked about (the copy waits): Skip (Return) goes
+# on without it, Skip All without the next ones too, Retry tries it again, Cancel
+# (Esc) stops; the message names it ("the server does not accept this name").
+asked() { grep -qx "$2" build/shots/reg-$1-sheet2.txt && grep -qx '\[button\] Skip All' build/shots/reg-$1-sheet2.txt && grep -qx '\[button\] Retry' build/shots/reg-$1-sheet2.txt; }
+scripts/test/mkdata.sh
+ORICMD_VETO=/inside.txt/ run vetoname "home down f5 wait enter wait wait"
+check "A file that cannot be copied is asked about, its name said" "asked vetoname '$PWD/$R/alpha/inside.txt: the server does not accept this name.' && ! ls -a $R/alpha | grep -q oricmd"
+scripts/test/mkdata.sh
+UI_LANGUAGE=ru ORICMD_VETO=/deeper/ run vetofolder "home down down f5 wait enter wait wait"
+check "A folder that cannot be created is asked about (in Russian too)" "grep -qx '$PWD/$R/beta/deep/deeper: сервер не принимает такое имя.' build/shots/reg-vetofolder-sheet2.txt && grep -qx '\[button\] Пропустить все' build/shots/reg-vetofolder-sheet2.txt"
+scripts/test/mkdata.sh; echo after > $L/alpha/zzz.txt
+ORICMD_VETO=/inside.txt/ run errskip "home down f5 wait enter wait wait enter wait wait"
+check "Skip (Return): the copy goes on without the item" "[ -f $R/alpha/zzz.txt ] && [ ! -e $R/alpha/inside.txt ] && [ ! -f build/shots/reg-errskip-sheet.png ]"
+scripts/test/mkdata.sh; echo after > $L/alpha/zzz.txt
+ORICMD_VETO=/inside.txt/zzz.txt/ run errskipall "home down space space f5 wait enter wait wait click:Skip_All wait wait wait"
+check "Skip All: the next failures are not asked about" "[ -z \"\$(ls $R/alpha)\" ] && [ -f $R/beta/deep/deeper/blob.bin ] && [ ! -f build/shots/reg-errskipall-sheet.png ]"
+scripts/test/mkdata.sh; echo after > $L/alpha/zzz.txt
+ORICMD_VETO=/inside.txt/ run errcancel "home down space space f5 wait enter wait wait escape wait wait"
+check "Cancel (Esc) stops the copy" "[ ! -e $R/beta ] && [ ! -f build/shots/reg-errcancel-sheet.png ]"
+# Retry: a locked target (no "Overwrite/delete locked files") unlocked while asked.
+scripts/test/mkdata.sh; mkdir -p $R/alpha; echo locked > $R/alpha/inside.txt; chflags uchg $R/alpha/inside.txt
+defaults write ru.themmag.OriCmd.tests CopyOverwriteMode -int 2
+( sleep 6; chflags nouchg $R/alpha/inside.txt ) &
+run errretry "home down f5 wait enter wait wait wait wait wait wait wait wait wait wait click:Retry wait wait"
+wait
+check "Retry copies the item once it can be" "cmp -s $L/alpha/inside.txt $R/alpha/inside.txt && [ ! -f build/shots/reg-errretry-sheet.png ]"
+
 scripts/test/mkdata.sh; echo locked > $R/notes.md; chflags uchg $R/notes.md
 defaults write ru.themmag.OriCmd.tests CopyOverwriteMode -int 2
 run locked "alt+n wait text:otes escape f5 wait enter wait wait"
@@ -1433,6 +1492,12 @@ check "SFTP refuses names with line breaks" "! ls $L | grep -q evil"
 scripts/test/mkdata.sh; ln -s alpha $L/current; mkdir -p $R/current; echo new > $R/current/new.txt
 run sftpsymlinkfolder "$(connect sftp://oritest$PWD/$L) tab alt+c wait text:urrent escape f5 wait enter wait wait wait"
 check "SFTP upload into a server symlink to a folder" "[ -f $L/alpha/new.txt ]"
+
+# Cyrillic names over SFTP: listed as they are (with LC_ALL=C the sftp client wrote
+# their bytes as octal escapes), a folder entered, a file downloaded.
+scripts/test/mkdata.sh; mkdir -p "$L/cyr/Наутилус"; echo крылья > "$L/cyr/Наутилус/Крылья.txt"
+run sftpcyr "$(connect sftp://oritest$PWD/$L/cyr) home down enter wait wait down f5 wait enter wait wait wait"
+check "SFTP: Cyrillic names listed, entered and downloaded" "grep -q '^left\\*: .*/cyr/Наутилус |' build/shots/reg-sftpcyr-panels.txt && grep -q '^left items: Крылья.txt\$' build/shots/reg-sftpcyr-panels.txt && [ \"\$(cat $R/Крылья.txt)\" = крылья ]"
 
 # F6 to the server through a symlinked local path, one file inside kept: nothing local is lost.
 scripts/test/mkdata.sh; ln -s right build/testdata/linkright; mkdir -p $R/site $L/site

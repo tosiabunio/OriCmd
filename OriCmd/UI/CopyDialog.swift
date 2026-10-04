@@ -54,6 +54,8 @@ final class CopyDialog: NSObject {
                                              target: nil, action: nil)
     private let overwriteLockedBox = NSButton(checkboxWithTitle: String(localized: "Overwrite/delete locked files"),
                                               target: nil, action: nil)
+    private let skipDSStoreBox = NSButton(checkboxWithTitle: String(localized: "Skip .DS_Store (Finder\u{2019}s folder view settings)"),
+                                          target: nil, action: nil)
     private let allFoldersBox = NSButton(checkboxWithTitle: String(localized: "Copy to all selected folders in the target panel"),
                                          target: nil, action: nil)
 
@@ -218,7 +220,9 @@ final class CopyDialog: NSObject {
 
         skipUnreadableBox.state = Settings.copySkipsUnreadable ? .on : .off
         overwriteLockedBox.state = Settings.copyOverwritesLocked ? .on : .off
-        for button in [skipUnreadableBox, overwriteLockedBox, allFoldersBox] {
+        skipDSStoreBox.state = Settings.copySkipsDSStore ? .on : .off
+        skipDSStoreBox.identifier = NSUserInterfaceItemIdentifier("copySkipDSStore")
+        for button in [skipUnreadableBox, overwriteLockedBox, skipDSStoreBox, allFoldersBox] {
             button.target = self
             button.action = #selector(optionsChanged(_:))
         }
@@ -234,6 +238,7 @@ final class CopyDialog: NSObject {
             row(overwritePopUp, saveButton),
             skipUnreadableBox,
             overwriteLockedBox,
+            skipDSStoreBox,
             allFoldersBox,
         ])
         content.orientation = .vertical
@@ -274,6 +279,7 @@ final class CopyDialog: NSObject {
         if !filter.isEmpty { parts.append(String(localized: "Only: \(filter)")) }
         if skipUnreadableBox.state == .on { parts.append(String(localized: "Skip unreadable files")) }
         if overwriteLockedBox.state == .on { parts.append(String(localized: "Replace locked files")) }
+        if skipDSStoreBox.state == .off { parts.append(String(localized: "Copy .DS_Store")) }
         if allFoldersBox.isEnabled && allFoldersBox.state == .on { parts.append(allFoldersBox.title) }
         optionsSummary.stringValue = parts.joined(separator: " · ")
     }
@@ -477,6 +483,7 @@ final class CopyDialog: NSObject {
         Settings.copyOverwriteMode = OverwriteMode(rawValue: overwritePopUp.indexOfSelectedItem + 1) ?? .ask
         Settings.copySkipsUnreadable = skipUnreadableBox.state == .on
         Settings.copyOverwritesLocked = overwriteLockedBox.state == .on
+        Settings.copySkipsDSStore = skipDSStoreBox.state == .on
         Settings.copyVerifies = verifyBox.state == .on
         Settings.copyAttributes = attributesBox.state == .on
         saveButton.image = NSImage(systemSymbolName: "checkmark", accessibilityDescription: nil)
@@ -538,6 +545,7 @@ final class CopyDialog: NSObject {
         options.overwrite = OverwriteMode(rawValue: overwritePopUp.indexOfSelectedItem + 1) ?? .ask
         options.skipsUnreadable = skipUnreadableBox.state == .on
         options.overwritesLocked = overwriteLockedBox.state == .on
+        options.skipsDSStore = skipDSStoreBox.state == .on
         let result = Result(kind: kind, target: target, options: options, queued: queued,
                             toAllSelectedFolders: allFoldersBox.isEnabled && allFoldersBox.state == .on)
         close()

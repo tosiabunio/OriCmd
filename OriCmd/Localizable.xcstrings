@@ -121,6 +121,16 @@
         }
       }
     },
+    "%@: the server does not accept this name.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: сервер не принимает такое имя."
+          }
+        }
+      }
+    },
     "%P folder of the active panel, %N file under the cursor, %S selected files, %T folder of the other panel, %M file under the cursor there. Values are quoted for the shell.": {
       "localizations": {
         "ru": {
@@ -2245,6 +2255,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Копировать %lld каталог(ов) в:"
+          }
+        }
+      }
+    },
+    "Copy .DS_Store": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Копировать .DS_Store"
           }
         }
       }
@@ -6249,6 +6269,16 @@
         }
       }
     },
+    "Retry": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторить"
+          }
+        }
+      }
+    },
     "Reverse Order": {
       "localizations": {
         "ru": {
@@ -6955,6 +6985,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Пропустить"
+          }
+        }
+      }
+    },
+    "Skip .DS_Store (Finder’s folder view settings)": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пропускать .DS_Store (настройки вида папок в Finder)"
           }
         }
       }

@@ -149,7 +149,7 @@ and the dependencies. Commit revisions are not displayed.
 
 Imported upstream versions and commits are recorded separately in release notes.
 The latest imported upstream checkpoint is
-[OriCmd 0.13b, commit 096ccd3](https://github.com/mmag/OriCmd/commit/096ccd3).
+[OriCmd 0.13.2b, commit 1cd4881](https://github.com/mmag/OriCmd/commit/1cd4881).
 Upstream imports preserve this fork's release numbering.
 
 ## Keys
@@ -395,9 +395,17 @@ that takes more than 5 seconds is stopped (the text stays plain).
   other way round).
 - **Options >>**: overwrite mode (ask, overwrite all, skip all, overwrite older,
   auto-rename the copied or the existing files — `name(2).ext`, copy larger or
-  smaller ones), skip unreadable files, overwrite/delete locked files, copy to all
-  folders selected in the target panel. The pin keeps the options open, the save
-  button makes them the default.
+  smaller ones), skip unreadable files, overwrite/delete locked files, skip
+  `.DS_Store` (on by default: Finder's view settings inside the folders are not
+  copied; one chosen itself is), copy to all folders selected in the target
+  panel. The pin keeps the options open, the save button makes them the default.
+- A file or folder that cannot be copied or moved is asked about while the
+  operation waits: **Skip** (`Return`), **Skip All** (the next failures of this
+  operation without asking), **Retry**, **Cancel** (`Esc`) the rest. A file server
+  that refuses some names (Samba's "veto files" on a NAS often keep out
+  `.DS_Store`, `Thumbs.db`, `desktop.ini`) is named as the cause ("the server does
+  not accept this name"); such Finder and Explorer files are left out without
+  asking.
 
 ### Archives
 

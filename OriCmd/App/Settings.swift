@@ -33,6 +33,7 @@ enum Settings {
         static let copyAttributes = "CopyAttributes"
         static let copySkipUnreadable = "CopySkipUnreadable"
         static let copyOverwriteLocked = "CopyOverwriteLocked"
+        static let copySkipDSStore = "CopySkipDSStore"
         static let rightButton = "RightMouseButton"
         static let extensionDisplay = "ExtensionDisplay"
         static let sizeDisplay = "SizeDisplay"
@@ -313,6 +314,11 @@ enum Settings {
     static var copyOverwritesLocked: Bool {
         get { bool(Key.copyOverwriteLocked, default: false) }
         set { set(newValue, Key.copyOverwriteLocked) }
+    }
+
+    static var copySkipsDSStore: Bool {
+        get { bool(Key.copySkipDSStore, default: true) }
+        set { set(newValue, Key.copySkipDSStore) }
     }
 
     /// Looks for a new release on GitHub once a day.
