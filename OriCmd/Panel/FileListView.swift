@@ -672,9 +672,8 @@ final class FileListView: NSView {
                          color: detail, alignment: numeric ? .right : .left)
             }
             if layout.contains(.date) {
-                let dateRect = layout.rect(for: .date, y: y, height: rowHeight)
-                drawText(Self.dateText(item.modified, width: dateRect.width - 8, font: numberFont),
-                         in: dateRect, font: numberFont, color: detail)
+                drawText(Theme.dateText(item.modified), in: layout.rect(for: .date, y: y, height: rowHeight),
+                         font: numberFont, color: detail)
             }
             if layout.contains(.attr) {
                 drawText(item.permissions, in: layout.rect(for: .attr, y: y, height: rowHeight),
@@ -713,14 +712,6 @@ final class FileListView: NSView {
             if fits(String(base[..<middle]) + "…." + ext) { low = middle } else { high = middle - 1 }
         }
         return String(base[..<low]) + "…." + ext
-    }
-
-    /// A date as the Date column shows it: the modern look's long form, or the short
-    /// one where that does not fit, as the Finder shortens dates in a narrow column.
-    private static func dateText(_ date: Date, width: CGFloat, font: NSFont) -> String {
-        let text = Theme.dateText(date)
-        guard Settings.isModern, (text as NSString).size(withAttributes: [.font: font]).width > width else { return text }
-        return Theme.dateText(date, short: true)
     }
 
     /// The Name and Ext texts of the cursor row in Full view (for test runs).

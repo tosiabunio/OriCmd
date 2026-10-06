@@ -85,7 +85,7 @@ still looks current, because both are drawn quietly.
 | Active panel | Path bar filled with the accent color ([`PathBar.swift:233`][pathbar]) | Neutral header with a 3 pt accent strip and an accent-tinted folder icon |
 | Cursor | Square full-width band; dotted box in the inactive panel; blue when the window is not key | Rounded inset row: `selectedContentBackgroundColor` when focused, `unemphasizedSelectedContentBackgroundColor` otherwise |
 | Folders | `[name]` and `<DIR>` | Icon only; `--` in Size, or the size when calculated; packages show their kind |
-| Dates | `10/09/2026, 12:00` | Medium style, optionally relative ("Today 11:30"), shorter in narrow columns |
+| Dates | `10/09/2026, 12:00` | Kept: one short date-and-time format on every row (relative dates were tried and dropped as uneven) |
 | Attributes | `rwxr-xr-x` column by default | Optional column; shown in Change Attributes and Get Info |
 | File colors | The type color applies to every column | The type color applies to the name; Ext, Size and Date use secondary gray |
 | Column header | Boxed separators, ▴ ▾ characters, fixed widths | No borders; sorted column in semibold with a chevron symbol; hover state; resizable columns |
@@ -117,9 +117,9 @@ of the visible gain for the least risk.
    accent-tinted folder icon mark the active panel. Counts and free space move to
    a second, secondary-gray line. The same bar heads the separate tree and Quick
    View. [`PathBar.swift:233–308`][pathbar]. Effort S–M.
-3. **Quieter rows.** Folder brackets off; `--` instead of `<DIR>`; medium or
-   relative dates; the Attr column hidden by default and kept in the header's
-   column menu; Ext, Size and Date in secondary gray.
+3. **Quieter rows.** Folder brackets off; `--` instead of `<DIR>`; the Attr
+   column hidden by default and kept in the header's column menu; Ext, Size and
+   Date in secondary gray. Dates keep one short date-and-time format.
    [`FileListView.swift:616–673`][rows], [`Settings.swift:208`][brackets].
    Effort S.
 4. **Column header.** No boxed separators, the sorted column in semibold with an
@@ -141,9 +141,11 @@ Classic look or are updated.
 brackets, Mac-style tabs, the compact header, key caps, the Finder-style status
 line, checkmarks and the row height; a switch never changed follows the look.
 Alternating rows are on by default in Modern (Settings → Colors still decides).
-Differences from the mockup: the path keeps `/` between folders rather than `›`,
-and the status line below the list folds away only with the compact header,
-returning while quick search is open. Column widths dragged in the header apply
+Differences from the mockup: the path keeps `/` between folders rather than `›`;
+dates keep one short date-and-time format on every row in both looks (the user
+found relative dates such as "Today at 09:12" uneven); and the status line below
+the list folds away only with the compact header, returning while quick search is
+open. Column widths dragged in the header apply
 to both looks and every panel. Test runs show the focused cursor although they
 stay in the background, and gain `columns`, `headerdrag`, `headerdoubleclick` and
 `headerclick` actions with regression checks.

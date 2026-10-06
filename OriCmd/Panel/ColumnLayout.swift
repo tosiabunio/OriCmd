@@ -40,10 +40,9 @@ struct ColumnLayout {
     static func fixedWidths(of shown: [SortColumn]) -> [(SortColumn, CGFloat)] {
         let font = Theme.panelNumberFont
         let columns = [.name] + shown
-        let key = "\(font.fontName) \(font.pointSize) \(Settings.isModern) \(columns.map(\.rawValue))"
+        let key = "\(font.fontName) \(font.pointSize) \(columns.map(\.rawValue))"
         if let cachedWidths, cachedWidths.key == key { return cachedWidths.widths }
-        let sampleDate = Date(timeIntervalSince1970: 1_790_812_740)
-        let sampleDates = [Theme.dateText(sampleDate), Theme.dateText(Date(timeIntervalSinceNow: -86_400))]
+        let sampleDate = Theme.dateText(Date(timeIntervalSince1970: 1_798_761_540))
         func width(_ sample: String) -> CGFloat {
             ceil((sample as NSString).size(withAttributes: [.font: font]).width) + 12
         }
@@ -52,7 +51,7 @@ struct ColumnLayout {
             return switch column {
             case .ext: (column, max(width("WWWW"), 44))
             case .size: (column, width("999 999 999"))
-            case .date, .created: (column, sampleDates.map(width).max() ?? 0)
+            case .date, .created: (column, width(sampleDate))
             case .attr: (column, width("rwxrwxrwx"))
             case .kind: (column, max(width("Markdown document"), 110))
             case .dimensions: (column, width("99999 × 99999"))

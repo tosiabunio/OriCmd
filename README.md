@@ -18,7 +18,7 @@ keep working as always.
 - **Modern look:** the panels are drawn as Mac lists are — a rounded cursor in
   the accent color (grey in the other panel or while OriCmd is in the
   background), rounded alternating rows, marked rows tinted lightly, Ext, Size and
-  Date in grey, `--` for folder sizes, dates such as `Today at 09:12`, no
+  Date in grey, `--` for folder sizes, no
   `[brackets]` or Attr column by default, a thin accent strip over the active
   panel's path with its counts and free space below, and a hairline between the
   panels. Rows are 22 pt with 13 pt names, or compact. Settings → Panels → Look →

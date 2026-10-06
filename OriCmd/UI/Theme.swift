@@ -45,25 +45,16 @@ enum Theme {
         return NSBezierPath(roundedRect: rect.insetBy(dx: inset, dy: 0), xRadius: 5, yRadius: 5)
     }
 
-    /// Dates as the panels show them: "27 Sep 2026 at 11:30" or "Today at 09:12" in
-    /// the modern look, or "27/09/2026, 11:30"; `short` also in the modern look,
-    /// when the long form does not fit.
-    static func dateText(_ date: Date, short: Bool = false) -> String {
-        (Settings.isModern && !short ? mediumDates : shortDates).string(from: date)
+    /// Dates as the panels show them, the same way on every row in both looks: the
+    /// region's short date and time, e.g. "27/09/2026, 11:30".
+    static func dateText(_ date: Date) -> String {
+        dates.string(from: date)
     }
 
-    private static let shortDates: DateFormatter = {
+    private static let dates: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         formatter.timeStyle = .short
-        return formatter
-    }()
-
-    private static let mediumDates: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        formatter.doesRelativeDateFormatting = true
         return formatter
     }()
 
