@@ -1,7 +1,5 @@
 # OriCmd — tosiabunio fork
 
-**English** | [Русский](README.ru.md)
-
 An independently maintained fork of [OriCmd by mmag](https://github.com/mmag/OriCmd),
 developed in [tosiabunio/OriCmd](https://github.com/tosiabunio/OriCmd). This fork has
 its own interface improvements, development direction and release channel. Selected
@@ -78,7 +76,7 @@ The screenshots show this fork's interface with its default settings.
 | ![Synchronize directories](docs/screenshots/en/sync.png)<br>Synchronize directories | ![Dark theme](docs/screenshots/en/main-dark.png)<br>Dark theme |
 
 The screenshots are made by `scripts/screenshots.sh` on demo folders
-(English ones in `docs/screenshots/en`, Russian ones in `docs/screenshots/ru`).
+(in `docs/screenshots/en`).
 
 ## Installation
 

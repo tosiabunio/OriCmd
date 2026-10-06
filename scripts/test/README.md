@@ -36,9 +36,9 @@ real keyboard and mouse, so working elsewhere meanwhile changes nothing.
   Modifiers: `cmd+`, `shift+`, `alt+`, `ctrl+`, `num+`; `ru+` types the key as the
   Russian layout would (`ru+ctrl+d` sends "в" with the D key code).
 - `regress.sh` — plays the main file operations and checks the results on disk.
-- `../screenshots.sh` — regenerates the README screenshots (`docs/screenshots/{en,ru}`) on demo
-  folders from `../mkdemo.sh`, in the light theme (`THEME=dark` for the dark one) and each
-  language's region formats; `ORICMD_DEMO=1` hides all volumes but the startup disk and
+- `../screenshots.sh` — regenerates the README screenshots (`docs/screenshots/en`) on demo
+  folders from `../mkdemo.sh`, in the light theme (`THEME=dark` for the dark one) and
+  British region formats; `ORICMD_DEMO=1` hides all volumes but the startup disk and
   pictures windows as the window server shows them, so the toolbar's glass appears.
   Test runs never use or change the saved window frames.
 - `loc.py [translations.json]` — lists localization keys missing from the catalog,

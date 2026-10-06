@@ -1,7 +1,7 @@
 #!/bin/zsh
-# Regenerates the README screenshots in docs/screenshots/{en,ru}: plays key
-# scenarios on demo folders (/tmp/OriCmd, removed afterwards) in both languages,
-# each with its own region formats and the light theme unless THEME says otherwise.
+# Regenerates the README screenshots in docs/screenshots/en: plays key scenarios
+# on demo folders (/tmp/OriCmd, removed afterwards) in English with British region
+# formats, in the light theme unless THEME says otherwise.
 # Needs the Debug build (see scripts/test/README.md).
 setopt nullglob
 cd "$(dirname $0)/.."
@@ -40,11 +40,10 @@ publish() {
   sips -Z $3 $SHOTS/$1 --out $OUT/$UI/$2 >/dev/null && echo "$OUT/$UI/$2"
 }
 
-# The English set for README.md, the Russian one for README.ru.md.
-for UI in en ru; do
+# The English set for README.md.
+for UI in en; do
   case $UI in
     en) LOCALE=en_GB; OPTIONS="Options_>>"; COMPARE=Compare; MASK="Holiday_[C]" ;;
-    ru) LOCALE=ru_RU; OPTIONS="Параметры_>>"; COMPARE=Сравнить; MASK="Отпуск_[C]" ;;
   esac
   shot main $P $D/Downloads \
     "cmd+t wait home down enter wait ctrl+tab wait alt+l wait text:ICENSE escape insert alt+p wait text:ackage escape insert alt+r wait text:EADME escape wait"
