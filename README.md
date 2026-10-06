@@ -600,6 +600,9 @@ through [this fork's pull requests](https://github.com/tosiabunio/OriCmd/pulls).
 Upstream imports are reviewed for compatibility with the fork's behavior,
 preferences, release numbering and trusted update key.
 
+Planned interface work is described in the [visual refresh](docs/visual-refresh.md)
+plan.
+
 A Debug build can play key scenarios and save window snapshots — see
 `OriCmd/App/DebugAutomation.swift`. The scenarios only work on explicitly given
 test folders (`ORICMD_LEFT`, `ORICMD_RIGHT`); `scripts/test/` has the test data,
