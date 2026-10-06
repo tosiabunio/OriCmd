@@ -324,6 +324,7 @@ final class PanelView: NSView {
             let icon = DriveBar.icon(for: volume.url).copy() as? NSImage
             icon?.size = NSSize(width: 16, height: 16)
             item.image = icon
+            item.keepsImageVisible()
             item.state = volume == currentVolume ? .on : .off
             menu.addItem(item)
         }

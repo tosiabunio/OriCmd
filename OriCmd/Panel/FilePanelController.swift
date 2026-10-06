@@ -1734,6 +1734,7 @@ extension FilePanelController: NSMenuItemValidation {
                     NSBezierPath(ovalIn: rect.insetBy(dx: 1, dy: 1)).fill()
                     return true
                 }
+                item.keepsImageVisible()
             }
             menu.addItem(item)
         }
@@ -1877,6 +1878,7 @@ extension FilePanelController: NSMenuItemValidation {
             let icon = NSWorkspace.shared.icon(forFile: application.path)
             icon.size = NSSize(width: 16, height: 16)
             item.image = icon
+            item.keepsImageVisible()
             menu.addItem(item)
             if application == defaultApplication && applications.count > 1 {
                 menu.addItem(.separator())
