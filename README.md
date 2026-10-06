@@ -147,7 +147,7 @@ and the dependencies. Commit revisions are not displayed.
 
 Imported upstream versions and commits are recorded separately in release notes.
 The latest imported upstream checkpoint is
-[OriCmd 0.13.2b, commit 1cd4881](https://github.com/mmag/OriCmd/commit/1cd4881).
+[OriCmd 0.13.3b, commit a7cda51](https://github.com/mmag/OriCmd/commit/a7cda51).
 Upstream imports preserve this fork's release numbering.
 
 ## Keys
