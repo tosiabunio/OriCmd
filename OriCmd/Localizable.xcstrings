@@ -5329,6 +5329,26 @@
         }
       }
     },
+    "Operations: %lld queued": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Операции: в очереди %lld"
+          }
+        }
+      }
+    },
+    "Operations: %lld running": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Операции: выполняется %lld"
+          }
+        }
+      }
+    },
     "Operations: %lld running · %lld queued · %lld finished": {
       "localizations": {
         "ru": {

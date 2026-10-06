@@ -17,6 +17,12 @@ final class MainViewController: NSViewController {
     private let functionKeyBar = FunctionKeyBar()
     private let operationsButton = NSButton(title: String(localized: "Operations"), target: nil, action: nil)
     private var operationsHeight: NSLayoutConstraint!
+    /// The modern look's one bar under the panels: command line, function keys, Operations.
+    private let bottomBar = NSStackView()
+    private let bottomSeparator = NSBox()
+    private var bottomBarHeight: NSLayoutConstraint!
+    private var bottomConstraints: [NSLayoutConstraint] = []
+    private var bottomIsBar: Bool?
 
     private var didAppear = false
     private var commandLineHeight: NSLayoutConstraint!
@@ -103,48 +109,112 @@ final class MainViewController: NSViewController {
         operationsButton.action = Command.operations.selector
         operationsButton.bezelStyle = .inline
         operationsButton.setAccessibilityLabel(String(localized: "Operations"))
-        for view in [splitView, operationsButton, commandLine.view, functionKeyBar] {
+        bottomBar.orientation = .horizontal
+        bottomBar.alignment = .centerY
+        bottomBar.spacing = 12
+        bottomBar.edgeInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 8)
+        bottomSeparator.boxType = .separator
+        for view in [splitView, bottomBar, bottomSeparator] {
             view.translatesAutoresizingMaskIntoConstraints = false
-            root.addSubview(view)
         }
-        operationsHeight = operationsButton.heightAnchor.constraint(equalToConstant: 0)
+        root.addSubview(splitView)
         splitViewLeading = splitView.leadingAnchor.constraint(equalTo: root.leadingAnchor)
         splitViewLeading.isActive = true
-        commandLineHeight = commandLine.view.heightAnchor.constraint(equalToConstant: CommandLineView.height)
-        functionKeyBarHeight = functionKeyBar.heightAnchor.constraint(equalToConstant: FunctionKeyBar.height)
+        bottomBarHeight = bottomBar.heightAnchor.constraint(equalToConstant: Self.bottomBarHeight)
         NSLayoutConstraint.activate([
-            operationsHeight,
-            commandLineHeight,
-            functionKeyBarHeight,
             splitView.topAnchor.constraint(equalTo: root.topAnchor),
             splitView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-
-            operationsButton.topAnchor.constraint(equalTo: splitView.bottomAnchor),
-            operationsButton.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 6),
-            operationsButton.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -6),
-            commandLine.view.topAnchor.constraint(equalTo: operationsButton.bottomAnchor),
-            commandLine.view.leadingAnchor.constraint(equalTo: root.leadingAnchor),
-            commandLine.view.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-
-            functionKeyBar.topAnchor.constraint(equalTo: commandLine.view.bottomAnchor),
-            functionKeyBar.leadingAnchor.constraint(equalTo: root.leadingAnchor),
-            functionKeyBar.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-            functionKeyBar.bottomAnchor.constraint(equalTo: root.bottomAnchor),
         ])
         view = root
+        layoutBottom()
         operationsDidChange(nil)
     }
 
+    static let bottomBarHeight: CGFloat = 34
+
+    /// The command line, the function keys and Operations: rows under the panels in
+    /// Total Commander's look, side by side in one bar in the modern one.
+    private func layoutBottom() {
+        let bar = Settings.isModern
+        guard bar != bottomIsBar else { return }
+        bottomIsBar = bar
+        NSLayoutConstraint.deactivate(bottomConstraints)
+        let root = view
+        let parts: [NSView] = [operationsButton, commandLine.view, functionKeyBar]
+        for part in parts + [bottomBar, bottomSeparator] {
+            part.removeFromSuperview()
+            part.translatesAutoresizingMaskIntoConstraints = false
+        }
+        operationsHeight = operationsButton.heightAnchor.constraint(equalToConstant: 0)
+        commandLineHeight = commandLine.view.heightAnchor.constraint(equalToConstant: CommandLineView.height)
+        functionKeyBarHeight = functionKeyBar.heightAnchor.constraint(equalToConstant: FunctionKeyBar.height)
+        if bar {
+            root.addSubview(bottomBar)
+            root.addSubview(bottomSeparator)
+            bottomBar.setViews([commandLine.view, functionKeyBar, operationsButton], in: .leading)
+            commandLine.view.setContentHuggingPriority(.defaultLow, for: .horizontal)
+            functionKeyBar.setContentHuggingPriority(.required, for: .horizontal)
+            functionKeyBar.setContentCompressionResistancePriority(.init(700), for: .horizontal)
+            let roomForCommands = commandLine.view.widthAnchor.constraint(greaterThanOrEqualToConstant: 220)
+            roomForCommands.priority = .init(750)
+            bottomConstraints = [
+                bottomBar.topAnchor.constraint(equalTo: splitView.bottomAnchor),
+                bottomBar.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+                bottomBar.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+                bottomBar.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+                bottomBarHeight,
+                bottomSeparator.topAnchor.constraint(equalTo: bottomBar.topAnchor),
+                bottomSeparator.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+                bottomSeparator.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+                commandLineHeight, roomForCommands,
+                functionKeyBar.heightAnchor.constraint(equalToConstant: 24),
+            ]
+        } else {
+            bottomBar.setViews([], in: .leading)
+            for part in parts {
+                root.addSubview(part)
+            }
+            bottomConstraints = [
+                operationsHeight,
+                commandLineHeight,
+                functionKeyBarHeight,
+                operationsButton.topAnchor.constraint(equalTo: splitView.bottomAnchor),
+                operationsButton.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 6),
+                operationsButton.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -6),
+                commandLine.view.topAnchor.constraint(equalTo: operationsButton.bottomAnchor),
+                commandLine.view.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+                commandLine.view.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+                functionKeyBar.topAnchor.constraint(equalTo: commandLine.view.bottomAnchor),
+                functionKeyBar.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+                functionKeyBar.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+                functionKeyBar.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+            ]
+        }
+        NSLayoutConstraint.activate(bottomConstraints)
+        lastOperationsTitle = nil
+        operationsDidChange(nil)
+        applyLayoutSettings()
+    }
+
+    private var lastOperationsTitle: String?
+
+    /// In the bar the button names only what runs or waits; the whole count is its tooltip.
     @objc private func operationsDidChange(_ notification: Notification?) {
-        guard isViewLoaded else { return }
+        guard isViewLoaded, operationsHeight != nil else { return }
         let running = OperationsStore.shared.runningCount
         let queued = TransferQueue.shared.waitingCount
         let finished = OperationsStore.shared.entries.count - running
-        let title = String(localized: "Operations: \(running) running · \(queued) queued · \(finished) finished")
-        if operationsButton.title == title { return }
+        let full = String(localized: "Operations: \(running) running · \(queued) queued · \(finished) finished")
+        let title = bottomIsBar != true ? full
+            : running > 0 ? String(localized: "Operations: \(running) running")
+            : queued > 0 ? String(localized: "Operations: \(queued) queued") : String(localized: "Operations")
+        if lastOperationsTitle == title + full { return }
+        lastOperationsTitle = title + full
         operationsButton.title = title
+        operationsButton.toolTip = bottomIsBar == true ? full : nil
         operationsButton.isHidden = running + queued + finished == 0
         operationsHeight.constant = operationsButton.isHidden ? 0 : 24
+        updateBottomBar()
     }
 
     override func viewDidLoad() {
@@ -176,11 +246,23 @@ final class MainViewController: NSViewController {
 
     /// Shows or hides the command line and the function key bar.
     private func applyLayoutSettings() {
+        layoutBottom()
         commandLine.view.isHidden = !Settings.showsCommandLine
         commandLineHeight.constant = Settings.showsCommandLine ? CommandLineView.height : 0
         functionKeyBar.isHidden = !Settings.showsFunctionKeys
         functionKeyBarHeight.constant = Settings.showsFunctionKeys ? FunctionKeyBar.height : 0
+        functionKeyBar.invalidateIntrinsicContentSize()
         functionKeyBar.needsDisplay = true
+        commandLine.view.directory = activePanel.directory
+        updateBottomBar()
+    }
+
+    /// The bar takes no room when nothing in it is shown.
+    private func updateBottomBar() {
+        guard bottomIsBar == true else { return }
+        let empty = commandLine.view.isHidden && functionKeyBar.isHidden && operationsButton.isHidden
+        bottomBarHeight.constant = empty ? 0 : Self.bottomBarHeight
+        bottomSeparator.isHidden = empty
     }
 
     override func viewDidAppear() {

@@ -2,7 +2,9 @@ import AppKit
 
 /// The row of flat function key buttons at the bottom of the window
 /// ("F3 View", "F4 Edit", … ), drawn as equal-width cells, with the keys as key
-/// caps when so chosen in Settings.
+/// caps when so chosen in Settings. In the modern look they are hints beside the
+/// command line instead: each as wide as its text, and only the keys when the
+/// titles do not fit.
 final class FunctionKeyBar: NSView {
     struct Item {
         let key: String
@@ -30,9 +32,71 @@ final class FunctionKeyBar: NSView {
     /// Key caps get some room above and below.
     static var height: CGFloat { Settings.showsFunctionKeyCaps ? 28 : 22 }
 
-    override var intrinsicContentSize: NSSize { NSSize(width: NSView.noIntrinsicMetric, height: Self.height) }
+    override var intrinsicContentSize: NSSize {
+        isCompact ? NSSize(width: compactWidth(titles: true), height: 24)
+            : NSSize(width: NSView.noIntrinsicMetric, height: Self.height)
+    }
+
+    private var isCompact: Bool { Settings.isModern }
+
+    private static let hintFont = NSFont.systemFont(ofSize: 11)
+    private static let hintKeyFont = NSFont.systemFont(ofSize: 11, weight: .semibold)
+    private static let hintSpacing: CGFloat = 14
+
+    private func hintKeyWidth(_ item: Item) -> CGFloat {
+        let key = ceil((item.key as NSString).size(withAttributes: [.font: Settings.showsFunctionKeyCaps ? Self.keyCapFont : Self.hintKeyFont]).width)
+        return Settings.showsFunctionKeyCaps ? max(key + 12, 22) : key
+    }
+
+    private func hintWidth(_ item: Item, titles: Bool) -> CGFloat {
+        hintKeyWidth(item) + (titles ? 4 + ceil((item.title as NSString).size(withAttributes: [.font: Self.hintFont]).width) : 0)
+    }
+
+    private func compactWidth(titles: Bool) -> CGFloat {
+        items.reduce(0) { $0 + hintWidth($1, titles: titles) } + Self.hintSpacing * CGFloat(max(items.count - 1, 0))
+    }
+
+    /// The hints from the right edge, with their titles if all fit.
+    private var hintRects: (rects: [NSRect], titles: Bool) {
+        let titles = compactWidth(titles: true) <= bounds.width + 0.5
+        var x = bounds.maxX - compactWidth(titles: titles)
+        let rects = items.map { item in
+            let width = hintWidth(item, titles: titles)
+            defer { x += width + Self.hintSpacing }
+            return NSRect(x: x, y: 0, width: width, height: bounds.height)
+        }
+        return (rects, titles)
+    }
+
+    private func drawHints() {
+        let (rects, titles) = hintRects
+        for (index, item) in items.enumerated() {
+            let rect = rects[index]
+            if index == pressedIndex {
+                NSColor.quaternaryLabelColor.setFill()
+                NSBezierPath(roundedRect: rect.insetBy(dx: -5, dy: 1), xRadius: 5, yRadius: 5).fill()
+            }
+            let keyWidth = hintKeyWidth(item)
+            if Settings.showsFunctionKeyCaps {
+                drawCap(item.key, in: NSRect(x: rect.minX, y: (rect.midY - 8).rounded() + 0.5, width: keyWidth, height: 16))
+            } else {
+                let attributes: [NSAttributedString.Key: Any] = [.font: Self.hintKeyFont, .foregroundColor: NSColor.labelColor]
+                let size = (item.key as NSString).size(withAttributes: attributes)
+                (item.key as NSString).draw(at: NSPoint(x: rect.minX, y: rect.midY - size.height / 2), withAttributes: attributes)
+            }
+            guard titles else { continue }
+            let attributes: [NSAttributedString.Key: Any] = [.font: Self.hintFont, .foregroundColor: NSColor.secondaryLabelColor]
+            let size = (item.title as NSString).size(withAttributes: attributes)
+            (item.title as NSString).draw(at: NSPoint(x: rect.minX + keyWidth + 4, y: rect.midY - size.height / 2),
+                                          withAttributes: attributes)
+        }
+    }
 
     override func draw(_ dirtyRect: NSRect) {
+        if isCompact {
+            drawHints()
+            return
+        }
         Theme.chromeBackground.setFill()
         bounds.fill()
 
@@ -82,18 +146,23 @@ final class FunctionKeyBar: NSView {
         let x = (cell.midX - total / 2).rounded()
         let cap = NSRect(x: x, y: (cell.midY - capHeight / 2).rounded() + 0.5, width: capWidth, height: capHeight)
 
+        drawCap(item.key, in: cap)
+        title.draw(at: NSPoint(x: cap.maxX + gap, y: cell.midY - titleSize.height / 2), withAttributes: attributes)
+    }
+
+    /// A small rounded key, a little deeper at the bottom, with the key's name.
+    private func drawCap(_ name: String, in cap: NSRect) {
         let path = NSBezierPath(roundedRect: cap.insetBy(dx: 0.5, dy: 0), xRadius: 4, yRadius: 4)
         NSColor.quaternaryLabelColor.setFill()
         path.fill()
         NSColor.tertiaryLabelColor.setStroke()
         path.lineWidth = 0.5
         path.stroke()
-        // Key caps are a little deeper at the bottom.
         NSColor.tertiaryLabelColor.setFill()
         NSRect(x: cap.minX + 2.5, y: cap.maxY - 0.5, width: cap.width - 5, height: 0.5).fill()
-
-        key.draw(at: NSPoint(x: cap.midX - keySize.width / 2, y: cap.midY - keySize.height / 2), withAttributes: keyAttributes)
-        title.draw(at: NSPoint(x: cap.maxX + gap, y: cell.midY - titleSize.height / 2), withAttributes: attributes)
+        let attributes: [NSAttributedString.Key: Any] = [.font: Self.keyCapFont, .foregroundColor: NSColor.secondaryLabelColor]
+        let size = (name as NSString).size(withAttributes: attributes)
+        (name as NSString).draw(at: NSPoint(x: cap.midX - size.width / 2, y: cap.midY - size.height / 2), withAttributes: attributes)
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -127,6 +196,9 @@ final class FunctionKeyBar: NSView {
     }
 
     private func index(at point: NSPoint) -> Int? {
+        if isCompact {
+            return hintRects.rects.firstIndex { $0.insetBy(dx: -Self.hintSpacing / 2, dy: 0).contains(point) }
+        }
         guard bounds.contains(point), !items.isEmpty else { return nil }
         let width = bounds.width / CGFloat(items.count)
         return min(Int(point.x / width), items.count - 1)

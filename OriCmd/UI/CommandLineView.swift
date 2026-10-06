@@ -7,8 +7,12 @@ final class CommandLineView: NSView {
     let promptLabel = NSTextField(labelWithString: "")
     let inputField = NSComboBox()
 
+    /// "/Users/me/Projects>", or in the modern look "~/Projects>".
     var directory: URL? {
-        didSet { promptLabel.stringValue = (directory?.path ?? "") + ">" }
+        didSet {
+            let path = directory?.path ?? ""
+            promptLabel.stringValue = (Settings.isModern ? (path as NSString).abbreviatingWithTildeInPath : path) + ">"
+        }
     }
 
     override init(frame frameRect: NSRect) {
