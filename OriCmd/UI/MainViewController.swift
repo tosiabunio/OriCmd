@@ -23,6 +23,8 @@ final class MainViewController: NSViewController {
     private var bottomBarHeight: NSLayoutConstraint!
     private var bottomConstraints: [NSLayoutConstraint] = []
     private var bottomIsBar: Bool?
+    /// The active panel's folder, for the sidebar's highlight.
+    var onLocationChange: ((URL) -> Void)?
 
     private var didAppear = false
     private var commandLineHeight: NSLayoutConstraint!
@@ -121,8 +123,10 @@ final class MainViewController: NSViewController {
         splitViewLeading = splitView.leadingAnchor.constraint(equalTo: root.leadingAnchor)
         splitViewLeading.isActive = true
         bottomBarHeight = bottomBar.heightAnchor.constraint(equalToConstant: Self.bottomBarHeight)
+        // Under the toolbar, where the window's content begins (it reaches behind the
+        // toolbar for the sidebar's sake).
         NSLayoutConstraint.activate([
-            splitView.topAnchor.constraint(equalTo: root.topAnchor),
+            splitView.topAnchor.constraint(equalTo: root.safeAreaLayoutGuide.topAnchor),
             splitView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
         ])
         view = root
@@ -323,6 +327,7 @@ final class MainViewController: NSViewController {
         rightPanel.isActive = panel === rightPanel
         commandLine.view.directory = panel.directory
         separateTree?.reveal(panel.directory, quietly: true)
+        onLocationChange?(panel.directory)
     }
 
     #if DEBUG
@@ -1882,6 +1887,19 @@ extension MainViewController: FilePanelControllerDelegate {
         (panel === leftPanel ? rightPanel : leftPanel).openDrive(url)
     }
 
+    /// A place chosen in the sidebar: the active panel (or the other one) goes there,
+    /// as for a drive button, and keeps the keyboard.
+    func open(_ url: URL, inOtherPanel other: Bool) {
+        (other ? inactivePanel : activePanel).openDrive(url)
+        activePanel.focus()
+    }
+
+    /// A sidebar place's context menu: the drive buttons' (a folder's without ejecting
+    /// or renaming).
+    func placeMenu(for url: URL, isVolume: Bool) -> NSMenu {
+        activePanel.driveMenu(for: url, isVolume: isVolume)
+    }
+
     func filePanel(_ panel: FilePanelController, eject volume: URL) {
         eject(volume)
     }
@@ -1933,6 +1951,7 @@ extension MainViewController: FilePanelControllerDelegate {
         leftPanel.alwaysShowsTabBar = showTabs
         rightPanel.alwaysShowsTabBar = showTabs
         if panel === activePanel {
+            onLocationChange?(panel.directory)
             commandLine.view.directory = panel.directory
             separateTree?.reveal(panel.directory, quietly: true)
         }

@@ -41,6 +41,7 @@ enum Settings {
         static let selectionMarkers = "SelectionMarkers"
         static let look = "Look"
         static let density = "PanelDensity"
+        static let sidebar = "ShowSidebar"
 
         static let separateTree = "SeparateTree"
         static let horizontalPanels = "HorizontalPanels"
@@ -55,8 +56,8 @@ enum Settings {
     }
 
     /// Choosing a look sets the switches that make it up (folder brackets, tabs, the
-    /// header, key caps, the status line, checkmarks, row height); each can still be
-    /// changed afterwards. Switches never changed follow the look.
+    /// header, key caps, the status line, checkmarks, row height, the sidebar); each can
+    /// still be changed afterwards. Switches never changed follow the look.
     static var look: Look {
         get { AppDefaults.store.string(forKey: Key.look).flatMap(Look.init) ?? .modern }
         set {
@@ -64,7 +65,7 @@ enum Settings {
             let store = AppDefaults.store
             store.set(newValue.rawValue, forKey: Key.look)
             store.set(!modern, forKey: Key.folderBrackets)
-            for key in [Key.macStyleTabs, Key.compactHeader, Key.functionKeyCaps, Key.plainStatus, Key.selectionMarkers] {
+            for key in [Key.macStyleTabs, Key.compactHeader, Key.functionKeyCaps, Key.plainStatus, Key.selectionMarkers, Key.sidebar] {
                 store.set(modern, forKey: key)
             }
             store.set((modern ? Density.standard : .compact).rawValue, forKey: Key.density)
@@ -240,6 +241,12 @@ enum Settings {
     static var showsSeparateTree: Bool {
         get { bool(Key.separateTree, default: false) }
         set { set(newValue, Key.separateTree) }
+    }
+
+    /// The sidebar of devices, favorites and the hotlist (it hides the drive buttons).
+    static var showsSidebar: Bool {
+        get { bool(Key.sidebar, default: isModern) }
+        set { set(newValue, Key.sidebar) }
     }
 
     static var showsDriveButtons: Bool {

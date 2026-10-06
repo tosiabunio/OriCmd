@@ -2779,6 +2779,16 @@
         }
       }
     },
+    "Devices": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Устройства"
+          }
+        }
+      }
+    },
     "Difference %lld of %lld": {
       "localizations": {
         "ru": {
@@ -2995,6 +3005,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Кнопки дисков"
+          }
+        }
+      }
+    },
+    "Drive buttons (while there is no sidebar)": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кнопки дисков (когда нет боковой панели)"
           }
         }
       }
@@ -3415,6 +3435,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Избранные вкладки"
+          }
+        }
+      }
+    },
+    "Favorites": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Избранное"
           }
         }
       }
@@ -4055,6 +4085,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Панели одна над другой"
+          }
+        }
+      }
+    },
+    "Hotlist": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Избранные каталоги"
           }
         }
       }
@@ -6939,6 +6979,16 @@
         }
       }
     },
+    "Show Sidebar": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показать боковую панель"
+          }
+        }
+      }
+    },
     "Show Toolbar": {
       "localizations": {
         "ru": {
@@ -7055,6 +7105,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Показывает контекстное меню"
+          }
+        }
+      }
+    },
+    "Sidebar": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Боковая панель"
+          }
+        }
+      }
+    },
+    "Sidebar: devices, favorites and the hotlist (⌃⌘S)": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Боковая панель: устройства, избранное и избранные каталоги (⌃⌘S)"
           }
         }
       }

@@ -7,16 +7,18 @@ final class MainWindowController: NSWindowController {
     init() {
         let window = MainWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         window.title = "OriCmd"
         window.toolbar = buttonBar.toolbar
+        buttonBar.addSidebarButtonOnce()
         window.toolbarStyle = .unifiedCompact
         // Buttons start at the left, like Total Commander's button bar.
         window.titleVisibility = .hidden
-        window.contentViewController = MainViewController()
+        // The sidebar reaches up behind the toolbar, as the Finder's does.
+        window.contentViewController = RootSplitViewController()
         // Applications dropped on the toolbar become buttons.
         window.registerForDraggedTypes([.fileURL])
         window.minSize = NSSize(width: 640, height: 400)

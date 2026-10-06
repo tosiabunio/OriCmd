@@ -225,6 +225,7 @@ private final class PanelsPane: SettingsPane {
     private var macTabsBox: NSButton!
     private var compactHeaderBox: NSButton!
     private var markersBox: NSButton!
+    private var sidebarBox: NSButton!
 
     override func build() {
         section(String(localized: "Look"))
@@ -251,7 +252,11 @@ private final class PanelsPane: SettingsPane {
         keyCapsBox = checkbox(String(localized: "Function keys drawn as key caps"), Settings.showsFunctionKeyCaps,
                               #selector(functionKeyCapsChanged(_:)))
         row(nil, keyCapsBox)
-        row(nil, checkbox(String(localized: "Drive buttons"), Settings.showsDriveButtons, #selector(driveButtonsChanged(_:))))
+        sidebarBox = checkbox(String(localized: "Sidebar: devices, favorites and the hotlist (⌃⌘S)"), Settings.showsSidebar,
+                              #selector(sidebarChanged(_:)))
+        row(nil, sidebarBox)
+        row(nil, checkbox(String(localized: "Drive buttons (while there is no sidebar)"), Settings.showsDriveButtons,
+                          #selector(driveButtonsChanged(_:))))
         bracketsBox = checkbox(String(localized: "Folder names in [brackets]"), Settings.showsFolderBrackets,
                                #selector(folderBracketsChanged(_:)))
         row(nil, bracketsBox)
@@ -320,6 +325,7 @@ private final class PanelsPane: SettingsPane {
         macTabsBox.state = Settings.macStyleTabs ? .on : .off
         compactHeaderBox.state = Settings.compactPanelHeader ? .on : .off
         markersBox.state = Settings.showsSelectionMarkers ? .on : .off
+        sidebarBox.state = Settings.showsSidebar ? .on : .off
         updateFontLabel()
     }
 
@@ -388,6 +394,7 @@ private final class PanelsPane: SettingsPane {
     @objc private func functionKeysChanged(_ sender: NSButton) { Settings.showsFunctionKeys = sender.state == .on }
     @objc private func functionKeyCapsChanged(_ sender: NSButton) { Settings.showsFunctionKeyCaps = sender.state == .on }
     @objc private func driveButtonsChanged(_ sender: NSButton) { Settings.showsDriveButtons = sender.state == .on }
+    @objc private func sidebarChanged(_ sender: NSButton) { Settings.showsSidebar = sender.state == .on }
     @objc private func folderBracketsChanged(_ sender: NSButton) { Settings.showsFolderBrackets = sender.state == .on }
     @objc private func macStyleTabsChanged(_ sender: NSButton) { Settings.macStyleTabs = sender.state == .on }
     @objc private func compactHeaderChanged(_ sender: NSButton) { Settings.compactPanelHeader = sender.state == .on }

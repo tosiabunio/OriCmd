@@ -24,6 +24,10 @@ keep working as always.
   panels. Rows are 22 pt with 13 pt names, or compact. Settings → Panels → Look →
   Classic (Total Commander) brings back the traditional panels in one step; see
   the [visual refresh plan](docs/visual-refresh.md).
+- **Sidebar and one bottom bar:** in the Modern look a sidebar lists devices (with
+  free space), the usual folders and the directory hotlist (`⌃⌘S` or the toolbar
+  button shows or hides it); the command line, the function keys as compact hints
+  and Operations share one bar under the panels.
 - **Mac-style panels:** compact headers, folder icons and close buttons on tabs,
   key caps on function buttons, Finder-style sizes and status summaries, folder
   colors from Finder tags, and options for folder brackets and file extensions.
@@ -449,6 +453,15 @@ hidden in Settings). Right-click a drive button for the Finder's volume menu: op
 (also in a new tab or the other panel), eject a disk or a disk image, rename, Get
 Info. When the buttons do not fit, they scroll (wheel, trackpad, arrows at the ends).
 
+In the Modern look the sidebar (Show → Show Sidebar, `⌃⌘S`, or the toolbar's
+sidebar button) takes their place: Devices with their free space, Favorites (home,
+Desktop, Documents, Downloads, Applications) and the directory hotlist. A click
+opens the place in the active panel, whose place stays highlighted; right-click a
+place for the same menu as a drive button's. While the sidebar is shown the drive
+buttons are hidden. The command line, the function keys (as compact hints, only the
+keys when the titles do not fit) and Operations then share one bar under the
+panels.
+
 ### Servers (SFTP, FTP)
 
 SFTP works through the system `ssh`/`sftp`: `~/.ssh/config` (aliases,
@@ -590,8 +603,8 @@ OriCmd → Settings… (`⌘,`) — a window with panes:
 - **General** — interface language, automatic update checks.
 - **Panels** — the look (Modern, or Classic as in Total Commander, which sets
   the switches below at once), panel preview, font, command line, function key and
-  drive buttons, row height (Standard 13 pt or Compact 12 pt), button bar setup,
-  what the right mouse button does.
+  drive buttons, the sidebar, row height (Standard 13 pt or Compact 12 pt), button
+  bar setup, what the right mouse button does.
 - **Colors** — light or dark theme (or as in the system), panel preview,
   ready-made colors, colors of marked files (and bold) and the cursor,
   alternating rows, colors by file mask.

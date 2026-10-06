@@ -88,7 +88,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard alert.runModal() == .alertSecondButtonReturn else { return .terminateCancel }
         }
         // Server terminals: the servers are asked whether programs still run in them.
-        let panels = (mainWindowController?.window?.contentViewController as? MainViewController)?.panels ?? []
+        let panels = (mainWindowController?.window?.mainViewController)?.panels ?? []
         let terminals = panels.flatMap(\.terminals)
         guard terminals.contains(where: \.isRunning) else { return .terminateNow }
         Task {

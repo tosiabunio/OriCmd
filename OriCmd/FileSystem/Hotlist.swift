@@ -3,6 +3,8 @@ import Foundation
 /// Total Commander's "directory hotlist": favourite folders shared by both panels.
 enum Hotlist {
     private static let key = "DirectoryHotlist"
+    /// Posted when the list changes (the sidebar shows it).
+    static let didChange = Notification.Name("OriCmdHotlistDidChange")
 
     static var directories: [String] {
         AppDefaults.store.stringArray(forKey: key) ?? []
@@ -10,6 +12,7 @@ enum Hotlist {
 
     static func set(_ list: [String]) {
         AppDefaults.store.set(list, forKey: key)
+        NotificationCenter.default.post(name: didChange, object: nil)
     }
 
     /// Adds `path`, or removes it if it is already listed.
@@ -20,6 +23,6 @@ enum Hotlist {
         } else {
             list.append(path)
         }
-        AppDefaults.store.set(list, forKey: key)
+        set(list)
     }
 }

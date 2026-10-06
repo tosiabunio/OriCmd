@@ -66,6 +66,7 @@ enum MainMenu {
         ], extra: [
             item(String(localized: "Ignore List…"), #selector(MainViewController.editIgnoreList(_:))),
             .separator(),
+            item(String(localized: "Show Sidebar"), #selector(NSSplitViewController.toggleSidebar(_:)), "s", [.control, .command]),
             item(String(localized: "Show Toolbar"), #selector(NSWindow.toggleToolbarShown(_:)), "t", [.command, .option]),
             item(String(localized: "Customize Toolbar…"), #selector(NSWindow.runToolbarCustomizationPalette(_:))),
         ])

@@ -44,9 +44,19 @@ final class DirectoryTreePanel: NSView {
         (outline.item(atRow: outline.selectedRow) as? Node)?.url
     }
 
+    /// The room above a panel's path bar and below its list, as the panels have them
+    /// now: in the modern look without a status line (it is in the header) and without
+    /// drive buttons beside the sidebar.
+    static var panelInsets: (top: CGFloat, bottom: CGFloat) {
+        guard Settings.isModern else { return (29, 22) }
+        let drives = Settings.showsDriveButtons && !Settings.showsSidebar ? DriveBar.height : 0
+        return (drives, Settings.compactPanelHeader ? 0 : 22)
+    }
+
     /// `insets`: the room above and below, to line up with a panel's path bar
-    /// and status line (none in a dialog).
-    init(root: URL, showsHidden: Bool, insets: (top: CGFloat, bottom: CGFloat) = (29, 22)) {
+    /// and status line (none in a dialog); by default the panels'.
+    init(root: URL, showsHidden: Bool, insets: (top: CGFloat, bottom: CGFloat)? = nil) {
+        let insets = insets ?? Self.panelInsets
         self.root = Node(url: root, showsHidden: showsHidden)
         super.init(frame: .zero)
 

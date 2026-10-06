@@ -26,6 +26,7 @@ final class ButtonBar: NSObject, NSToolbarDelegate {
     ]
 
     private static let defaultItems: [NSToolbarItem.Identifier] = [
+        .toggleSidebar, .sidebarTrackingSeparator,
         .init(Command.rereadSource.rawValue), .init(Command.srcShort.rawValue), .init(Command.srcLong.rawValue),
         .init(Command.srcTree.rawValue), .init(Command.srcQuickView.rawValue), .space,
         .init(Command.goToPrevDir.rawValue), .init(Command.goToNextDir.rawValue),
@@ -54,7 +55,20 @@ final class ButtonBar: NSObject, NSToolbarDelegate {
         Self.buttons.map { NSToolbarItem.Identifier($0.0.rawValue) }
             + UserCommands.all.map { NSToolbarItem.Identifier(Self.userPrefix + $0.id.uuidString) }
             + UserCommands.groups.map { NSToolbarItem.Identifier(Self.groupPrefix + $0) }
-            + [.space, .flexibleSpace]
+            + [.space, .flexibleSpace, .toggleSidebar, .sidebarTrackingSeparator]
+    }
+
+    /// Toolbars saved before the sidebar get its button once, at the start.
+    func addSidebarButtonOnce() {
+        let key = "ToolbarHasSidebarButton"
+        guard !AppDefaults.store.bool(forKey: key) else { return }
+        AppDefaults.store.set(true, forKey: key)
+        let identifiers = toolbar.items.map(\.itemIdentifier)
+        guard !identifiers.contains(.toggleSidebar) else { return }
+        toolbar.insertItem(withItemIdentifier: .toggleSidebar, at: 0)
+        if !identifiers.contains(.sidebarTrackingSeparator) {
+            toolbar.insertItem(withItemIdentifier: .sidebarTrackingSeparator, at: 1)
+        }
     }
 
     private static let userPrefix = "user."

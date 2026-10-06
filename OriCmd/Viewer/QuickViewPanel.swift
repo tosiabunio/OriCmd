@@ -19,7 +19,7 @@ final class QuickViewPanel: NSView {
             view.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
             view.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
         }
-        titleBar.topAnchor.constraint(equalTo: topAnchor, constant: 29).isActive = true
+        titleBar.topAnchor.constraint(equalTo: topAnchor, constant: DirectoryTreePanel.panelInsets.top).isActive = true
         preview?.topAnchor.constraint(equalTo: titleBar.bottomAnchor).isActive = true
         preview?.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
     }

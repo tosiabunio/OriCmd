@@ -871,6 +871,22 @@ run colreset "headerdrag:size:30 headerdoubleclick:size columns"
 check "a double click on the edge gives the column its width again" "[ \"\$(width colreset size)\" = \"\$(width lookmodern size)\" ]"
 run colsort "headerclick:name home down"
 check "a click on the Name title reverses the order" "panels colsort | grep -q '^left\\*: .* | cursor: many |'"
+# The sidebar (the modern look): devices, the usual folders and the hotlist; a place
+# opens in the active panel, whose place stays highlighted; ⌃⌘S hides it, and
+# Total Commander's look has none.
+side() { cat build/shots/reg-$1-sidebar.txt 2>/dev/null; }
+scripts/test/mkdata.sh
+defaults write ru.themmag.OriCmd.tests DirectoryHotlist -array "$PWD/$L/alpha"
+run sidebar "sidebar"
+check "the sidebar lists devices, favorites and the hotlist" "side sidebar | grep -qx DEVICES && side sidebar | grep -qx FAVORITES && side sidebar | grep -qx '  alpha'"
+defaults write ru.themmag.OriCmd.tests DirectoryHotlist -array "$PWD/$L/alpha"
+run sidebarpick "sidebarpick:alpha wait wait sidebar"
+check "a place chosen in the sidebar opens in the active panel and stays highlighted" "panels sidebarpick | grep -q '^left\\*: .*/left/alpha |' && side sidebarpick | grep -qx '> alpha'"
+run sidebarhide "ctrl+cmd+s wait wait sidebar"
+check "⌃⌘S hides the sidebar" "side sidebarhide | grep -qx hidden"
+defaults write ru.themmag.OriCmd.tests Look classic
+run sidebarclassic "sidebar"
+check "Total Commander's look has no sidebar" "side sidebarclassic | grep -qx hidden"
 scripts/test/mkdata.sh
 run xfile "alt+r wait text:eadme escape ctrl+shift+right wait wait"
 check "Ctrl+Shift+Right on a file: its folder, the file selected" "panels xfile | grep -q '^right: .*/left | cursor: readme.txt'"

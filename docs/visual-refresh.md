@@ -1,7 +1,7 @@
 # Visual refresh
 
-**Status:** phase 1 built on branch `modern-panels` (2026-10-06); phases 2 and 3
-not started.
+**Status:** phase 1 built on branch `modern-panels` (2026-10-06); phase 2 on
+branch `window-shell` (2026-10-07), except 2.2, deferred; phase 3 not started.
 **Mockup:** [Today and proposed main window, interactive](https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP)
 (light and dark).
 
@@ -177,6 +177,23 @@ layout.
    Effort M.
 5. **Menus on macOS 27.** Choose which context menu items keep their icons
    (Share, Tags) and set `preferredImageVisibility = .visible` on them. Effort S.
+
+**As built.** 2.5: tag colors, applications under Open With and volumes keep their
+menu images (`preferredImageVisibility = .visible` on macOS 27). 2.4: in the Modern
+look the command line, the function keys (compact hints, keys only when the titles
+do not fit) and Operations (only while there are any, named by what runs or waits)
+share one 34 pt bar; Classic keeps its rows. 2.3 and 2.1: the window's content is a
+`NSSplitViewController` with a system sidebar (glass on macOS 26, translucent on 14
+and 15) of Devices with free space, Favorites and the hotlist; the window has a
+full-size content view, the panels start at the safe area, and the toolbar gains
+the sidebar button and a tracking separator (added once to saved toolbars). The
+sidebar is on by default in Modern and hides the drive buttons; ⌃⌘S, the toolbar
+and Settings → Panels show or hide it, and its width is kept.
+
+**2.2 deferred.** The panels' headers are opaque and the lists never scroll under
+a bar, so split-item accessories would add little that shows (their scroll edge
+effect needs content beneath them), while needing macOS 26 and a second layout
+for macOS 14 and 15.
 
 ### Phase 3: other windows and identity (macOS 14 and later)
 

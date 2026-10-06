@@ -205,7 +205,7 @@ final class FilePanelController: NSViewController {
         }
         panelView.driveBar.onSelect = { [weak self] url in self?.openDrive(url) }
         panelView.driveBar.menuProvider = { [weak self] url in self?.driveMenu(for: url) }
-        panelView.setDriveBarVisible(Settings.showsDriveButtons)
+        panelView.setDriveBarVisible(Settings.showsDriveButtons && !Settings.showsSidebar)
         panelView.tabBar.onSelect = { [weak self] index in self?.selectTab(index) }
         panelView.tabBar.onClose = { [weak self] index in self?.closeTab(index) }
         panelView.tabBar.onContextMenu = { [weak self] index in self?.tabMenu(for: index) }
@@ -248,7 +248,7 @@ final class FilePanelController: NSViewController {
     /// Font or other appearance settings changed.
     func settingsDidChange() {
         applyColumnSet()
-        panelView.setDriveBarVisible(Settings.showsDriveButtons)
+        panelView.setDriveBarVisible(Settings.showsDriveButtons && !Settings.showsSidebar)
         if Settings.sizeDisplay != shownSizeDisplay {
             shownSizeDisplay = Settings.sizeDisplay
             updateStatus()
@@ -1769,8 +1769,9 @@ extension FilePanelController: NSMenuItemValidation {
 
     // MARK: - Drive buttons
 
-    /// A drive button's context menu, as the Finder's for a volume.
-    private func driveMenu(for url: URL) -> NSMenu {
+    /// A drive button's context menu, as the Finder's for a volume (the sidebar's for a
+    /// folder: without ejecting and renaming).
+    func driveMenu(for url: URL, isVolume: Bool = true) -> NSMenu {
         let menu = NSMenu()
         @discardableResult
         func add(_ title: String, _ action: Selector) -> NSMenuItem {
@@ -1787,13 +1788,13 @@ extension FilePanelController: NSMenuItemValidation {
         add(String(localized: "Open in New Tab"), #selector(openDriveInNewTab(_:)))
         add(String(localized: "Open in Other Panel"), #selector(openDriveInOtherPanel(_:)))
         add(String(localized: "Show in Finder"), #selector(showDriveInFinder(_:)))
-        if !isHome, Volume.isEjectable(url) {
+        if isVolume, !isHome, Volume.isEjectable(url) {
             menu.addItem(.separator())
             add(String(localized: "Eject \u{201C}\(name)\u{201D}"), #selector(ejectDrive(_:)))
         }
         menu.addItem(.separator())
         add(Command.properties.title, #selector(showDriveInfo(_:)))
-        if !isHome, values?.volumeSupportsRenaming == true {
+        if isVolume, !isHome, values?.volumeSupportsRenaming == true {
             add(String(localized: "Rename \u{201C}\(name)\u{201D}…"), #selector(renameDrive(_:)))
         }
         add(Command.copyFullNamesToClip.title, #selector(copyDrivePath(_:)))
