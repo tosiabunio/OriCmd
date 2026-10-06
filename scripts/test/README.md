@@ -28,7 +28,10 @@ real keyboard and mouse, so working elsewhere meanwhile changes nothing.
   `<name>-drive-space.txt` and the requested volume paths to `<name>-info.txt`;
   test runs record Get Info requests instead of opening Finder windows.
   `tabhover:N` shows the active panel's tab N as under the mouse (its close button),
-  `tabclose:N` clicks that button.
+  `tabclose:N` clicks that button. `columns` writes the active panel's Full view
+  columns (`column x width`) to `<name>-columns.txt`; `headerdrag:size:-30` drags
+  the edge right of a column title, `headerdoubleclick:size` double-clicks it (the
+  measured width again) and `headerclick:date` clicks a title.
   `set:identifier=value` sets a control found by its
   identifier as the user would (a field, a pop-up item, a checkbox `on`/`off`/`mixed`,
   a date `2026-01-31`), `click:` also chooses a tab; the rows of a table drawn by

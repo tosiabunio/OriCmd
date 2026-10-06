@@ -1,17 +1,21 @@
 import AppKit
 
-/// The splitter between the panels: a little wider than a hairline so it is
-/// easy to grab; double click splits the window evenly, as in Total Commander.
+/// The splitter between the panels: a hairline in the modern look, a little wider
+/// in Total Commander's; either is easy to grab (`grabSlop` around it). A double
+/// click splits the window evenly, as in Total Commander.
 final class PanelSplitView: NSSplitView {
     var onDoubleClickDivider: (() -> Void)?
 
-    override var dividerThickness: CGFloat { 4 }
+    override var dividerThickness: CGFloat { Settings.isModern ? 1 : 4 }
+
+    /// How far beside the drawn divider the mouse still takes it.
+    var grabSlop: CGFloat { Settings.isModern ? 3 : 0 }
 
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         if event.clickCount == 2, let first = arrangedSubviews.first {
             let (at, end) = isVertical ? (point.x, first.frame.maxX) : (point.y, first.frame.maxY)
-            if at >= end, at <= end + dividerThickness {
+            if at >= end - grabSlop, at <= end + dividerThickness + grabSlop {
                 onDoubleClickDivider?()
                 return
             }

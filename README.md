@@ -15,10 +15,19 @@ keep working as always.
 
 ## What this fork adds
 
+- **Modern look:** the panels are drawn as Mac lists are — a rounded cursor in
+  the accent color (grey in the other panel or while OriCmd is in the
+  background), rounded alternating rows, marked rows tinted lightly, Ext, Size and
+  Date in grey, `--` for folder sizes, dates such as `Today at 09:12`, no
+  `[brackets]` or Attr column by default, a thin accent strip over the active
+  panel's path with its counts and free space below, and a hairline between the
+  panels. Rows are 22 pt with 13 pt names, or compact. Settings → Panels → Look →
+  Classic (Total Commander) brings back the traditional panels in one step; see
+  the [visual refresh plan](docs/visual-refresh.md).
 - **Mac-style panels:** compact headers, folder icons and close buttons on tabs,
   key caps on function buttons, Finder-style sizes and status summaries, folder
   colors from Finder tags, and options for folder brackets and file extensions.
-  Appearance settings also offer the traditional layout.
+  Column widths can be dragged in the header.
 - **Drive information:** click the free-space or total-capacity readout to open
   Finder's information window for the panel's volume, in either header layout.
 - **Clear selection and filters:** checkmarks distinguish marked items from the
@@ -187,7 +196,8 @@ layout `Ctrl+D`, `Ctrl+B`, `Ctrl+U` etc. work just like with the English one.
 | `Alt+F7` (`⌘F`) | Find files by name, text, date, size and attributes, duplicates too (see [Find Files](#find-files-altf7)); "Feed to Panel" shows the results as a list in the panel, where all commands work on them, `[..]` returns to the search folder |
 | `Ctrl+F1` / `Ctrl+F2` (`⌘1` / `⌘2`) | Brief / Full view |
 | `Ctrl+Shift+F1` (`⌘4`) | Thumbnails (Quick Look previews) |
-| Right-click on the column headers | The columns of the set shown: Ext, Size, Date, Attr and the optional ones — kind, date created, picture dimensions, duration, Finder tags, Finder comment (sortable like the others) |
+| Right-click on the column headers | The columns of the set shown: Ext, Size, Date, Attr and the optional ones — kind, date created, picture dimensions, duration, Finder tags, Finder comment (sortable like the others). Attr is shown by default in the Classic look only |
+| Drag the edge between two column titles | Resizes a column (the edge after Name resizes the column right of it; Name takes the rest), for every panel; a double click on the edge gives the column its measured width again |
 | Show → Columns | Column sets: the Default columns or a set of your own for the panel; Column Sets… makes them, and a set can be used by itself in folders matching masks (`~/Pictures*;*/Photos`) |
 | Settings → Panels → File list | File extensions in Full view: in their own column, or after the name (the Ext title still sorts by extension; a long name is cut short before its extension) |
 | Settings → Panels → File list → Sizes | Short sizes as the Finder counts them (`1,3 MB`; the default) or every byte, as Total Commander shows them; in the panels, the status line, the free space and when synchronizing |
@@ -528,7 +538,8 @@ panel.
 
 Settings → Colors: the theme — as in the system, light or dark (for OriCmd only,
 switches at once); the color of marked files, the cursor and the cursor text,
-alternating row backgrounds; the panel preview shows the result right away.
+alternating row backgrounds (on by default in the Modern look); the panel preview
+shows the result right away.
 File Colors… colors names by mask (archives, pictures, scripts — examples
 included); in the dark theme these colors are shown lighter, so they stay readable.
 
@@ -577,8 +588,10 @@ sets a program for all other files.
 OriCmd → Settings… (`⌘,`) — a window with panes:
 
 - **General** — interface language, automatic update checks.
-- **Panels** — panel preview, font, command line, function key and drive
-  buttons, button bar setup, what the right mouse button does.
+- **Panels** — the look (Modern, or Classic as in Total Commander, which sets
+  the switches below at once), panel preview, font, command line, function key and
+  drive buttons, row height (Standard 13 pt or Compact 12 pt), button bar setup,
+  what the right mouse button does.
 - **Colors** — light or dark theme (or as in the system), panel preview,
   ready-made colors, colors of marked files (and bold) and the cursor,
   alternating rows, colors by file mask.

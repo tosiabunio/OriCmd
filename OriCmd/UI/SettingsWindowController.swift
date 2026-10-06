@@ -217,8 +217,24 @@ private final class GeneralPane: SettingsPane {
 
 private final class PanelsPane: SettingsPane {
     private let fontLabel = NSTextField(labelWithString: "")
+    private let lookPopUp = NSPopUpButton()
+    private let densityPopUp = NSPopUpButton()
+    private let statusPopUp = NSPopUpButton()
+    private var keyCapsBox: NSButton!
+    private var bracketsBox: NSButton!
+    private var macTabsBox: NSButton!
+    private var compactHeaderBox: NSButton!
+    private var markersBox: NSButton!
 
     override func build() {
+        section(String(localized: "Look"))
+        lookPopUp.addItems(withTitles: [String(localized: "Modern"), String(localized: "Classic (Total Commander)")])
+        lookPopUp.target = self
+        lookPopUp.action = #selector(lookChanged(_:))
+        lookPopUp.identifier = NSUserInterfaceItemIdentifier("look")
+        row(String(localized: "Look:"), lookPopUp)
+        note(String(localized: "Modern draws the panels as Mac lists are drawn: a rounded cursor, quieter columns, the counts in the header. Choosing a look sets the options below; each can still be changed."))
+
         section(String(localized: "Preview"))
         fullWidth(PanelPreview())
 
@@ -232,22 +248,34 @@ private final class PanelsPane: SettingsPane {
                                                  #selector(commandLineChanged(_:))))
         row(nil, checkbox(String(localized: "Function key buttons (F3 View … F8 Delete)"), Settings.showsFunctionKeys,
                           #selector(functionKeysChanged(_:))))
-        row(nil, checkbox(String(localized: "Function keys drawn as key caps"), Settings.showsFunctionKeyCaps,
-                          #selector(functionKeyCapsChanged(_:))))
+        keyCapsBox = checkbox(String(localized: "Function keys drawn as key caps"), Settings.showsFunctionKeyCaps,
+                              #selector(functionKeyCapsChanged(_:)))
+        row(nil, keyCapsBox)
         row(nil, checkbox(String(localized: "Drive buttons"), Settings.showsDriveButtons, #selector(driveButtonsChanged(_:))))
-        row(nil, checkbox(String(localized: "Folder names in [brackets]"), Settings.showsFolderBrackets,
-                          #selector(folderBracketsChanged(_:))))
-        row(String(localized: "Folder tabs:"), checkbox(String(localized: "Mac style, with icons and close buttons"), Settings.macStyleTabs,
-                                                        #selector(macStyleTabsChanged(_:))))
-        row(String(localized: "Panel header:"), checkbox(String(localized: "Compact: the volume and free space in the path bar"),
-                                                         Settings.compactPanelHeader, #selector(compactHeaderChanged(_:))))
+        bracketsBox = checkbox(String(localized: "Folder names in [brackets]"), Settings.showsFolderBrackets,
+                               #selector(folderBracketsChanged(_:)))
+        row(nil, bracketsBox)
+        macTabsBox = checkbox(String(localized: "Mac style, with icons and close buttons"), Settings.macStyleTabs,
+                              #selector(macStyleTabsChanged(_:)))
+        row(String(localized: "Folder tabs:"), macTabsBox)
+        compactHeaderBox = checkbox(String(localized: "Compact: the volume and free space in the path bar"),
+                                    Settings.compactPanelHeader, #selector(compactHeaderChanged(_:)))
+        row(String(localized: "Panel header:"), compactHeaderBox)
         note(String(localized: "Without the row of the volume selector and the / and .. buttons: a click on the volume lists the others, a click on a folder of the path goes there. The mask (*.*) shows only when it filters."))
         row(String(localized: "Button bar:"), button(String(localized: "Customize Toolbar…"), #selector(customizeToolbar(_:))))
         note(String(localized: "Optional columns (kind, created, dimensions, duration, tags) are chosen by right-clicking a panel's column headers."))
 
         section(String(localized: "File list"))
-        row(nil, checkbox(String(localized: "Show checkmarks on marked items"), Settings.showsSelectionMarkers,
-                          #selector(selectionMarkersChanged(_:))))
+        densityPopUp.addItems(withTitles: [String(localized: "Standard (13 pt, as in the Finder)"),
+                                           String(localized: "Compact (12 pt, more files)")])
+        densityPopUp.target = self
+        densityPopUp.action = #selector(densityChanged(_:))
+        densityPopUp.identifier = NSUserInterfaceItemIdentifier("density")
+        row(String(localized: "Rows:"), densityPopUp)
+        note(String(localized: "A font chosen above keeps its own size; the rows still follow this choice."))
+        markersBox = checkbox(String(localized: "Show checkmarks on marked items"), Settings.showsSelectionMarkers,
+                              #selector(selectionMarkersChanged(_:)))
+        row(nil, markersBox)
         let extensions = NSPopUpButton()
         extensions.addItems(withTitles: [String(localized: "In their own column"), String(localized: "After the name")])
         extensions.selectItem(at: Settings.extensionDisplay == .column ? 0 : 1)
@@ -262,13 +290,11 @@ private final class PanelsPane: SettingsPane {
         sizes.action = #selector(sizeDisplayChanged(_:))
         row(String(localized: "Sizes:"), sizes)
         note(String(localized: "Short sizes count as the Finder does (1 KB = 1000 bytes), in the panels, the status line, the free space and when synchronizing folders."))
-        let status = NSPopUpButton()
-        status.addItems(withTitles: [String(localized: "As in the Finder (2 of 15 selected · 35 KB of 1,2 MB)"),
-                                     String(localized: "As in Total Commander (35 k / 1 234 k in 2 / 12 file(s), 0 / 3 dir(s))")])
-        status.selectItem(at: Settings.plainStatusLine ? 0 : 1)
-        status.target = self
-        status.action = #selector(statusLineChanged(_:))
-        row(String(localized: "Status line:"), status)
+        statusPopUp.addItems(withTitles: [String(localized: "As in the Finder (2 of 15 selected · 35 KB of 1,2 MB)"),
+                                          String(localized: "As in Total Commander (35 k / 1 234 k in 2 / 12 file(s), 0 / 3 dir(s))")])
+        statusPopUp.target = self
+        statusPopUp.action = #selector(statusLineChanged(_:))
+        row(String(localized: "Status line:"), statusPopUp)
 
         section(String(localized: "Mouse"))
         let rightButton = NSPopUpButton()
@@ -281,6 +307,30 @@ private final class PanelsPane: SettingsPane {
         rightButton.action = #selector(rightButtonChanged(_:))
         row(String(localized: "Right button:"), rightButton)
         note(String(localized: "Marking: a click marks or unmarks a file, a drag over files makes them all as the first one became; hold the button still for the context menu. On [..] and with Control-click the menu opens at once."))
+        refresh()
+    }
+
+    /// The controls a look sets, as they are now.
+    private func refresh() {
+        lookPopUp.selectItem(at: Settings.isModern ? 0 : 1)
+        densityPopUp.selectItem(at: Settings.density == .standard ? 0 : 1)
+        statusPopUp.selectItem(at: Settings.plainStatusLine ? 0 : 1)
+        keyCapsBox.state = Settings.showsFunctionKeyCaps ? .on : .off
+        bracketsBox.state = Settings.showsFolderBrackets ? .on : .off
+        macTabsBox.state = Settings.macStyleTabs ? .on : .off
+        compactHeaderBox.state = Settings.compactPanelHeader ? .on : .off
+        markersBox.state = Settings.showsSelectionMarkers ? .on : .off
+        updateFontLabel()
+    }
+
+    @objc private func lookChanged(_ sender: NSPopUpButton) {
+        Settings.look = sender.indexOfSelectedItem == 0 ? .modern : .classic
+        refresh()
+    }
+
+    @objc private func densityChanged(_ sender: NSPopUpButton) {
+        Settings.density = sender.indexOfSelectedItem == 0 ? .standard : .compact
+        updateFontLabel()
     }
 
     @objc private func extensionDisplayChanged(_ sender: NSPopUpButton) {
@@ -401,6 +451,12 @@ private final class ColorsPane: SettingsPane {
         row(nil, button(String(localized: "File Colors…"), #selector(showFileColors(_:))))
         note(String(localized: "Colors by file mask: archives, pictures, scripts and so on."))
         refresh()
+        // The look decides the stripes unless they were chosen.
+        NotificationCenter.default.addObserver(forName: Settings.didChange, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.alternatingBox.state = ColorSettings.alternatingRows ? .on : .off
+            }
+        }
     }
 
     private func refresh() {
@@ -599,28 +655,33 @@ private final class PanelPreview: NSView {
     }
 
     private var heightConstraint: NSLayoutConstraint?
-    private var headerHeight: CGFloat { 20 }
-    private var height: CGFloat { headerHeight + CGFloat(rows.count) * Theme.rowHeight + 2 }
+    private var headerHeight: CGFloat { Settings.isModern ? 24 : 20 }
+    private var height: CGFloat { headerHeight + CGFloat(rows.count) * Theme.rowHeight + (Settings.isModern ? 6 : 2) }
 
     nonisolated override var isFlipped: Bool { true }
 
+    /// Drawn as the panels draw their rows, in the look chosen.
     override func draw(_ dirtyRect: NSRect) {
+        let modern = Settings.isModern
         let frame = bounds.insetBy(dx: 0.5, dy: 0.5)
         Theme.panelBackground.setFill()
         bounds.fill()
 
         // Column headers.
         let header = NSRect(x: 0, y: 0, width: bounds.width, height: headerHeight)
-        Theme.chromeBackground.setFill()
+        (modern ? Theme.panelBackground : Theme.chromeBackground).setFill()
         header.fill()
+        let left = Theme.contentInset + 6
         let nameWidth = bounds.width - 190
         let columns: [(String, CGFloat, NSTextAlignment)] = [
-            (String(localized: "Name"), 6, .left), (String(localized: "Ext"), nameWidth, .left),
-            (String(localized: "Size"), nameWidth + 50, .right),
+            (String(localized: "Name"), left, .left), (String(localized: "Ext"), nameWidth, .left),
+            (String(localized: "Size"), nameWidth + 50 - Theme.contentInset, .right),
         ]
-        for (title, x, alignment) in columns {
-            draw(title, in: NSRect(x: x, y: 3, width: alignment == .right ? 130 : 120, height: 16),
-                 font: Theme.chromeFont, color: Theme.chromeText, alignment: alignment)
+        for (index, (title, x, alignment)) in columns.enumerated() {
+            let sorted = modern && index == 0
+            draw(title, in: NSRect(x: x, y: (headerHeight - 16) / 2 + 1, width: alignment == .right ? 130 : 120, height: 16),
+                 font: sorted ? .systemFont(ofSize: 11, weight: .semibold) : Theme.chromeFont,
+                 color: modern ? (sorted ? .labelColor : .secondaryLabelColor) : Theme.chromeText, alignment: alignment)
         }
         Theme.separator.setFill()
         NSRect(x: 0, y: headerHeight - 1, width: bounds.width, height: 1).fill()
@@ -628,34 +689,53 @@ private final class PanelPreview: NSView {
         let font = Theme.panelFont
         let rowHeight = Theme.rowHeight
         for (index, row) in rows.enumerated() {
-            let rect = NSRect(x: 0, y: headerHeight + CGFloat(index) * rowHeight, width: bounds.width, height: rowHeight)
-            if row.isCursor {
-                Theme.cursorBackground.setFill()
-                rect.fill()
+            let rect = NSRect(x: 0, y: headerHeight + (modern ? 3 : 0) + CGFloat(index) * rowHeight,
+                              width: bounds.width, height: rowHeight)
+            let background: NSColor? = if row.isCursor {
+                Theme.cursorBackground
+            } else if row.isMarked && modern {
+                Theme.markedRowBackground
             } else if ColorSettings.alternatingRows && index % 2 == 1 {
-                Theme.alternateRowBackground.setFill()
-                rect.fill()
+                Theme.alternateRowBackground
+            } else {
+                nil
+            }
+            if let background {
+                background.setFill()
+                Theme.rowPath(rect).fill()
             }
             let fileName = row.ext.isEmpty ? row.name : row.name + "." + row.ext
             var color = ColorSettings.color(forName: fileName) ?? Theme.panelText
             if row.isMarked { color = Theme.markedText }
-            if row.isCursor { color = row.isMarked ? Theme.markedCursorText : Theme.cursorText }
+            if row.isCursor {
+                color = row.isMarked && !(modern && Settings.showsSelectionMarkers) ? Theme.markedCursorText : Theme.cursorText
+            }
+            let detail = modern && !row.isCursor ? Theme.secondaryText : color
             let textY = rect.minY + (rowHeight - (font.ascender - font.descender)) / 2 - 1
             let textFont = Theme.font(marked: row.isMarked)
             if Settings.extensionDisplay == .withName {
-                draw(row.isFolder ? Settings.panelName(row.name, isFolder: true) : fileName, in: NSRect(x: 6, y: textY, width: nameWidth + 38, height: rowHeight),
+                draw(row.isFolder ? Settings.panelName(row.name, isFolder: true) : fileName,
+                     in: NSRect(x: left, y: textY, width: nameWidth + 38 - left, height: rowHeight),
                      font: textFont, color: color, alignment: .left)
             } else {
-                draw(Settings.panelName(row.name, isFolder: row.isFolder), in: NSRect(x: 6, y: textY, width: nameWidth - 10, height: rowHeight),
+                draw(Settings.panelName(row.name, isFolder: row.isFolder),
+                     in: NSRect(x: left, y: textY, width: nameWidth - 10 - left, height: rowHeight),
                      font: textFont, color: color, alignment: .left)
-                draw(row.ext, in: NSRect(x: nameWidth, y: textY, width: 48, height: rowHeight), font: textFont, color: color,
+                draw(row.ext, in: NSRect(x: nameWidth, y: textY, width: 48, height: rowHeight), font: textFont, color: detail,
                      alignment: .left)
             }
-            draw(row.bytes.map(Settings.formattedSize) ?? "<DIR>", in: NSRect(x: nameWidth + 50, y: textY, width: 130, height: rowHeight),
-                 font: Theme.panelNumberFont, color: color, alignment: .right)
+            let folderSize = modern ? (row.name == ".." ? "" : "--") : "<DIR>"
+            draw(row.bytes.map(Settings.formattedSize) ?? folderSize,
+                 in: NSRect(x: nameWidth + 50 - Theme.contentInset, y: textY, width: 130, height: rowHeight),
+                 font: Theme.panelNumberFont, color: detail, alignment: .right)
         }
         Theme.separator.setStroke()
-        NSBezierPath(rect: frame).stroke()
+        if modern {
+            let outline = NSBezierPath(roundedRect: frame, xRadius: 6, yRadius: 6)
+            outline.stroke()
+        } else {
+            NSBezierPath(rect: frame).stroke()
+        }
     }
 
     private func draw(_ text: String, in rect: NSRect, font: NSFont, color: NSColor, alignment: NSTextAlignment) {

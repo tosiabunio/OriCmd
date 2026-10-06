@@ -7,6 +7,7 @@ final class MainViewController: NSViewController {
     private let leftPanel: FilePanelController
     private let rightPanel: FilePanelController
     private let splitView = PanelSplitView()
+    private lazy var shownDividerThickness = splitView.dividerThickness
     /// Show → Separate Tree: a folder tree left of the panels, for the active one.
     private var separateTree: DirectoryTreePanel?
     private var splitViewLeading: NSLayoutConstraint!
@@ -155,11 +156,22 @@ final class MainViewController: NSViewController {
     }
 
     @objc private func settingsDidChange(_ notification: Notification) {
+        applyDivider()
         applyLayoutSettings()
         applySeparateTree()
         applyPanelArrangement()
         leftPanel.settingsDidChange()
         rightPanel.settingsDidChange()
+    }
+
+    /// The divider's thickness follows the look; the panels keep their shares.
+    private func applyDivider() {
+        guard splitView.dividerThickness != shownDividerThickness else { return }
+        shownDividerThickness = splitView.dividerThickness
+        let ratio = splitView.ratio
+        splitView.adjustSubviews()
+        splitView.setRatio(ratio)
+        splitView.needsDisplay = true
     }
 
     /// Shows or hides the command line and the function key bar.
@@ -1860,6 +1872,14 @@ extension MainViewController: CommandLineControllerDelegate {
 }
 
 extension MainViewController: NSSplitViewDelegate {
+    /// A hairline divider is still easy to grab.
+    func splitView(_ splitView: NSSplitView, effectiveRect proposedEffectiveRect: NSRect, forDrawnRect drawnRect: NSRect,
+                   ofDividerAt dividerIndex: Int) -> NSRect {
+        guard let panels = splitView as? PanelSplitView else { return proposedEffectiveRect }
+        let slop = panels.grabSlop
+        return splitView.isVertical ? proposedEffectiveRect.insetBy(dx: -slop, dy: 0) : proposedEffectiveRect.insetBy(dx: 0, dy: -slop)
+    }
+
     /// Remembers where the user put the splitter (as a share of the width).
     func splitViewDidResizeSubviews(_ notification: Notification) {
         guard didAppear, splitView.bounds.width > 0 else { return }

@@ -9,7 +9,7 @@ import WebKit
 /// - `ORICMD_LEFT`, `ORICMD_RIGHT`: initial panel directories.
 /// - `ORICMD_KEYS`: space separated keystrokes played after launch, e.g.
 ///   `down shift+down f7 text:New enter wait`, or commands like `cmd:cm_SyncDirs`,
-///   `menu` (writes the context menu to `<snapshot>-menu.txt`), `sizes` (the cursor row's Size, the status line and the free space, to `<snapshot>-sizes.txt`), `drawbelow` (draws only a strip below the last row), `tagcolor` (the tag color read for the cursor's item, to `<snapshot>-tagcolor.txt`), `contextmenu` (the same, opened for real, with what AppKit adds), `menupick:Title|N` (item N of its submenu Title chosen), `servicedata` (what a service gets for the selected files, to `<snapshot>-services.txt`), `drop:/path`, `drive:/path` (a drive
+///   `menu` (writes the context menu to `<snapshot>-menu.txt`), `sizes` (the cursor row's Size, the status line and the free space, to `<snapshot>-sizes.txt`), `columns` (the active panel's Full view columns, to `<snapshot>-columns.txt`), `headerdrag:column:DX` / `headerdoubleclick:column` / `headerclick:column` (the edge right of a column title, or the title), `drawbelow` (draws only a strip below the last row), `tagcolor` (the tag color read for the cursor's item, to `<snapshot>-tagcolor.txt`), `contextmenu` (the same, opened for real, with what AppKit adds), `menupick:Title|N` (item N of its submenu Title chosen), `servicedata` (what a service gets for the selected files, to `<snapshot>-services.txt`), `drop:/path`, `drive:/path` (a drive
 ///   button), `drivemenu:/path` / `drivemenu:/path|Item_Title` (a drive button's context menu),
 ///   `droptab:left:1:right:0` (a tab dropped on a tab bar), `wheel:N` (a mouse wheel over a 3D model), `tabbardoubleclick` (the empty end of the tab bar), `tabmiddleclick:N` (the middle button on the active panel's tab N), `tabmenu:N|Item_Title` (a tab's context menu), `menuitem:Submenu>Item_Title` (a main menu item), `headermenu:Item_Title` (the column header's menu), `tree:/path` (a folder chosen in the separate tree), `file:/path` (the file the next save or open sheet chooses), `speed:5_MB/s` (the speed limit the next copy starts with), `keybindings` (the Keyboard Shortcuts window), `flippedoffmain` (the window's views asked off the main thread whether they are flipped, as a drag does), `pathclick` (the path bar), `colorpreset:N` (Settings → Colors), `rightmouse:click:N` / `hold:N` / `drag:N-M` / `ctrlclick:N` (the right button on rows), `textmenu` (the frontmost text's context menu), `promise:/path` (the file on the
 ///   `crumb:N` / `othercrumb:N` (a parent folder), `pathend` (right of the path), `crumbmenu` / `crumbmenu:N` (hidden parents).
@@ -198,6 +198,46 @@ enum DebugAutomation {
                                  "free: " + panel.panelView.freeSpaceButton.title]
                     try? lines.joined(separator: "\n")
                         .write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-sizes.txt"), atomically: true, encoding: .utf8)
+                } else if ["headerdrag:", "headerdoubleclick:", "headerclick:"].contains(where: token.hasPrefix),
+                          let main = window.contentViewController as? MainViewController {
+                    // The active panel's column titles: `headerdrag:column:DX` drags the edge
+                    // right of a column, `headerdoubleclick:column` double-clicks it,
+                    // `headerclick:column` clicks the title.
+                    let parts = token.split(separator: ":").map(String.init)
+                    let header = main.activePanel.panelView.headerView
+                    guard parts.count >= 2, let column = SortColumn(rawValue: parts[1]) else { continue }
+                    @MainActor func event(_ type: NSEvent.EventType, x: CGFloat, clicks: Int = 1) -> NSEvent? {
+                        NSEvent.mouseEvent(with: type, location: header.convert(NSPoint(x: x, y: header.bounds.midY), to: nil),
+                                           modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                           windowNumber: window.windowNumber, context: nil, eventNumber: harnessEventNumber,
+                                           clickCount: clicks, pressure: type == .leftMouseUp ? 0 : 1)
+                    }
+                    switch parts[0] {
+                    case "headerdrag":
+                        guard parts.count == 3, let dx = Double(parts[2]).map({ CGFloat($0) }),
+                              let edge = header.edgeX(of: column) else { continue }
+                        event(.leftMouseDragged, x: edge + dx).map { NSApp.postEvent($0, atStart: false) }
+                        event(.leftMouseUp, x: edge + dx).map { NSApp.postEvent($0, atStart: false) }
+                        event(.leftMouseDown, x: edge).map(header.mouseDown)
+                    case "headerdoubleclick":
+                        guard let edge = header.edgeX(of: column) else { continue }
+                        event(.leftMouseDown, x: edge, clicks: 2).map(header.mouseDown)
+                    case "headerclick":
+                        guard let x = header.titleX(of: column) else { continue }
+                        event(.leftMouseUp, x: x).map { NSApp.postEvent($0, atStart: false) }
+                        event(.leftMouseDown, x: x).map(header.mouseDown)
+                    default:
+                        continue
+                    }
+                } else if token == "columns", let main = window.contentViewController as? MainViewController, let snapshot {
+                    // The active panel's Full view columns, "column x width" a line, to <snapshot>-columns.txt.
+                    let layout = main.activePanel.listView.columnLayout
+                    let lines = layout.columns.map { column in
+                        let rect = layout.rect(for: column, y: 0, height: 0)
+                        return "\(column.rawValue) \(Int(rect.minX)) \(Int(rect.width))"
+                    }
+                    try? lines.joined(separator: "\n")
+                        .write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-columns.txt"), atomically: true, encoding: .utf8)
                 } else if token == "textmenu", let snapshot, let text = textView(in: topmost(window).contentView),
                           let event = NSEvent.mouseEvent(
                             with: .rightMouseDown, location: text.convert(NSPoint(x: 20, y: 10), to: nil), modifierFlags: [],

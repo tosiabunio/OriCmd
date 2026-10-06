@@ -13,13 +13,13 @@ struct ColumnSet: Equatable {
     private static let key = "ColumnSets"
 
     /// The columns of the Default view, as before sets: Ext, Size, Date, the
-    /// optional metadata columns chosen, Attr.
+    /// optional metadata columns chosen, and in Total Commander's look Attr.
     static var standard: [SortColumn] {
         get {
             if let saved = AppDefaults.store.stringArray(forKey: "DefaultColumns") {
                 return SortColumn.optional.filter(saved.compactMap(SortColumn.init(rawValue:)).contains)
             }
-            return [.ext, .size, .date] + Settings.extraColumns + [.attr]
+            return [.ext, .size, .date] + Settings.extraColumns + (Settings.isModern ? [] : [.attr])
         }
         set {
             AppDefaults.store.set(SortColumn.optional.filter(newValue.contains).map(\.rawValue), forKey: "DefaultColumns")

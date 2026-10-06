@@ -1,31 +1,58 @@
 import AppKit
 
 /// Horizontal geometry of the Full view columns: Name | Ext | Size | Date |
-/// optional metadata columns | Attr. Fixed columns keep their width; Name takes the rest.
+/// optional metadata columns | Attr. Fixed columns keep their width (measured, or
+/// dragged in the header); Name takes the rest.
 struct ColumnLayout {
     static let minimumNameWidth: CGFloat = 60
     /// Below this Name width, Attr and then optional columns are left out.
     static let preferredNameWidth: CGFloat = 140
+    /// The narrowest a column can be dragged to.
+    static let minimumColumnWidth: CGFloat = 24
 
-    private static var cachedWidths: (font: NSFont, columns: [SortColumn], widths: [(SortColumn, CGFloat)])?
+    /// Posted while a column is being resized, for the lists and headers to redraw.
+    static let widthsDidChange = Notification.Name("OriCmdColumnWidthsDidChange")
+    private static let widthsKey = "ColumnWidths"
 
-    /// Widths of the columns after Name, measured with the current panel font.
+    private static var cachedWidths: (key: String, widths: [(SortColumn, CGFloat)])?
+
+    /// Widths dragged in a header, by column, for every panel and column set.
+    static var customWidths: [SortColumn: CGFloat] = {
+        let stored = AppDefaults.store.dictionary(forKey: widthsKey) as? [String: Double] ?? [:]
+        return Dictionary(uniqueKeysWithValues: stored.compactMap { key, value in
+            SortColumn(rawValue: key).map { ($0, CGFloat(value)) }
+        })
+    }() {
+        didSet {
+            cachedWidths = nil
+            NotificationCenter.default.post(name: widthsDidChange, object: nil)
+        }
+    }
+
+    /// Keeps the dragged widths for the next launch.
+    static func saveCustomWidths() {
+        AppDefaults.store.set(Dictionary(uniqueKeysWithValues: customWidths.map { ($0.key.rawValue, Double($0.value)) }),
+                              forKey: widthsKey)
+    }
+
+    /// Widths of the columns after Name, measured with the current panel font unless
+    /// dragged.
     static func fixedWidths(of shown: [SortColumn]) -> [(SortColumn, CGFloat)] {
         let font = Theme.panelNumberFont
         let columns = [.name] + shown
-        if let cachedWidths, cachedWidths.font == font, cachedWidths.columns == columns { return cachedWidths.widths }
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        let sampleDate = formatter.string(from: Date(timeIntervalSince1970: 1_798_761_540))
+        let key = "\(font.fontName) \(font.pointSize) \(Settings.isModern) \(columns.map(\.rawValue))"
+        if let cachedWidths, cachedWidths.key == key { return cachedWidths.widths }
+        let sampleDate = Date(timeIntervalSince1970: 1_790_812_740)
+        let sampleDates = [Theme.dateText(sampleDate), Theme.dateText(Date(timeIntervalSinceNow: -86_400))]
         func width(_ sample: String) -> CGFloat {
             ceil((sample as NSString).size(withAttributes: [.font: font]).width) + 12
         }
         let widths: [(SortColumn, CGFloat)] = columns.dropFirst().map { column in
-            switch column {
+            if let custom = customWidths[column] { return (column, custom) }
+            return switch column {
             case .ext: (column, max(width("WWWW"), 44))
             case .size: (column, width("999 999 999"))
-            case .date, .created: (column, width(sampleDate))
+            case .date, .created: (column, sampleDates.map(width).max() ?? 0)
             case .attr: (column, width("rwxrwxrwx"))
             case .kind: (column, max(width("Markdown document"), 110))
             case .dimensions: (column, width("99999 × 99999"))
@@ -35,7 +62,7 @@ struct ColumnLayout {
             case .name: (column, 0)
             }
         }
-        cachedWidths = (font, columns, widths)
+        cachedWidths = (key, widths)
         return widths
     }
 
@@ -45,8 +72,10 @@ struct ColumnLayout {
     /// The optional metadata columns in this layout.
     private(set) var extraColumns: [SortColumn] = []
 
-    /// `shown`: the columns after Name (a column set's).
-    init(width: CGFloat, columns shown: [SortColumn]) {
+    /// `shown`: the columns after Name (a column set's); `inset`: the room left
+    /// free at each side.
+    init(width: CGFloat, columns shown: [SortColumn], inset: CGFloat = 0) {
+        let width = width - 2 * inset
         var fixedWidths = Self.fixedWidths(of: shown)
         // Keep names readable: drop Attr first, then optional columns from the right.
         while width - fixedWidths.reduce(0, { $0 + $1.1 }) < Self.preferredNameWidth,
@@ -56,8 +85,8 @@ struct ColumnLayout {
         }
         let fixed = fixedWidths.reduce(0) { $0 + $1.1 }
         let nameWidth = max(width - fixed, Self.minimumNameWidth)
-        frames[.name] = (0, nameWidth)
-        var x = nameWidth
+        frames[.name] = (inset, nameWidth)
+        var x = inset + nameWidth
         for (column, columnWidth) in fixedWidths {
             frames[column] = (x, columnWidth)
             x += columnWidth
@@ -78,4 +107,20 @@ struct ColumnLayout {
     func column(at x: CGFloat) -> SortColumn? {
         frames.first { x >= $0.value.x && x < $0.value.x + $0.value.width }?.key
     }
+
+    /// The edge between two columns near `x` (within `slop`), named by the column it
+    /// resizes: the one left of it, or for Name's edge the one right of it (Name
+    /// takes what is left), and how its width changes as the edge moves right.
+    func resizableEdge(near x: CGFloat, slop: CGFloat = 3) -> (column: SortColumn, sign: CGFloat, x: CGFloat)? {
+        for (index, column) in columns.dropLast().enumerated() {
+            guard let frame = frames[column] else { continue }
+            let edge = frame.x + frame.width
+            guard abs(x - edge) <= slop else { continue }
+            return column == .name ? (columns[index + 1], -1, edge) : (column, 1, edge)
+        }
+        return nil
+    }
+
+    /// The width of Name, which shrinks as other columns grow.
+    var nameWidth: CGFloat { frames[.name]?.width ?? 0 }
 }

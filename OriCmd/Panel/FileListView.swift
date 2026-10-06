@@ -32,8 +32,10 @@ protocol FileListViewDelegate: AnyObject {
 }
 
 /// The file list of a panel, in Full view (one row per entry with details) or
-/// Brief view (names only, in columns filled top to bottom). The cursor bar is
-/// filled in the active panel and outlined in the inactive one.
+/// Brief view (names only, in columns filled top to bottom). In the modern look the
+/// cursor is a rounded highlight, in the accent color while the panel has the focus
+/// and grey otherwise; in Total Commander's it is filled in the active panel and
+/// outlined in the inactive one.
 final class FileListView: NSView {
     enum ViewMode: String {
         case full, brief, thumbnails
@@ -85,13 +87,6 @@ final class FileListView: NSView {
         didSet { if dropTargetRow != oldValue { needsDisplay = true } }
     }
 
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter
-    }()
-
     // Asked off the main thread too (AppKit places the images of a drag of many files concurrently).
     nonisolated override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
@@ -100,6 +95,44 @@ final class FileListView: NSView {
         super.init(frame: frameRect)
         let promiseTypes = NSFilePromiseReceiver.readableDraggedTypes.map { NSPasteboard.PasteboardType($0) }
         registerForDraggedTypes([NSPasteboard.PasteboardType.fileURL] + promiseTypes)
+        NotificationCenter.default.addObserver(self, selector: #selector(columnWidthsDidChange(_:)),
+                                               name: ColumnLayout.widthsDidChange, object: nil)
+    }
+
+    @objc private func columnWidthsDidChange(_ notification: Notification) {
+        if viewMode == .full { needsDisplay = true }
+    }
+
+    /// The modern cursor turns grey while the window is not the key one.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        let center = NotificationCenter.default
+        for name in [NSWindow.didBecomeKeyNotification, NSWindow.didResignKeyNotification] {
+            center.removeObserver(self, name: name, object: nil)
+            if let window {
+                center.addObserver(self, selector: #selector(windowKeyDidChange(_:)), name: name, object: window)
+            }
+        }
+    }
+
+    @objc private func windowKeyDidChange(_ notification: Notification) {
+        if Settings.isModern, items.indices.contains(cursor) { setNeedsDisplay(rowRect(cursor)) }
+    }
+
+    /// Whether the cursor shows as focused: the active panel's, in the key window
+    /// (the modern look; Total Commander's ignores the window). Test runs stay in the
+    /// background, so their pictures show it as in front.
+    private var showsFocusedCursor: Bool {
+        guard isActive else { return false }
+        #if DEBUG
+        if DebugAutomation.isTestRun { return true }
+        #endif
+        return !Settings.isModern || window?.isKeyWindow != false
+    }
+
+    /// The Full view columns, inset from the list's edges in the modern look.
+    var columnLayout: ColumnLayout {
+        ColumnLayout(width: bounds.width, columns: columns, inset: Theme.contentInset)
     }
 
     @available(*, unavailable)
@@ -168,12 +201,17 @@ final class FileListView: NSView {
         let row = rowRect(cursor)
         var frame = row.insetBy(dx: 0, dy: -1)
         if viewMode == .full {
-            let layout = ColumnLayout(width: bounds.width, columns: columns)
-            frame.size.width = layout.contains(.ext) ? layout.rect(for: .ext, y: 0, height: 0).maxX
-                : layout.rect(for: .name, y: 0, height: 0).maxX
+            let layout = columnLayout
+            frame.origin.x = layout.rect(for: .name, y: 0, height: 0).minX
+            frame.size.width = (layout.contains(.ext) ? layout.rect(for: .ext, y: 0, height: 0).maxX
+                : layout.rect(for: .name, y: 0, height: 0).maxX) - frame.origin.x
         }
         if viewMode == .thumbnails {
             frame = NSRect(x: row.minX, y: row.minY + Self.thumbnailSize + 8, width: row.width, height: rowHeight + 2)
+        } else if viewMode == .brief {
+            let indent: CGFloat = Settings.isModern ? 23 : 20
+            frame.origin.x += indent
+            frame.size.width -= indent
         } else {
             frame.origin.x += 20
             frame.size.width -= 20
@@ -444,7 +482,7 @@ final class FileListView: NSView {
         let highest = min(last, items.count - 1)
         guard lowest <= highest else { return }
         let range = lowest...highest
-        let layout = ColumnLayout(width: bounds.width, columns: columns)
+        let layout = columnLayout
         for row in range {
             switch viewMode {
             case .full: drawRow(row, layout: layout)
@@ -454,7 +492,8 @@ final class FileListView: NSView {
         }
         if let dropTargetRow, items.indices.contains(dropTargetRow) {
             NSColor.controlAccentColor.setStroke()
-            let outline = NSBezierPath(roundedRect: rowRect(dropTargetRow).insetBy(dx: 1, dy: 1), xRadius: 3, yRadius: 3)
+            let inset = viewMode == .full ? max(Theme.rowInset, 1) : 1
+            let outline = NSBezierPath(roundedRect: rowRect(dropTargetRow).insetBy(dx: inset, dy: 1), xRadius: 4, yRadius: 4)
             outline.lineWidth = 2
             outline.stroke()
         }
@@ -462,19 +501,35 @@ final class FileListView: NSView {
 
     /// Fills the cursor bar if needed and returns the text color for the entry.
     private func prepareCell(_ row: Int, in rect: NSRect) -> NSColor {
-        let filled = row == cursor && isActive
-        if !filled && viewMode == .full && row % 2 == 1 && ColorSettings.alternatingRows {
-            Theme.alternateRowBackground.setFill()
-            rect.fill()
-        }
-        if filled {
-            Theme.cursorBackground.setFill()
-            rect.fill()
-        }
         let item = items[row]
         let isMarked = marked.contains(item.name)
+        let filled = row == cursor && showsFocusedCursor
+        let inset = viewMode == .full ? Theme.rowInset : 2
+        if Settings.isModern {
+            let background: NSColor? = if row == cursor {
+                filled ? Theme.cursorBackground : Theme.unfocusedCursorBackground
+            } else if isMarked {
+                Theme.markedRowBackground
+            } else if viewMode == .full && row % 2 == 1 && ColorSettings.alternatingRows {
+                Theme.alternateRowBackground
+            } else {
+                nil
+            }
+            background?.setFill()
+            if background != nil { Theme.rowPath(rect, inset: inset).fill() }
+        } else {
+            if !filled && viewMode == .full && row % 2 == 1 && ColorSettings.alternatingRows {
+                Theme.alternateRowBackground.setFill()
+                rect.fill()
+            }
+            if filled {
+                Theme.cursorBackground.setFill()
+                rect.fill()
+            }
+        }
         return switch (filled, isMarked) {
-        case (true, true): Theme.markedCursorText
+        // With checkmarks the modern cursor needs no second text color for marks.
+        case (true, true): Settings.isModern && Settings.showsSelectionMarkers ? Theme.cursorText : Theme.markedCursorText
         case (true, false): Theme.cursorText
         case (false, true): Theme.markedText
         case (false, false): (item.isParent ? nil : ColorSettings.color(forName: item.name)) ?? Theme.panelText
@@ -511,8 +566,9 @@ final class FileListView: NSView {
         tick.stroke()
     }
 
+    /// Total Commander's dotted cursor in the inactive panel.
     private func drawInactiveCursorFrame(_ row: Int, in rect: NSRect) {
-        guard row == cursor, !isActive else { return }
+        guard row == cursor, !isActive, !Settings.isModern else { return }
         Theme.inactiveCursorFrame.setStroke()
         let frame = NSBezierPath(rect: rect.insetBy(dx: 0.5, dy: 0.5))
         frame.setLineDash([1, 1], count: 2, phase: 0)
@@ -523,8 +579,10 @@ final class FileListView: NSView {
         let item = items[row]
         let rect = rowRect(row)
         let color = prepareCell(row, in: rect)
-        drawIcon(for: item, in: rect)
-        drawText(displayName(item), in: rect.divided(atDistance: 20, from: .minXEdge).remainder,
+        // Inside the rounded highlight of the modern look.
+        let content = Settings.isModern ? rect.insetBy(dx: 3, dy: 0) : rect
+        drawIcon(for: item, in: content)
+        drawText(displayName(item), in: content.divided(atDistance: 20, from: .minXEdge).remainder,
                  font: Theme.font(marked: marked.contains(item.name)), color: color)
         drawInactiveCursorFrame(row, in: rect)
     }
@@ -536,8 +594,11 @@ final class FileListView: NSView {
         let size = Self.thumbnailSize
         if row == cursor {
             let highlight = NSBezierPath(roundedRect: rect.insetBy(dx: 3, dy: 3), xRadius: 6, yRadius: 6)
-            if isActive {
+            if showsFocusedCursor {
                 Theme.cursorBackground.withAlphaComponent(0.3).setFill()
+                highlight.fill()
+            } else if Settings.isModern {
+                Theme.unfocusedCursorBackground.setFill()
                 highlight.fill()
             } else {
                 Theme.inactiveCursorFrame.setStroke()
@@ -585,17 +646,19 @@ final class FileListView: NSView {
         let textFont = Theme.font(marked: isMarked)
         // Sizes and dates stay regular: in bold they would not fit their columns.
         let numberFont = Theme.panelNumberFont
+        // The modern look leaves the colors to the name; the other columns are grey.
+        let detail = Settings.isModern && !(row == cursor && showsFocusedCursor) ? Theme.secondaryText : color
 
         drawIcon(for: item, in: layout.rect(for: .name, y: y, height: rowHeight))
         let shown = nameAndExtension(of: item, layout: layout, y: y, font: textFont)
         drawText(shown.name, in: shown.nameRect, font: textFont, color: color)
         if layout.contains(.ext) {
-            drawText(shown.ext, in: layout.rect(for: .ext, y: y, height: rowHeight), font: textFont, color: color)
+            drawText(shown.ext, in: layout.rect(for: .ext, y: y, height: rowHeight), font: textFont, color: detail)
         }
 
         if layout.contains(.size) {
             drawText(sizeText(of: item), in: layout.rect(for: .size, y: y, height: rowHeight),
-                     font: numberFont, color: color, alignment: .right)
+                     font: numberFont, color: detail, alignment: .right)
         }
 
         if !item.isParent {
@@ -606,16 +669,16 @@ final class FileListView: NSView {
                 let numeric = column == .dimensions || column == .duration
                 drawText(value?.display ?? "", in: layout.rect(for: column, y: y, height: rowHeight),
                          font: numeric || column == .created ? numberFont : textFont,
-                         color: color, alignment: numeric ? .right : .left)
+                         color: detail, alignment: numeric ? .right : .left)
             }
             if layout.contains(.date) {
-                drawText(Self.dateFormatter.string(from: item.modified),
-                         in: layout.rect(for: .date, y: y, height: rowHeight),
-                         font: numberFont, color: color)
+                let dateRect = layout.rect(for: .date, y: y, height: rowHeight)
+                drawText(Self.dateText(item.modified, width: dateRect.width - 8, font: numberFont),
+                         in: dateRect, font: numberFont, color: detail)
             }
             if layout.contains(.attr) {
                 drawText(item.permissions, in: layout.rect(for: .attr, y: y, height: rowHeight),
-                         font: numberFont, color: color)
+                         font: numberFont, color: detail)
             }
         }
 
@@ -652,18 +715,29 @@ final class FileListView: NSView {
         return String(base[..<low]) + "…." + ext
     }
 
+    /// A date as the Date column shows it: the modern look's long form, or the short
+    /// one where that does not fit, as the Finder shortens dates in a narrow column.
+    private static func dateText(_ date: Date, width: CGFloat, font: NSFont) -> String {
+        let text = Theme.dateText(date)
+        guard Settings.isModern, (text as NSString).size(withAttributes: [.font: font]).width > width else { return text }
+        return Theme.dateText(date, short: true)
+    }
+
     /// The Name and Ext texts of the cursor row in Full view (for test runs).
     var cursorNameAndExtension: (name: String, ext: String)? {
         guard let item = currentItem else { return nil }
-        let shown = nameAndExtension(of: item, layout: ColumnLayout(width: bounds.width, columns: columns), y: 0,
+        let shown = nameAndExtension(of: item, layout: columnLayout, y: 0,
                                      font: Theme.font(marked: marked.contains(item.name)))
         return (shown.name, shown.ext)
     }
 
-    /// What the Size column shows for an item.
+    /// What the Size column shows for an item: a folder's size once calculated, else
+    /// "--" as in the Finder, or Total Commander's <DIR>.
     func sizeText(of item: FileItem) -> String {
         if item.isFolder, let folderSize = folderSizes[item.name] {
             return Settings.formattedSize(folderSize)
+        } else if item.isFolder || item.isPackage, Settings.isModern {
+            return item.isParent ? "" : "--"
         } else if item.isFolder {
             return "<DIR>"
         } else if item.isPackage {

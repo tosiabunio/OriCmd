@@ -639,6 +639,16 @@
         }
       }
     },
+    "A font chosen above keeps its own size; the rows still follow this choice.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выбранный выше шрифт сохраняет свой размер; высота строк всё равно следует этому выбору."
+          }
+        }
+      }
+    },
     "A full-screen program is still running in the terminal": {
       "localizations": {
         "ru": {
@@ -1729,6 +1739,16 @@
         }
       }
     },
+    "Classic (Total Commander)": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Классический (Total Commander)"
+          }
+        }
+      }
+    },
     "Clear": {
       "localizations": {
         "ru": {
@@ -1995,6 +2015,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Комментарий"
+          }
+        }
+      }
+    },
+    "Compact (12 pt, more files)": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Компактные (12 пт, больше файлов)"
           }
         }
       }
@@ -4449,6 +4479,26 @@
         }
       }
     },
+    "Look": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Стиль"
+          }
+        }
+      }
+    },
+    "Look:": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Стиль:"
+          }
+        }
+      }
+    },
     "Looking for servers…": {
       "localizations": {
         "ru": {
@@ -4605,6 +4655,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Отсутствует: %@"
+          }
+        }
+      }
+    },
+    "Modern": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Современный"
+          }
+        }
+      }
+    },
+    "Modern draws the panels as Mac lists are drawn: a rounded cursor, quieter columns, the counts in the header. Choosing a look sets the options below; each can still be changed.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Современный стиль рисует панели как списки Mac: скруглённый курсор, приглушённые колонки, количество файлов в заголовке. Выбор стиля меняет настройки ниже; каждую можно изменить отдельно."
           }
         }
       }
@@ -6339,6 +6409,16 @@
         }
       }
     },
+    "Rows:": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Строки:"
+          }
+        }
+      }
+    },
     "Run": {
       "localizations": {
         "ru": {
@@ -7159,6 +7239,16 @@
         }
       }
     },
+    "Standard (13 pt, as in the Finder)": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обычные (13 пт, как в Finder)"
+          }
+        }
+      }
+    },
     "Start": {
       "localizations": {
         "ru": {
@@ -7195,6 +7285,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Меню «Запуск»:"
+          }
+        }
+      }
+    },
+    "Status": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Состояние"
           }
         }
       }

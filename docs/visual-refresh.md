@@ -1,6 +1,7 @@
 # Visual refresh
 
-**Status:** accepted plan, not implemented yet (2026-10-06).
+**Status:** phase 1 built on branch `modern-panels` (2026-10-06); phases 2 and 3
+not started.
 **Mockup:** [Today and proposed main window, interactive](https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP)
 (light and dark).
 
@@ -134,6 +135,18 @@ Settings has its own copy of the list drawing for its preview
 ([`SettingsWindowController.swift:558–667`][preview]), which must change too.
 Regression checks that read `-names.txt` or expect `[name]` and `<DIR>` set the
 Classic look or are updated.
+
+**As built.** Settings → Panels → Look chooses Modern (the default) or Classic
+(Total Commander). Choosing one writes the switches it is made of: folder
+brackets, Mac-style tabs, the compact header, key caps, the Finder-style status
+line, checkmarks and the row height; a switch never changed follows the look.
+Alternating rows are on by default in Modern (Settings → Colors still decides).
+Differences from the mockup: the path keeps `/` between folders rather than `›`,
+and the status line below the list folds away only with the compact header,
+returning while quick search is open. Column widths dragged in the header apply
+to both looks and every panel. Test runs show the focused cursor although they
+stay in the background, and gain `columns`, `headerdrag`, `headerdoubleclick` and
+`headerclick` actions with regression checks.
 
 ### Phase 2: window layout (macOS 26 APIs behind availability checks)
 

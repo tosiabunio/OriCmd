@@ -1,7 +1,10 @@
 import AppKit
 
 /// The current path line above a file list, e.g. "/Users/me/*.*".
-/// Highlighted when its panel is the active one. A click on a parent folder in it
+/// Highlighted when its panel is the active one: filled in Total Commander's look; in
+/// the modern one marked by a strip in the accent color, with the current folder in
+/// semibold and, in a panel's compact header, its counts and free space on a second
+/// line. A click on a parent folder in it
 /// goes there; a click on the current folder, the mask or right of them makes it
 /// editable. In the compact header (Settings) it also holds the volume, which a
 /// click chooses, and its free space, which opens drive information; the mask shows
@@ -60,7 +63,31 @@ final class PathBar: NSView {
         didSet { if isLoading != oldValue { layoutDidChange() } }
     }
 
+    /// The panel's counts ("15 items · 2 selected"), on the second line.
+    var status = "" {
+        didSet { if status != oldValue { layoutDidChange() } }
+    }
+
+    /// A panel's path bar has the second line in the modern compact header (the tree's
+    /// and Quick View's have none).
+    var showsInfoLine = false {
+        didSet { invalidateIntrinsicContentSize(); layoutDidChange() }
+    }
+
     private var isCompact: Bool { Settings.compactPanelHeader }
+    private var isModern: Bool { Settings.isModern }
+    var hasInfoLine: Bool { showsInfoLine && isModern && isCompact }
+
+    /// Where the path is: under the accent strip in the modern look.
+    private var pathLine: NSRect {
+        isModern ? NSRect(x: 0, y: 4, width: bounds.width, height: 22) : bounds
+    }
+
+    private var infoLine: NSRect { NSRect(x: 0, y: 26, width: bounds.width, height: 15) }
+
+    static func height(compact: Bool, infoLine: Bool) -> CGFloat {
+        Settings.isModern ? (infoLine ? 44 : 28) : (compact ? 22 : 18)
+    }
 
     var onClick: (() -> Void)?
     /// A click on the volume: the menu of volumes.
@@ -102,16 +129,44 @@ final class PathBar: NSView {
     var isEditing: Bool { field != nil }
 
     nonisolated override var isFlipped: Bool { true }
-    override var intrinsicContentSize: NSSize { NSSize(width: NSView.noIntrinsicMetric, height: isCompact ? 22 : 18) }
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: Self.height(compact: isCompact, infoLine: hasInfoLine))
+    }
 
     private var attributes: [NSAttributedString.Key: Any] {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byTruncatingHead
         return [
             .font: Theme.panelFont,
-            .foregroundColor: isActive ? Theme.activeHeaderText : Theme.inactiveHeaderText,
+            .foregroundColor: isModern ? NSColor.secondaryLabelColor : isActive ? Theme.activeHeaderText : Theme.inactiveHeaderText,
             .paragraphStyle: paragraph,
         ]
+    }
+
+    /// The text as drawn: in the modern look the parents are grey and the current
+    /// folder is in the label color and semibold.
+    private func styled(_ text: String) -> NSMutableAttributedString {
+        let string = NSMutableAttributedString(string: text, attributes: attributes)
+        guard isModern else { return string }
+        let font = Theme.panelFont
+        let semibold = font.familyName == NSFont.systemFont(ofSize: font.pointSize).familyName
+            ? NSFont.systemFont(ofSize: font.pointSize, weight: .semibold)
+            : NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)
+        string.addAttributes([.font: semibold, .foregroundColor: NSColor.labelColor], range: currentFolderRange(in: text))
+        return string
+    }
+
+    /// The last name in the text, without a trailing "/" or the mask after it.
+    private func currentFolderRange(in text: String) -> NSRange {
+        let string = text as NSString
+        var end = string.length
+        if showsMask, !isCompact, filterSummary == nil, string.hasSuffix("/" + mask) {
+            end -= (mask as NSString).length + 1
+        }
+        if end > 1, string.substring(to: end).hasSuffix("/") { end -= 1 }
+        let slash = string.range(of: "/", options: .backwards, range: NSRange(location: 0, length: end))
+        let start = slash.location == NSNotFound ? 0 : slash.location + 1
+        return start < end ? NSRange(location: start, length: end - start) : NSRange(location: 0, length: end)
     }
 
     /// What is drawn (the path, or the end of it after "…" when it does not fit) and
@@ -137,7 +192,7 @@ final class PathBar: NSView {
     private static let spinnerRoom: CGFloat = 22
 
     private var chipAttributes: [NSAttributedString.Key: Any] {
-        [.font: Self.chipFont, .foregroundColor: isActive ? Theme.activeHeaderText : Theme.inactiveHeaderText]
+        [.font: Self.chipFont, .foregroundColor: isModern ? NSColor.labelColor : isActive ? Theme.activeHeaderText : Theme.inactiveHeaderText]
     }
 
     /// The width of the volume button: icon, name and a chevron.
@@ -158,28 +213,36 @@ final class PathBar: NSView {
     /// is cut too. The free space gives way first.
     private func makeLayout() -> Layout {
         let attributes = attributes
-        func width(_ text: String) -> CGFloat { (text as NSString).size(withAttributes: attributes).width }
+        // Parents are measured plainly (they are drawn so), the whole text as styled.
+        func plainWidth(_ text: String) -> CGFloat { (text as NSString).size(withAttributes: attributes).width }
+        func width(_ text: String) -> CGFloat { isModern ? styled(text).size().width : plainWidth(text) }
+        let line = pathLine
         let full = showsMask && !isCompact && filterSummary == nil ? (path.hasSuffix("/") ? path : path + "/") + mask : path
         var layout = Layout(text: full)
-        var leading: CGFloat = 4, trailing = bounds.maxX - 4
+        var leading: CGFloat = isModern ? 6 : 4, trailing = bounds.maxX - (isModern ? 6 : 4)
         var volumeRect: NSRect?, filterRect: NSRect?, freeRect: NSRect?
         if isCompact {
-            let chipHeight = bounds.height - 4
+            let chipHeight = line.height - 4
             if let volume {
-                volumeRect = NSRect(x: 2, y: 2, width: volumeWidth(volume.name), height: chipHeight)
+                volumeRect = NSRect(x: isModern ? 4 : 2, y: line.minY + 2, width: volumeWidth(volume.name), height: chipHeight)
                 leading = volumeRect!.maxX + 6
             }
             if isLoading { trailing -= Self.spinnerRoom }
         }
         if filterSummary != nil || (isCompact && filters) {
             let chipWidth = min(filterWidth, max(60, min(bounds.width * 0.60, trailing - leading - 24)))
-            filterRect = NSRect(x: trailing - chipWidth, y: 1, width: chipWidth, height: bounds.height - 2)
+            filterRect = NSRect(x: trailing - chipWidth, y: line.minY + 1, width: chipWidth, height: line.height - 2)
             trailing = filterRect!.minX - 6
         }
         if isCompact {
             let freeWidth = ceil((freeSpace as NSString).size(withAttributes: chipAttributes).width)
-            if !freeSpace.isEmpty, !isLoading, width(full) <= trailing - leading - freeWidth - 12 {
-                freeRect = NSRect(x: trailing - freeWidth, y: 0, width: freeWidth, height: bounds.height)
+            if hasInfoLine {
+                // Under the path, always shown.
+                if !freeSpace.isEmpty {
+                    freeRect = NSRect(x: bounds.maxX - 6 - freeWidth, y: infoLine.minY, width: freeWidth, height: infoLine.height)
+                }
+            } else if !freeSpace.isEmpty, !isLoading, width(full) <= trailing - leading - freeWidth - 12 {
+                freeRect = NSRect(x: trailing - freeWidth, y: line.minY, width: freeWidth, height: line.height)
                 trailing = freeRect!.minX - 12
             }
         }
@@ -192,7 +255,7 @@ final class PathBar: NSView {
                 layout = Layout(text: ellipsis + rest, firstShown: hidden, shift: (ellipsis as NSString).length - end)
                 if width(layout.text) <= available { break }
             }
-            layout.ellipsis = NSRect(x: leading - 4, y: 0, width: 4 + width("…"), height: bounds.height)
+            layout.ellipsis = NSRect(x: leading - 4, y: line.minY, width: 4 + plainWidth("…"), height: line.height)
         }
         layout.textX = leading
         layout.textWidth = available
@@ -204,8 +267,8 @@ final class PathBar: NSView {
         for index in layout.firstShown..<crumbs.count {
             let range = NSRange(location: crumbs[index].range.location + layout.shift, length: crumbs[index].range.length)
             guard range.location >= 0, NSMaxRange(range) <= text.length else { continue }
-            layout.crumbRects[index] = NSRect(x: leading + width(text.substring(to: range.location)), y: 0,
-                                              width: width(text.substring(with: range)), height: bounds.height)
+            layout.crumbRects[index] = NSRect(x: leading + plainWidth(text.substring(to: range.location)), y: line.minY,
+                                              width: plainWidth(text.substring(with: range)), height: line.height)
         }
         return layout
     }
@@ -231,12 +294,25 @@ final class PathBar: NSView {
     var filterClearRect: NSRect? { clearRect(in: makeLayout()) }
 
     override func draw(_ dirtyRect: NSRect) {
-        (isActive ? Theme.activeHeaderBackground : Theme.inactiveHeaderBackground).setFill()
-        bounds.fill()
+        if isModern {
+            Theme.panelBackground.setFill()
+            bounds.fill()
+            if isActive {
+                // Only its lower, rounded half shows.
+                NSColor.controlAccentColor.setFill()
+                NSBezierPath(roundedRect: NSRect(x: 8, y: -3, width: bounds.width - 16, height: 6), xRadius: 3, yRadius: 3).fill()
+            }
+        } else {
+            (isActive ? Theme.activeHeaderBackground : Theme.inactiveHeaderBackground).setFill()
+            bounds.fill()
+        }
 
         let layout = makeLayout()
         drawAccessories(layout)
-        let text = NSMutableAttributedString(string: layout.text, attributes: attributes)
+        if hasInfoLine {
+            drawInfoLine(layout)
+        }
+        let text = styled(layout.text)
         switch hovered {
         case .crumb(let index) where layout.crumbRects[index] != nil:
             let range = crumbs[index].range
@@ -248,13 +324,27 @@ final class PathBar: NSView {
             break
         }
         let height = text.size().height
-        text.draw(in: NSRect(x: layout.textX, y: (bounds.height - height) / 2, width: layout.textWidth, height: height))
+        let line = pathLine
+        text.draw(in: NSRect(x: layout.textX, y: line.minY + (line.height - height) / 2, width: layout.textWidth, height: height))
+    }
+
+    /// The counts, left of the free space.
+    private func drawInfoLine(_ layout: Layout) {
+        let line = infoLine
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = .byTruncatingTail
+        let attributes: [NSAttributedString.Key: Any] = [.font: Self.chipFont, .foregroundColor: NSColor.secondaryLabelColor,
+                                                         .paragraphStyle: paragraph]
+        let textHeight = ceil(Self.chipFont.ascender - Self.chipFont.descender)
+        let end = (layout.freeSpace?.minX ?? bounds.maxX) - 12
+        (status as NSString).draw(with: NSRect(x: 7, y: line.midY - textHeight / 2, width: max(end - 7, 0), height: textHeight),
+                                  options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: attributes)
     }
 
     /// The volume button, the filter chip and the free space of the compact header.
     private func drawAccessories(_ layout: Layout) {
-        let textColor = isActive ? Theme.activeHeaderText : Theme.inactiveHeaderText
-        let chipFill = isActive ? NSColor.white.withAlphaComponent(0.18) : NSColor.quaternaryLabelColor
+        let textColor = isModern ? NSColor.labelColor : isActive ? Theme.activeHeaderText : Theme.inactiveHeaderText
+        let chipFill = isActive && !isModern ? NSColor.white.withAlphaComponent(0.18) : NSColor.quaternaryLabelColor
         let textHeight = ceil(Self.chipFont.ascender - Self.chipFont.descender)
         func symbol(_ name: String, size: CGFloat, in rect: NSRect) {
             let configuration = NSImage.SymbolConfiguration(pointSize: size, weight: .semibold)
@@ -301,7 +391,7 @@ final class PathBar: NSView {
         }
         if let rect = layout.freeSpace {
             var attributes = chipAttributes
-            attributes[.foregroundColor] = textColor.withAlphaComponent(0.7)
+            attributes[.foregroundColor] = isModern ? NSColor.secondaryLabelColor : textColor.withAlphaComponent(0.7)
             if hovered == .driveInformation { attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue }
             (freeSpace as NSString).draw(at: NSPoint(x: rect.minX, y: rect.midY - textHeight / 2), withAttributes: attributes)
         }
@@ -407,7 +497,7 @@ final class PathBar: NSView {
             }
             return element
         }
-        var volumeButton: [CrumbElement] = []
+        var volumeButton: [NSAccessibilityElement] = []
         if let frame = layout.volume, let volume {
             let element = CrumbElement()
             element.setAccessibilityRole(.popUpButton)
@@ -434,6 +524,15 @@ final class PathBar: NSView {
             }
             volumeButton.append(element)
         }
+        if hasInfoLine, !status.isEmpty {
+            let element = NSAccessibilityElement()
+            element.setAccessibilityRole(.staticText)
+            element.setAccessibilityLabel(String(localized: "Status"))
+            element.setAccessibilityValue(status)
+            element.setAccessibilityParent(self)
+            element.setAccessibilityFrameInParentSpace(infoLine)
+            volumeButton.append(element)
+        }
         if let frame = layout.freeSpace, !isEditing {
             let element = CrumbElement()
             element.setAccessibilityRole(.button)
@@ -458,8 +557,8 @@ final class PathBar: NSView {
         field.cell?.isScrollable = true
         field.cell?.wraps = false
         field.delegate = self
-        field.frame = bounds
-        field.autoresizingMask = [.width, .height]
+        field.frame = isModern ? pathLine.insetBy(dx: 2, dy: 0) : bounds
+        field.autoresizingMask = isModern ? [.width] : [.width, .height]
         addSubview(field)
         self.field = field
         layoutDidChange()

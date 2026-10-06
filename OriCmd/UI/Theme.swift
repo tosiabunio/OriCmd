@@ -1,7 +1,8 @@
 import AppKit
 
-/// Visual constants modelled on Total Commander's default look,
-/// adapted to light and dark appearance.
+/// Visual constants of the panels in both looks (Settings → Panels): the modern one,
+/// drawn as current Mac lists are, and Total Commander's, adapted to light and dark
+/// appearance.
 enum Theme {
     static var panelFont: NSFont { Settings.panelFont }
 
@@ -25,11 +26,46 @@ enum Theme {
 
     static let chromeFont = NSFont.systemFont(ofSize: 11)
 
-    /// Row height follows the panel font (18 pt for the default 12 pt font).
+    /// Row height follows the panel font and the density: 22 pt for the standard
+    /// 13 pt font, 19 pt for the compact 12 pt one.
     static var rowHeight: CGFloat {
         let font = panelFont
-        return max(ceil(font.ascender - font.descender + font.leading) + 4, 16)
+        let padding: CGFloat = Settings.density == .standard ? 6 : 4
+        return max(ceil(font.ascender - font.descender + font.leading) + padding, 16)
     }
+
+    /// In the modern look rows are rounded and inset from the list's edges: the
+    /// highlight by `rowInset`, the columns a little further, by `contentInset`.
+    static var rowInset: CGFloat { Settings.isModern ? 6 : 0 }
+    static var contentInset: CGFloat { Settings.isModern ? 8 : 0 }
+
+    /// A row's background or highlight: rounded in the modern look.
+    static func rowPath(_ rect: NSRect, inset: CGFloat = rowInset) -> NSBezierPath {
+        guard Settings.isModern else { return NSBezierPath(rect: rect) }
+        return NSBezierPath(roundedRect: rect.insetBy(dx: inset, dy: 0), xRadius: 5, yRadius: 5)
+    }
+
+    /// Dates as the panels show them: "27 Sep 2026 at 11:30" or "Today at 09:12" in
+    /// the modern look, or "27/09/2026, 11:30"; `short` also in the modern look,
+    /// when the long form does not fit.
+    static func dateText(_ date: Date, short: Bool = false) -> String {
+        (Settings.isModern && !short ? mediumDates : shortDates).string(from: date)
+    }
+
+    private static let shortDates: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    private static let mediumDates: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        formatter.doesRelativeDateFormatting = true
+        return formatter
+    }()
 
     static let panelBackground = NSColor.textBackgroundColor
     static let panelText = NSColor.textColor
@@ -48,6 +84,13 @@ enum Theme {
     )
     static let markedCursorText = NSColor.systemYellow
     static let inactiveCursorFrame = NSColor.secondaryLabelColor
+    /// The modern look's cursor in the other panel, or while OriCmd is in the
+    /// background, as unfocused Mac lists show their selection.
+    static let unfocusedCursorBackground = NSColor.unemphasizedSelectedContentBackgroundColor
+    /// Marked rows are tinted lightly in the modern look.
+    static var markedRowBackground: NSColor { markedText.withAlphaComponent(0.09) }
+    /// Ext, Size, Date and the other columns after Name in the modern look.
+    static let secondaryText = NSColor.secondaryLabelColor
 
     static let activeHeaderBackground = NSColor.selectedContentBackgroundColor
     static let activeHeaderText = NSColor.alternateSelectedControlTextColor

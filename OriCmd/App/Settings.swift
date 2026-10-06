@@ -39,6 +39,8 @@ enum Settings {
         static let sizeDisplay = "SizeDisplay"
         static let plainStatus = "PlainStatusLine"
         static let selectionMarkers = "SelectionMarkers"
+        static let look = "Look"
+        static let density = "PanelDensity"
 
         static let separateTree = "SeparateTree"
         static let horizontalPanels = "HorizontalPanels"
@@ -46,12 +48,53 @@ enum Settings {
         static let usesIgnoreList = "UsesIgnoreList"
     }
 
+    /// The look of the panels: drawn as current Mac apps draw their lists, or as
+    /// Total Commander draws its panels.
+    enum Look: String {
+        case modern, classic
+    }
+
+    /// Choosing a look sets the switches that make it up (folder brackets, tabs, the
+    /// header, key caps, the status line, checkmarks, row height); each can still be
+    /// changed afterwards. Switches never changed follow the look.
+    static var look: Look {
+        get { AppDefaults.store.string(forKey: Key.look).flatMap(Look.init) ?? .modern }
+        set {
+            let modern = newValue == .modern
+            let store = AppDefaults.store
+            store.set(newValue.rawValue, forKey: Key.look)
+            store.set(!modern, forKey: Key.folderBrackets)
+            for key in [Key.macStyleTabs, Key.compactHeader, Key.functionKeyCaps, Key.plainStatus, Key.selectionMarkers] {
+                store.set(modern, forKey: key)
+            }
+            store.set((modern ? Density.standard : .compact).rawValue, forKey: Key.density)
+            ColorSettings.lookDidChange()
+            notify()
+        }
+    }
+
+    static var isModern: Bool { look == .modern }
+
+    /// How tall the rows of the file lists are.
+    enum Density: String {
+        /// 13 pt names on 22 pt rows, close to the Finder's list.
+        case standard
+        /// 12 pt names on 19 pt rows, as Total Commander fits many files.
+        case compact
+    }
+
+    static var density: Density {
+        get { AppDefaults.store.string(forKey: Key.density).flatMap(Density.init) ?? (isModern ? .standard : .compact) }
+        set { set(newValue.rawValue, Key.density) }
+    }
+
     static var showsSelectionMarkers: Bool {
-        get { bool(Key.selectionMarkers, default: true) }
+        get { bool(Key.selectionMarkers, default: isModern) }
         set { set(newValue, Key.selectionMarkers) }
     }
 
-    static let defaultFontSize: CGFloat = 12
+    /// The size of the system font in the panels unless another is chosen.
+    static var defaultFontSize: CGFloat { density == .standard ? 13 : 12 }
 
     static var panelFont: NSFont {
         get {
@@ -124,7 +167,7 @@ enum Settings {
     /// The status line says "2 of 15 selected · 35 KB of 1,2 MB", as the Finder would,
     /// rather than "35 k / 1 234 k in 2 / 12 file(s), 0 / 3 dir(s)".
     static var plainStatusLine: Bool {
-        get { bool(Key.plainStatus, default: true) }
+        get { bool(Key.plainStatus, default: isModern) }
         set { set(newValue, Key.plainStatus) }
     }
 
@@ -161,7 +204,7 @@ enum Settings {
     /// The function key buttons show their keys as key caps ("F5" in a small key,
     /// then "Copy"), rather than as plain text ("F5 Copy").
     static var showsFunctionKeyCaps: Bool {
-        get { bool(Key.functionKeyCaps, default: true) }
+        get { bool(Key.functionKeyCaps, default: isModern) }
         set { set(newValue, Key.functionKeyCaps) }
     }
 
@@ -206,7 +249,7 @@ enum Settings {
 
     /// Folder names in square brackets, as in Total Commander.
     static var showsFolderBrackets: Bool {
-        get { bool(Key.folderBrackets, default: true) }
+        get { bool(Key.folderBrackets, default: !isModern) }
         set { set(newValue, Key.folderBrackets) }
     }
 
@@ -218,14 +261,14 @@ enum Settings {
     /// Folder tabs drawn as Mac tabs (an icon, a close button under the mouse), or
     /// as flat Total Commander tabs.
     static var macStyleTabs: Bool {
-        get { bool(Key.macStyleTabs, default: true) }
+        get { bool(Key.macStyleTabs, default: isModern) }
         set { set(newValue, Key.macStyleTabs) }
     }
 
     /// The panel's volume and free space are shown in its path bar, without the row of
     /// the volume selector and the / and .. buttons; the mask only when it filters.
     static var compactPanelHeader: Bool {
-        get { bool(Key.compactHeader, default: true) }
+        get { bool(Key.compactHeader, default: isModern) }
         set { set(newValue, Key.compactHeader) }
     }
 

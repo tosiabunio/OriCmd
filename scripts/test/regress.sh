@@ -778,15 +778,18 @@ run hlmemory "alt+m wait text:em1 escape f3 $(printf 'wait %.0s' {1..10}) n $(pr
 check "a service taking memory without end ends itself; the next file is colored" "head -1 build/shots/reg-hlmemory-win1.txt | grep -q 'mem2.swift' && [ \"\$(colors hlmemory)\" -ge 5 ] && grep -q '^kills: 0' build/shots/reg-hlmemory-highlighter.txt"
 
 # Ready-made colors: High contrast's stripes go with another preset, stripes turned on
-# in Settings stay. Prints the setting the keys leave.
+# in Settings stay, and stripes left to the look are left to it again. Prints the
+# setting the keys leave ("none": not set).
 alternating() {
-  defaults write ru.themmag.OriCmd.tests AlternatingRows -bool $1
+  [ $1 = none ] || defaults write ru.themmag.OriCmd.tests AlternatingRows -bool $1
   timeout 120 open -g -W -n --env ORICMD_LEFT=$PWD/$L --env ORICMD_RIGHT=$PWD/$R --env "ORICMD_KEYS=$2" --env ORICMD_QUIT=1 \
     build/DerivedData/Build/Products/Debug/OriCmd.app
-  defaults read ru.themmag.OriCmd.tests AlternatingRows; defaults delete ru.themmag.OriCmd.tests 2>/dev/null
+  defaults read ru.themmag.OriCmd.tests AlternatingRows 2>/dev/null || echo none
+  defaults delete ru.themmag.OriCmd.tests 2>/dev/null
 }
 check "Standard colors keep the stripes turned on in Settings" "[ \"\$(alternating true 'colorpreset:3 wait colorpreset:0 wait')\" = 1 ]"
 check "another preset takes away High contrast's stripes" "[ \"\$(alternating false 'colorpreset:3 wait colorpreset:1 wait')\" = 0 ]"
+check "another preset leaves the stripes to the look again" "[ \"\$(alternating none 'colorpreset:3 wait colorpreset:1 wait')\" = none ]"
 
 # The right button: the context menu at once (default), or marking (Settings → Panels):
 # a click marks, a drag marks all it passes (from a marked file: unmarks), held still
@@ -843,6 +846,31 @@ withname; run extlong "alt+a wait text:-very escape"
 check "a long name is cut short before its extension" "names extlong | grep -qx 'left: name: a-very-long-report-.*….pdf | ext: '"
 withname; run extsort "ctrl+f4 wait home down down down down"
 check "Ctrl+F4 sorts by extension with extensions after the name" "panels extsort | grep -q '^left\\*: .* | cursor: Makefile |'"
+
+# The look (Settings → Panels): modern by default, with folders by their icons only,
+# "--" for their size and no Attr column; Total Commander's brings back [brackets],
+# <DIR> and Attr. Choosing it in Settings sets the switches it is made of.
+cols() { cat build/shots/reg-$1-columns.txt 2>/dev/null; }
+width() { cols $1 | sed -n "s/^$2 [0-9]* //p"; }
+scripts/test/mkdata.sh
+run lookmodern "alt+a wait text:lpha escape sizes columns"
+check "the modern look shows folders without brackets and -- for their size" "names lookmodern | grep -qx 'left: name: alpha | ext: ' && grep -qx 'size: --' build/shots/reg-lookmodern-sizes.txt"
+check "the modern look has no Attr column by default" "cols lookmodern | grep -q '^date ' && ! cols lookmodern | grep -q '^attr '"
+defaults write ru.themmag.OriCmd.tests Look classic
+run lookclassic "alt+a wait text:lpha escape sizes columns"
+check "Total Commander's look shows [folders], <DIR> and Attr" "names lookclassic | grep -qx 'left: name: \\[alpha\\] | ext: ' && grep -qx 'size: <DIR>' build/shots/reg-lookclassic-sizes.txt && cols lookclassic | grep -q '^attr '"
+ORICMD_SETTINGS_TAB=1 run looksettings "cmd:showSettings wait wait set:look=Classic_(Total_Commander) wait cmd+w wait alt+a wait text:lpha escape sizes"
+check "choosing Total Commander's look in Settings brings back <DIR>" "grep -qx 'size: <DIR>' build/shots/reg-looksettings-sizes.txt"
+# Column widths: dragging the edge right of a title resizes that column (Name's edge
+# the next one), Name taking the difference; a double click on the edge measures again.
+run colwide "headerdrag:size:30 columns"
+check "dragging the edge of Size widens it, Name gives the room" "[ \"\$(width colwide size)\" = \$((\$(width lookmodern size) + 30)) ] && [ \"\$(width colwide name)\" = \$((\$(width lookmodern name) - 30)) ]"
+run colname "headerdrag:name:-40 columns"
+check "dragging the edge of Name widens the next column" "[ \"\$(width colname ext)\" = \$((\$(width lookmodern ext) + 40)) ]"
+run colreset "headerdrag:size:30 headerdoubleclick:size columns"
+check "a double click on the edge gives the column its width again" "[ \"\$(width colreset size)\" = \"\$(width lookmodern size)\" ]"
+run colsort "headerclick:name home down"
+check "a click on the Name title reverses the order" "panels colsort | grep -q '^left\\*: .* | cursor: many |'"
 scripts/test/mkdata.sh
 run xfile "alt+r wait text:eadme escape ctrl+shift+right wait wait"
 check "Ctrl+Shift+Right on a file: its folder, the file selected" "panels xfile | grep -q '^right: .*/left | cursor: readme.txt'"
@@ -1145,24 +1173,24 @@ run cpause "alt+b wait text:ig escape speed:1_MB/s f5 wait enter wait click:Paus
 check "A paused copy waits" "grep -qx 'Copying (paused)' build/shots/reg-cpause-sheet.txt && grep -qx '\\[button\\] Resume' build/shots/reg-cpause-sheet.txt && [ ! -e $R/big.bin ]"
 rm -f $R/.oricmd-*.part(N)
 
-# Column sets: the Default columns, a set used by itself in the folders matching
-# its masks (and left there), a set chosen in Show → Columns, a column turned on in
-# the header menu, a set made in the Column Sets window.
+# Column sets: the Default columns (without Attr in the modern look), a set used by
+# itself in the folders matching its masks (and left there), a set chosen in Show →
+# Columns, a column turned on in the header menu, a set made in the Column Sets window.
 scripts/test/mkdata.sh
 columns() { grep "^$2 columns: " build/shots/reg-$1-panels.txt | sed "s/^$2 columns: //"; }
 run cdef "wait"
-check "The Default columns" "[ \"\$(columns cdef left)\" = 'ext, size, date, attr' ]"
+check "The Default columns" "[ \"\$(columns cdef left)\" = 'ext, size, date' ]"
 defaults write ru.themmag.OriCmd.tests ColumnSets -array '{name=Photos;columns=(size,dimensions);folders="*/left/alpha";}'
 run cauto "alt+a wait text:lpha enter wait wait"
-check "A column set used by itself in its folders" "[ \"\$(columns cauto left)\" = 'size, dimensions' ] && [ \"\$(columns cauto right)\" = 'ext, size, date, attr' ]"
+check "A column set used by itself in its folders" "[ \"\$(columns cauto left)\" = 'size, dimensions' ] && [ \"\$(columns cauto right)\" = 'ext, size, date' ]"
 defaults write ru.themmag.OriCmd.tests ColumnSets -array '{name=Photos;columns=(size,dimensions);folders="*/left/alpha";}'
 run cautoback "alt+a wait text:lpha enter wait wait backspace wait wait"
-check "...and not outside them" "[ \"\$(columns cautoback left)\" = 'ext, size, date, attr' ]"
+check "...and not outside them" "[ \"\$(columns cautoback left)\" = 'ext, size, date' ]"
 defaults write ru.themmag.OriCmd.tests ColumnSets -array '{name=Photos;columns=(size,dimensions);folders="";}'
 run cchoose "menuitem:Columns>Photos wait"
 check "A column set chosen for a panel" "[ \"\$(columns cchoose left)\" = 'size, dimensions' ]"
 run cheader "headermenu:Kind wait"
-check "A column turned on in the header menu" "[ \"\$(columns cheader left)\" = 'ext, size, date, kind, attr' ] && [ \"\$(columns cheader right)\" = 'ext, size, date, kind, attr' ]"
+check "A column turned on in the header menu" "[ \"\$(columns cheader left)\" = 'ext, size, date, kind' ] && [ \"\$(columns cheader right)\" = 'ext, size, date, kind' ]"
 run cwindow "menuitem:Column_Sets… wait click:+ wait set:columnSetName=Wide set:columnSet-kind=on set:columnSet-attr=off wait escape wait menuitem:Columns>Wide wait"
 check "A column set made in the Column Sets window" "[ \"\$(columns cwindow left)\" = 'ext, size, date, kind' ]"
 

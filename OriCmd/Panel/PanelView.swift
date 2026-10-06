@@ -3,7 +3,8 @@ import AppKit
 /// One of the two file panels, laid out top to bottom like in Total Commander:
 /// volume selector with free space, path bar, file list, status line, and the
 /// terminal of a server when one is connected. The compact header (Settings) puts
-/// the volume and its free space into the path bar instead.
+/// the volume and its free space into the path bar instead; in the modern look also
+/// the counts, the status line then showing only for quick search.
 final class PanelView: NSView {
     let driveBar = DriveBar()
     let volumeButton = NSPopUpButton(frame: .zero, pullsDown: false)
@@ -43,6 +44,16 @@ final class PanelView: NSView {
     /// path bar when the header is compact.
     private var classicConstraints: [NSLayoutConstraint] = []
     private var compactConstraints: [NSLayoutConstraint] = []
+    /// The spinner in the compact path bar, beside the path.
+    private var spinnerCenter: NSLayoutConstraint!
+    private var statusRowConstraints: [NSLayoutConstraint] = []
+    private var collapsedStatusConstraint: NSLayoutConstraint!
+
+    /// The quick search box shows in the status line's place (bringing the line back
+    /// while the counts are in the path bar).
+    var isQuickSearching = false {
+        didSet { if isQuickSearching != oldValue { updateStatusRow() } }
+    }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -146,10 +157,8 @@ final class PanelView: NSView {
             scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 60),
             listMinimum,
 
-            statusLabel.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 3),
             statusLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
             statusLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -4),
-            statusLabel.bottomAnchor.constraint(equalTo: terminalPane.topAnchor, constant: -3),
 
             terminalPane.leadingAnchor.constraint(equalTo: leadingAnchor),
             terminalPane.trailingAnchor.constraint(equalTo: trailingAnchor),
@@ -165,11 +174,18 @@ final class PanelView: NSView {
             loadingIndicator.centerYAnchor.constraint(equalTo: volumeButton.centerYAnchor),
             loadingIndicator.trailingAnchor.constraint(equalTo: rootButton.leadingAnchor, constant: -6),
         ]
+        spinnerCenter = loadingIndicator.centerYAnchor.constraint(equalTo: pathBar.topAnchor)
         compactConstraints = [
             tabBar.topAnchor.constraint(equalTo: driveBar.bottomAnchor),
-            loadingIndicator.centerYAnchor.constraint(equalTo: pathBar.centerYAnchor),
+            spinnerCenter,
             loadingIndicator.trailingAnchor.constraint(equalTo: pathBar.trailingAnchor, constant: -4),
         ]
+        statusRowConstraints = [
+            statusLabel.topAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 3),
+            statusLabel.bottomAnchor.constraint(equalTo: terminalPane.topAnchor, constant: -3),
+        ]
+        collapsedStatusConstraint = scrollView.bottomAnchor.constraint(equalTo: terminalPane.topAnchor)
+        pathBar.showsInfoLine = true
         pathBar.onVolumeClick = { [weak self] in self?.showVolumeMenu() }
         pathBar.onDriveInformation = { [weak self] in self?.driveInformationClicked(nil) }
         setCompactHeader(Settings.compactPanelHeader)
@@ -186,6 +202,27 @@ final class PanelView: NSView {
         pathBar.invalidateIntrinsicContentSize()
         pathBar.needsDisplay = true
         updatePathBarVolume()
+        applyLook()
+    }
+
+    /// The modern look draws the list without a frame and its column titles taller.
+    private func applyLook() {
+        scrollView.borderType = Settings.isModern ? .noBorder : .lineBorder
+        if !headerView.isHidden {
+            headerHeight.constant = FileListHeaderView.height
+        }
+        headerView.needsDisplay = true
+        spinnerCenter.constant = Settings.isModern ? 15 : 11
+        updateStatusRow()
+    }
+
+    /// With the counts in the path bar, the status line takes no room unless quick
+    /// search needs it.
+    private func updateStatusRow() {
+        let collapsed = pathBar.hasInfoLine && !isQuickSearching
+        NSLayoutConstraint.deactivate(collapsed ? statusRowConstraints : [collapsedStatusConstraint])
+        NSLayoutConstraint.activate(collapsed ? [collapsedStatusConstraint] : statusRowConstraints)
+        statusLabel.isHidden = collapsed || isQuickSearching
     }
 
     @available(*, unavailable)
@@ -197,7 +234,7 @@ final class PanelView: NSView {
     /// no headers and scrolls horizontally.
     func setViewMode(_ mode: FileListView.ViewMode) {
         headerView.isHidden = mode != .full
-        headerHeight.constant = mode == .full ? headerView.intrinsicContentSize.height : 0
+        headerHeight.constant = mode == .full ? FileListHeaderView.height : 0
         scrollView.hasVerticalScroller = mode != .brief
         scrollView.hasHorizontalScroller = mode == .brief
         listView.viewMode = mode

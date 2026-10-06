@@ -8,8 +8,9 @@ enum FileIcons {
     private static var byPackagePath: [String: NSImage] = [:]
 
     private static let folder = sized(NSWorkspace.shared.icon(for: .folder))
-    private static let parent = NSImage(systemSymbolName: "arrow.turn.left.up", accessibilityDescription: "Parent folder")
-        ?? folder
+    /// In the label color, so it shows in dark mode too.
+    private static let parent = NSImage(systemSymbolName: "arrow.turn.left.up", accessibilityDescription: "Parent folder")?
+        .withSymbolConfiguration(NSImage.SymbolConfiguration(paletteColors: [.secondaryLabelColor])) ?? folder
 
     static func icon(for item: FileItem) -> NSImage {
         if item.isParent { return parent }

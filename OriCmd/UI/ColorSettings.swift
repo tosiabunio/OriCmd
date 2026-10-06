@@ -31,7 +31,8 @@ enum ColorSettings {
             marked: store.string(forKey: Key.marked).flatMap(NSColor.init(hex:)),
             cursor: store.string(forKey: Key.cursor).flatMap(NSColor.init(hex:)),
             cursorText: store.string(forKey: Key.cursorText).flatMap(NSColor.init(hex:)),
-            alternating: store.bool(forKey: Key.alternating),
+            // Striped by default in the modern look, as wide Mac tables are.
+            alternating: store.object(forKey: Key.alternating) == nil ? Settings.isModern : store.bool(forKey: Key.alternating),
             boldMarked: store.bool(forKey: Key.boldMarked),
             rules: rules.compactMap { rule in NSColor(hex: rule.color).map { (rule.mask, readable($0)) } }
         )
@@ -139,14 +140,20 @@ enum ColorSettings {
             AppDefaults.store.set(colors.bold, forKey: Key.boldMarked)
             // High contrast stripes the rows; another preset takes away only those
             // stripes, not the ones chosen in Settings.
+            // It remembers what it found (1: turned off, 2: left to the look), so
+            // another preset brings that back.
             let store = AppDefaults.store
             if self == .highContrast {
                 if !store.bool(forKey: Key.alternating) {
+                    store.set(store.object(forKey: Key.alternating) == nil ? 2 : 1, forKey: Key.alternatingByPreset)
                     store.set(true, forKey: Key.alternating)
-                    store.set(true, forKey: Key.alternatingByPreset)
                 }
-            } else if store.bool(forKey: Key.alternatingByPreset) {
-                store.set(false, forKey: Key.alternating)
+            } else if store.integer(forKey: Key.alternatingByPreset) != 0 {
+                if store.integer(forKey: Key.alternatingByPreset) == 2 {
+                    store.removeObject(forKey: Key.alternating)
+                } else {
+                    store.set(false, forKey: Key.alternating)
+                }
                 store.removeObject(forKey: Key.alternatingByPreset)
             }
             let masks = ColorSettings.exampleRules.map(\.mask)
@@ -170,6 +177,11 @@ enum ColorSettings {
     private static func store(_ value: Any?, _ key: String) {
         AppDefaults.store.set(value, forKey: key)
         changed()
+    }
+
+    /// The look decides the stripes unless they were chosen.
+    static func lookDidChange() {
+        cache = nil
     }
 
     private static func changed() {

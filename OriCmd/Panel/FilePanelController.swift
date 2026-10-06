@@ -1116,6 +1116,7 @@ final class FilePanelController: NSViewController {
 
         let markedBytes = markedFiles.reduce(markedFolderBytes) { $0 + $1.size }
         let totalBytes = files.reduce(folderBytes) { $0 + $1.size }
+        defer { panelView.pathBar.status = panelView.statusLabel.stringValue }
         if Settings.plainStatusLine {
             panelView.statusLabel.stringValue = Self.plainStatus(
                 files: files.count, folders: folders.count, marked: markedFiles.count + markedFolderCount,
@@ -2241,7 +2242,7 @@ extension FilePanelController: NSTextFieldDelegate {
         field.placeholderString = filtering ? String(localized: "Quick filter") : String(localized: "Quick search")
         field.stringValue = text
         field.isHidden = false
-        panelView.statusLabel.isHidden = true
+        panelView.isQuickSearching = true
         view.window?.makeFirstResponder(field)
         field.currentEditor()?.selectedRange = NSRange(location: (text as NSString).length, length: 0)
         if !filtering {
@@ -2253,7 +2254,7 @@ extension FilePanelController: NSTextFieldDelegate {
         let field = panelView.quickSearchField
         guard !field.isHidden else { return }
         field.isHidden = true
-        panelView.statusLabel.isHidden = false
+        panelView.isQuickSearching = false
         focus()
         if openingItem {
             fileList(listView, openItemAt: listView.cursor)
