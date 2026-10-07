@@ -127,7 +127,9 @@ downloaded image's checksum. Unsigned releases open their release page instead.
 See [authenticated updates](docs/authenticated-updates.md) for publishing signed
 fork releases and managing the signing key. An install from 2026.10.4 or earlier is
 `OriCmd.app`: updating it keeps that file name once, and the next update renames it
-`Oriel.app` (or rename it in the Finder; settings are kept either way).
+`Oriel.app` (or rename it in the Finder; settings are kept either way). The Dock
+keeps the name an icon had when it was added: if its tooltip still says OriCmd,
+right-click the icon → Options → Keep in Dock to turn it off and on again.
 
 ## Building
 
