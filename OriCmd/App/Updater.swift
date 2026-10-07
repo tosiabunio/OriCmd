@@ -4,7 +4,7 @@ import AppKit
 /// its Ed25519 signature and SHA-256 checksum are verified before mounting it,
 /// then its OriCmd.app replaces this one and the app relaunches.
 enum Updater {
-    nonisolated static let repository = "tosiabunio/OriCmd"
+    nonisolated static let repository = "tosiabunio/Oriel"
     private static let lastCheckKey = "UpdateLastCheck"
     private static let skippedKey = "UpdateSkippedVersion"
     private static let checkInterval: TimeInterval = 24 * 60 * 60

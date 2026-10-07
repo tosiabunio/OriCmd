@@ -1,10 +1,10 @@
 # Oriel
 
 Oriel is an independently maintained fork of [OriCmd by mmag](https://github.com/mmag/OriCmd),
-developed in [tosiabunio/OriCmd](https://github.com/tosiabunio/OriCmd). Releases up to
-2026.10.4 carried the original name; the repository, the source and the disk image
-files keep it. This fork has its own interface improvements, development direction
-and release channel. Selected changes from the original project may be imported
+developed in [tosiabunio/Oriel](https://github.com/tosiabunio/Oriel). Releases up to
+2026.10.4 carried the original name, and up to 2026.10.5 the repository
+(`tosiabunio/OriCmd`) and the disk image files did; the source keeps it. This fork
+has its own interface improvements, development direction and release channel. Selected changes from the original project may be imported
 after review and testing; the fork is intended to remain a separate project, with
 no planned merge back upstream.
 
@@ -100,12 +100,12 @@ The screenshots are made by `scripts/screenshots.sh` on demo folders
 
 Download `Oriel-<version>.dmg` (`OriCmd-<version>.dmg` up to 2026.10.5) from the
 latest release on this fork's
-[Releases](https://github.com/tosiabunio/OriCmd/releases) page (a universal app for
+[Releases](https://github.com/tosiabunio/Oriel/releases) page (a universal app for
 Apple Silicon and Intel, macOS 14+). Or build the same image from this repository:
 
 ```sh
-git clone https://github.com/tosiabunio/OriCmd.git
-cd OriCmd
+git clone https://github.com/tosiabunio/Oriel.git
+cd Oriel
 scripts/make-dmg.sh        # → build/Oriel-<version>.dmg
 ```
 
@@ -120,7 +120,7 @@ Or remove the quarantine:
 xattr -dr com.apple.quarantine /Applications/Oriel.app
 ```
 
-This fork checks releases from [tosiabunio/OriCmd](https://github.com/tosiabunio/OriCmd/releases)
+This fork checks releases from [tosiabunio/Oriel](https://github.com/tosiabunio/Oriel/releases)
 once a day (can be turned off in Settings) and with Oriel → Check for Updates….
 It installs and relaunches only after verifying the publisher's signature and the
 downloaded image's checksum. Unsigned releases open their release page instead.
@@ -131,15 +131,15 @@ fork releases and managing the signing key. An install from 2026.10.4 or earlier
 keeps the name an icon had when it was added: if its tooltip still says OriCmd,
 right-click the icon → Options → Keep in Dock to turn it off and on again.
 
-After 2026.10.5 Oriel has its own bundle identifier, `io.github.tosiabunio.oriel`,
+From 2026.10.6 Oriel has its own bundle identifier, `io.github.tosiabunio.oriel`,
 and its own settings, so it can sit next to the original OriCmd. Its first launch
 copies the settings it had under the original's identifier (`ru.themmag.OriCmd`),
 which stay as they were for the original app; saved server passwords stay where
 they are. macOS asks again for the permissions given to the earlier app (Full Disk
-Access, access to folders). The updater of 2026.10.5 installs these releases; an
-earlier install opens their release page instead, so download it by hand or update
-to 2026.10.5 first. If the Dock shows a second icon, keep the new one in the Dock
-and remove the old one.
+Access, access to folders). Installs of 2026.10.5 and earlier do not update to it
+by themselves (the app's identity and the repository's name changed with it):
+download it from the Releases page. If the Dock shows a second icon, keep the new
+one in the Dock and remove the old one.
 
 ## Building
 
@@ -646,7 +646,7 @@ chooses the language for Oriel only (the Restart Now button applies it at once).
 ## Development
 
 Development and contributions target this fork's `main` branch. Submit changes
-through [this fork's pull requests](https://github.com/tosiabunio/OriCmd/pulls).
+through [this fork's pull requests](https://github.com/tosiabunio/Oriel/pulls).
 Upstream imports are reviewed for compatibility with the fork's behavior,
 preferences, release numbering and trusted update key.
 

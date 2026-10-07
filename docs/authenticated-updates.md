@@ -1,6 +1,6 @@
 # Authenticated fork updates
 
-This fork (Oriel) checks `tosiabunio/OriCmd` releases. An update can be installed
+This fork (Oriel) checks `tosiabunio/Oriel` releases. An update can be installed
 inside Oriel only when it has a manifest and Ed25519 signature verified against the
 public key bundled in the app. Unsigned releases offer their release page instead.
 
@@ -18,9 +18,11 @@ From 2026.10.5 the updater also accepts files named `Oriel-<version>…` and an 
 with the fork's own bundle identifier, `io.github.tosiabunio.oriel` (the signed
 manifest names it, and the app in the image must have it), so that a later release
 can move the app to its own identity. `release.sh` signs the identifier of the app
-it built. The releases after 2026.10.5 do: their app is `io.github.tosiabunio.oriel`
-and their files are named `Oriel-<version>…`. Installs from 2026.10.4 and earlier
-find no signed files they know in them and open the release page instead.
+it built. From 2026.10.6 the app is `io.github.tosiabunio.oriel`, its files are named
+`Oriel-<version>…` and the repository is `tosiabunio/Oriel` (`tosiabunio/OriCmd`
+before; GitHub redirects the old address). The signed manifest names the repository
+too, so installs of 2026.10.5 and earlier refuse these releases: they are installed
+by hand, once.
 
 The signed manifest names the repository, version, disk image, bundle identifier,
 SHA-256 digest and byte count. Oriel verifies the signature before decoding the
@@ -76,7 +78,7 @@ To sign an already-built image without publishing:
 ```sh
 scripts/build-update-signer.sh
 build/update-signer sign /secure/path/private.key OriCmd/UpdateSigningPublicKey.txt \
-  build/Oriel-2026.10.0.dmg tosiabunio/OriCmd 2026.10.0 io.github.tosiabunio.oriel
+  build/Oriel-2026.10.0.dmg tosiabunio/Oriel 2026.10.0 io.github.tosiabunio.oriel
 ```
 
 The signer refuses a private key that does not match the app's public key. Run

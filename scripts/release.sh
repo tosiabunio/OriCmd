@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 
 VERSION=${1:?usage: scripts/release.sh <version> [notes.md]}
 NOTES=${2:-}
-REPOSITORY=tosiabunio/OriCmd
+REPOSITORY=tosiabunio/Oriel
 PROJECT=OriCmd.xcodeproj/project.pbxproj
 [[ $VERSION =~ '^[1-9][0-9]{3}\.(1[0-2]|[1-9])\.(0|[1-9][0-9]*)$' ]] || {
   echo "Version must use YEAR.MONTH.RELEASE, for example 2026.10.0 (month 1–12, no leading zeros)"; exit 1

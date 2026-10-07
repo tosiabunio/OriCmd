@@ -276,25 +276,25 @@ snapshots of both looks in light and dark before phases 2 and 3.
   [Macworld on Commander One](https://www.macworld.com/article/226820/commander-one-pro-review-a-free-finder-alternative-for-power-users.html),
   [The Eclectic Light Company on Tahoe](https://eclecticlight.co/2025/12/28/last-year-on-my-mac-look-back-in-disbelief/)
 
-[base]: https://github.com/tosiabunio/OriCmd/tree/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4
-[pathbar]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/PathBar.swift#L233-L308
-[cursor]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/FileListView.swift#L464-L520
-[theme]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/Theme.swift#L39
-[rows]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/FileListView.swift#L616-L673
-[brackets]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/App/Settings.swift#L208
-[header]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/FileListHeaderView.swift#L29-L55
-[columns]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/ColumnLayout.swift
-[rowheight]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/Theme.swift#L29-L32
-[border]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/PanelView.swift#L74
-[split]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/PanelSplitView.swift
-[preview]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/SettingsWindowController.swift#L558-L667
-[window]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/App/MainWindowController.swift#L8-L18
-[root]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/MainViewController.swift#L92-L135
-[panel]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/PanelView.swift#L91-L172
-[drives]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/DriveBar.swift
-[fkeys]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/FunctionKeyBar.swift
-[cmdline]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/CommandLineView.swift
-[ops]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/MainViewController.swift#L103
-[copy]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/CopyDialog.swift#L148-L251
-[settings]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/SettingsWindowController.swift
-[colors]: https://github.com/tosiabunio/OriCmd/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/ColorSettings.swift#L85-L90
+[base]: https://github.com/tosiabunio/Oriel/tree/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4
+[pathbar]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/PathBar.swift#L233-L308
+[cursor]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/FileListView.swift#L464-L520
+[theme]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/Theme.swift#L39
+[rows]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/FileListView.swift#L616-L673
+[brackets]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/App/Settings.swift#L208
+[header]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/FileListHeaderView.swift#L29-L55
+[columns]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/ColumnLayout.swift
+[rowheight]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/Theme.swift#L29-L32
+[border]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/PanelView.swift#L74
+[split]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/PanelSplitView.swift
+[preview]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/SettingsWindowController.swift#L558-L667
+[window]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/App/MainWindowController.swift#L8-L18
+[root]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/MainViewController.swift#L92-L135
+[panel]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/PanelView.swift#L91-L172
+[drives]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/Panel/DriveBar.swift
+[fkeys]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/FunctionKeyBar.swift
+[cmdline]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/CommandLineView.swift
+[ops]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/MainViewController.swift#L103
+[copy]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/CopyDialog.swift#L148-L251
+[settings]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/SettingsWindowController.swift
+[colors]: https://github.com/tosiabunio/Oriel/blob/ed2c25f89c38409ff0b6e4af1a6297d43ac214a4/OriCmd/UI/ColorSettings.swift#L85-L90

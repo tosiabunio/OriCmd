@@ -89,7 +89,7 @@ final class AboutWindowController: NSWindowController {
             .foregroundColor: NSColor.labelColor,
             .paragraphStyle: paragraph,
         ]
-        for (label, repository) in [(String(localized: "Fork repository"), "tosiabunio/OriCmd"),
+        for (label, repository) in [(String(localized: "Fork repository"), "tosiabunio/Oriel"),
                                     (String(localized: "Original repository"), "mmag/OriCmd")] {
             credits.append(NSAttributedString(string: label + ": ", attributes: attributes))
             var linkAttributes = attributes

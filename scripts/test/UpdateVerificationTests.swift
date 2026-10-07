@@ -11,12 +11,12 @@ struct UpdateVerificationTests {
         try Data("disk image fixture".utf8).write(to: image)
         let digest = try UpdateVerification.digest(of: image)
         let key = Curve25519.Signing.PrivateKey()
-        let manifest = UpdateManifest(schemaVersion: 1, repository: "tosiabunio/OriCmd", version: "2026.10.0",
+        let manifest = UpdateManifest(schemaVersion: 1, repository: "tosiabunio/Oriel", version: "2026.10.0",
                                       assetName: image.lastPathComponent, bundleIdentifier: "ru.themmag.OriCmd",
                                       byteCount: digest.size, sha256: digest.sha256)
         let data = try JSONEncoder().encode(manifest), signature = try key.signature(for: data)
         func verify(_ bytes: Data = data, _ sig: Data = signature, _ pub: Data = key.publicKey.rawRepresentation,
-                    repository: String = "tosiabunio/OriCmd", version: String = "2026.10.0",
+                    repository: String = "tosiabunio/Oriel", version: String = "2026.10.0",
                     identifiers: Set<String> = ["ru.themmag.OriCmd"]) throws -> UpdateManifest {
             try UpdateVerification.manifest(bytes, signature: sig, publicKey: pub, repository: repository,
                                             version: version, bundleIdentifiers: identifiers)
@@ -29,7 +29,7 @@ struct UpdateVerificationTests {
         try UpdateVerification.image(image, matches: verified, isCancelled: { false })
         print("ok   genuine signature and disk image")
         // The bridge to the fork's own identity: Oriel- files, the new bundle identifier.
-        let moved = UpdateManifest(schemaVersion: 1, repository: "tosiabunio/OriCmd", version: "2026.10.0",
+        let moved = UpdateManifest(schemaVersion: 1, repository: "tosiabunio/Oriel", version: "2026.10.0",
                                    assetName: "Oriel-2026.10.0.dmg", bundleIdentifier: UpdateVerification.forkBundleIdentifier,
                                    byteCount: digest.size, sha256: digest.sha256)
         let movedData = try JSONEncoder().encode(moved), movedSignature = try key.signature(for: movedData)
