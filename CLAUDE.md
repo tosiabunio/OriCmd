@@ -789,6 +789,9 @@ pushing.
   runs (the nightly `interface` job) have never run on the fork: GitHub disables
   schedules on forks by default, so the "Run failed" emails came from push runs.
   When watching runs, match the full commit (`git rev-parse`), not a typed prefix.
+  The shell is zsh: `for s in $shas` does not split a string of commits (the whole
+  string becomes one value and matches no run), so name each commit in its own
+  variable, or split with `${=shas}`. Have a watcher print what it watches first.
 
 ## Release 2026.10.4 published on 2026-10-07
 
@@ -938,3 +941,5 @@ release whose updater accepts the fork's own identity, then the switch itself.
   localization, the Look and Settings section after the rebase.
 - Next: push `main`, `local-build` and `oriel-id` when the user agrees; publish the
   switch (2026.10.6 if still October) only some days after 2026.10.5.
+- Pushed at the user's request: `main` = `local-build` = `39ce953`, with `oriel-id`
+  and `id-bridge`; all 12 CI runs passed. The switch is not published yet.
