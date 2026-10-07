@@ -1011,3 +1011,11 @@ Installed as fork build 41 ("2026.10.6 (41)").
 - Validation: 371 of 371 regression checks (three new), the five UX suites, 11
   accessibility checks, core tests, localization, captures of the badge, the Tags
   section and the header symbols in light and dark.
+- Pushed at the user's request (`main` = `local-build` = `0682d50`, with `ops-badge`),
+  then `scripts/release.sh 2026.10.7` (release commit `ff06624`, internal build 23):
+  https://github.com/tosiabunio/Oriel/releases/tag/v2026.10.7 has
+  `Oriel-2026.10.7.dmg` (8,811,180 bytes, SHA-256 `2b7ff1f2…d1d431`), verified with
+  `build/verify-driver` for `tosiabunio/Oriel` and `io.github.tosiabunio.oriel`, size,
+  checksum, codesign, universal app and helper; it is the latest release. Reinstalled
+  as fork build 42, "2026.10.7 (42)". The notes present phase 4; upstream base still
+  0.13.3b.
