@@ -25,7 +25,8 @@ import WebKit
 ///   terminal of the active panel as `<name>-terminal.png` and `.txt`.
 /// - `ORICMD_QUIT`: exit when done (even with a sheet open).
 /// - `ORICMD_DEMO`: README screenshots (`scripts/screenshots.sh`): only the startup
-///   volume, and windows pictured as the window server shows them.
+///   volume, windows pictured as the window server shows them, and (given the demo
+///   folder's path) the sidebar's home folder and Downloads there.
 enum DebugAutomation {
     /// Calls the accessibility APIs against live panel geometry and state.
     private static func checkAccessibility(of list: FileListView) -> String {

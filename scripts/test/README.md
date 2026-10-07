@@ -41,8 +41,9 @@ real keyboard and mouse, so working elsewhere meanwhile changes nothing.
 - `regress.sh` — plays the main file operations and checks the results on disk.
 - `../screenshots.sh` — regenerates the README screenshots (`docs/screenshots/en`) on demo
   folders from `../mkdemo.sh`, in the light theme (`THEME=dark` for the dark one) and
-  British region formats; `ORICMD_DEMO=1` hides all volumes but the startup disk and
-  pictures windows as the window server shows them, so the toolbar's glass appears.
+  British region formats; `ORICMD_DEMO=<demo folder>` hides all volumes but the
+  startup disk, puts the sidebar's home folder and Downloads in the demo folder,
+  and pictures windows as the window server shows them, so the glass appears.
   Test runs never use or change the saved window frames.
 - `loc.py [translations.json]` — lists localization keys missing from the catalog,
   or adds Russian translations from a JSON file.

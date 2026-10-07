@@ -94,6 +94,21 @@ final class SidebarViewController: NSViewController {
                                         .downloadsDirectory, .applicationDirectory]
             .compactMap { manager.urls(for: $0, in: $0 == .applicationDirectory ? .localDomainMask : .userDomainMask).first }
         favorites.children = standard.filter { manager.fileExists(atPath: $0.path) }.map(place)
+        #if DEBUG
+        // README screenshots: the demo folders stand for the home folder and Downloads,
+        // so no account name is pictured.
+        if let demo = ProcessInfo.processInfo.environment["ORICMD_DEMO"], demo.hasPrefix("/") {
+            let root = URL(filePath: demo)
+            favorites.children = favorites.children.map { node in
+                guard let url = node.url, let icon = node.icon else { return node }
+                if url.path == home.path { return Node(place: root, title: "Home", icon: icon) }
+                if url.lastPathComponent == "Downloads" {
+                    return Node(place: root.appending(path: "Downloads"), title: node.title, icon: icon)
+                }
+                return node
+            }
+        }
+        #endif
         let hotlist = Node(section: String(localized: "Hotlist"))
         hotlist.children = Hotlist.directories.map { URL(filePath: ($0 as NSString).expandingTildeInPath) }
             .filter { manager.fileExists(atPath: $0.path) }.map(place)

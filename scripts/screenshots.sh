@@ -28,7 +28,9 @@ shot() {
   defaults write ru.themmag.OriCmd.tests FileColorRules -data $RULES
   # Light unless THEME says otherwise, whatever the system appearance.
   defaults write ru.themmag.OriCmd.tests Appearance ${THEME:-light}
-  env ORICMD_DEMO=1 ORICMD_LEFT=$left ORICMD_RIGHT=$right "ORICMD_KEYS=$keys" \
+  # A hotlist of demo folders for the sidebar.
+  defaults write ru.themmag.OriCmd.tests DirectoryHotlist -array "$P" "$D/Backup"
+  env ORICMD_DEMO=$D ORICMD_LEFT=$left ORICMD_RIGHT=$right "ORICMD_KEYS=$keys" \
     ORICMD_SNAPSHOT=$PWD/$SHOTS/$name.png ORICMD_QUIT=1 "$@" $APP -AppleLanguages "($UI)" -AppleLocale $LOCALE >/dev/null 2>&1
   defaults delete ru.themmag.OriCmd.tests 2>/dev/null
 }
