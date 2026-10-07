@@ -1074,3 +1074,12 @@ this entry. The user asked to install and push once the tests passed, then relea
   every changed window in light and dark.
 - When rerunning a few checks, a copy of regress.sh's header must `cd` to the
   worktree: its `cd "$(dirname $0)/../.."` is relative to where the copy lies.
+- Installed as fork build 43 and pushed (`main` = `local-build` = `6849e36`, with
+  `modern-polish`), then, at the user's request, `scripts/release.sh 2026.10.8`
+  (release commit `16d4d90`, internal build 24):
+  https://github.com/tosiabunio/Oriel/releases/tag/v2026.10.8 has
+  `Oriel-2026.10.8.dmg` (8,847,142 bytes, SHA-256 `f35fee3b…f78c9a`), verified with
+  `build/verify-driver` for `tosiabunio/Oriel` and `io.github.tosiabunio.oriel`, size,
+  checksum, codesign, universal app and helper; it is the latest release. Reinstalled
+  as fork build 44, "2026.10.8 (44)". The notes present phase 5; upstream base still
+  0.13.3b.
