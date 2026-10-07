@@ -31,6 +31,35 @@ final class PathBar: NSView {
         didSet { needsDisplay = true }
     }
 
+    /// What the path is of: in the modern look a symbol before it says so.
+    enum Place {
+        case folder, archive, server, searchResults
+
+        var symbolName: String {
+            switch self {
+            case .folder: "folder.fill"
+            case .archive: "archivebox.fill"
+            case .server: "server.rack"
+            case .searchResults: "magnifyingglass"
+            }
+        }
+    }
+
+    var place = Place.folder {
+        didSet { needsDisplay = true }
+    }
+
+    private static let placeSymbolSize: CGFloat = 14
+
+    /// The place's symbol, in the accent color in the active panel and grey in the other.
+    private var placeSymbol: NSImage? {
+        let color = isActive ? NSColor.controlAccentColor : NSColor.secondaryLabelColor
+        let configuration = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [color]))
+        return NSImage(systemSymbolName: place.symbolName, accessibilityDescription: nil)?
+            .withSymbolConfiguration(configuration)
+    }
+
     /// Appends the file mask ("*.*", or the panel filter), as Total Commander does.
     var showsMask = true {
         didSet { layoutDidChange() }
@@ -185,6 +214,7 @@ final class PathBar: NSView {
         var volume: NSRect?
         var filter: NSRect?
         var freeSpace: NSRect?
+        var placeSymbol: NSRect?
     }
 
     private static let chipFont = NSFont.systemFont(ofSize: 11)
@@ -229,6 +259,12 @@ final class PathBar: NSView {
             }
             if isLoading { trailing -= Self.spinnerRoom }
         }
+        var symbolRect: NSRect?
+        if isModern {
+            symbolRect = NSRect(x: leading, y: line.midY - Self.placeSymbolSize / 2,
+                                width: Self.placeSymbolSize, height: Self.placeSymbolSize)
+            leading += Self.placeSymbolSize + 5
+        }
         if filterSummary != nil || (isCompact && filters) {
             let chipWidth = min(filterWidth, max(60, min(bounds.width * 0.60, trailing - leading - 24)))
             filterRect = NSRect(x: trailing - chipWidth, y: line.minY + 1, width: chipWidth, height: line.height - 2)
@@ -262,6 +298,7 @@ final class PathBar: NSView {
         layout.volume = volumeRect
         layout.filter = filterRect
         layout.freeSpace = freeRect
+        layout.placeSymbol = symbolRect
         guard width(layout.text) <= available else { return layout }
         let text = layout.text as NSString
         for index in layout.firstShown..<crumbs.count {
@@ -309,6 +346,14 @@ final class PathBar: NSView {
 
         let layout = makeLayout()
         drawAccessories(layout)
+        if let rect = layout.placeSymbol, let symbol = placeSymbol {
+            // Kept in proportion, centered in its square.
+            let size = symbol.size
+            let scale = min(rect.width / max(size.width, 1), rect.height / max(size.height, 1), 1)
+            let drawn = NSSize(width: size.width * scale, height: size.height * scale)
+            symbol.draw(in: NSRect(x: rect.midX - drawn.width / 2, y: rect.midY - drawn.height / 2,
+                                   width: drawn.width, height: drawn.height))
+        }
         if hasInfoLine {
             drawInfoLine(layout)
         }

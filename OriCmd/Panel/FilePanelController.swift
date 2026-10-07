@@ -802,6 +802,7 @@ final class FilePanelController: NSViewController {
         // Only a path taken apart exactly has parts to click; any other is edited on a click.
         pathParts = text == shown ? parts : []
         panelView.pathBar.path = shown
+        panelView.pathBar.place = searchResults != nil ? .searchResults : remote != nil ? .server : archive != nil ? .archive : .folder
         panelView.pathBar.crumbs = pathParts.dropLast().map { PathBar.Crumb(range: $0.range, name: $0.name) }
         panelView.showsVolume = remote == nil
     }
