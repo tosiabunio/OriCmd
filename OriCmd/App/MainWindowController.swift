@@ -11,7 +11,7 @@ final class MainWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "OriCmd"
+        window.title = Bundle.main.appName
         window.toolbar = buttonBar.toolbar
         buttonBar.addSidebarButtonOnce()
         window.toolbarStyle = .unifiedCompact

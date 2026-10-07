@@ -1,6 +1,8 @@
 #!/bin/zsh
 # Builds a Release OriCmd.app (universal, ad-hoc signed) and packs it into
-# build/OriCmd-<version>.dmg with an Applications link for drag-and-drop install.
+# build/OriCmd-<version>.dmg as Oriel.app, the fork's name, with an Applications
+# link for drag-and-drop install. The image keeps its OriCmd- name: installed
+# copies look for it when they check for updates.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -9,7 +11,7 @@ VERSION=$(xcodebuild -project OriCmd.xcodeproj -target OriCmd -configuration Rel
 WORK=build/release
 rm -rf "$WORK"
 
-echo "Building OriCmd $VERSION…"
+echo "Building Oriel $VERSION…"
 xcodebuild -project OriCmd.xcodeproj -scheme OriCmd -configuration Release \
   -derivedDataPath "$WORK/DerivedData" ONLY_ACTIVE_ARCH=NO build \
   | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)"
@@ -24,10 +26,10 @@ done
 
 STAGE="$WORK/dmg"
 mkdir -p "$STAGE"
-ditto "$APP" "$STAGE/OriCmd.app"
+ditto "$APP" "$STAGE/Oriel.app"
 ln -s /Applications "$STAGE/Applications"
 
 DMG="build/OriCmd-$VERSION.dmg"
 rm -f "$DMG"
-hdiutil create -volname "OriCmd $VERSION" -srcfolder "$STAGE" -format UDZO -quiet "$DMG"
+hdiutil create -volname "Oriel $VERSION" -srcfolder "$STAGE" -format UDZO -quiet "$DMG"
 echo "Created $DMG"

@@ -1,22 +1,24 @@
-# OriCmd — tosiabunio fork
+# Oriel
 
-An independently maintained fork of [OriCmd by mmag](https://github.com/mmag/OriCmd),
-developed in [tosiabunio/OriCmd](https://github.com/tosiabunio/OriCmd). This fork has
-its own interface improvements, development direction and release channel. Selected
-changes from the original project may be imported after review and testing; the
-fork is intended to remain a separate project, with no planned merge back upstream.
+Oriel is an independently maintained fork of [OriCmd by mmag](https://github.com/mmag/OriCmd),
+developed in [tosiabunio/OriCmd](https://github.com/tosiabunio/OriCmd). Releases up to
+2026.10.4 carried the original name; the repository, the source and the disk image
+files keep it. This fork has its own interface improvements, development direction
+and release channel. Selected changes from the original project may be imported
+after review and testing; the fork is intended to remain a separate project, with
+no planned merge back upstream.
 
 A two-panel file manager for macOS with a familiar look: two panels, function
 key buttons at the bottom, a command line and full keyboard control — everything
 in its usual place. The standard macOS shortcuts (`⌘C`, `⌘V`, `⌘Q`, `⌘W`, …)
 keep working as always.
 
-![OriCmd main window](docs/screenshots/en/main.png)
+![Oriel main window](docs/screenshots/en/main.png)
 
 ## What this fork adds
 
 - **Modern look:** the panels are drawn as Mac lists are — a rounded cursor in
-  the accent color (grey in the other panel or while OriCmd is in the
+  the accent color (grey in the other panel or while Oriel is in the
   background), rounded alternating rows, marked rows tinted lightly, Ext, Size and
   Date in grey, `--` for folder sizes, no
   `[brackets]` or Attr column by default, a thin accent strip over the active
@@ -96,7 +98,8 @@ The screenshots are made by `scripts/screenshots.sh` on demo folders
 
 ## Installation
 
-Download `OriCmd-<version>.dmg` from the latest release on this fork's
+Download `OriCmd-<version>.dmg` (the image keeps the original name, which earlier
+installs look for when they update) from the latest release on this fork's
 [Releases](https://github.com/tosiabunio/OriCmd/releases) page (a universal app for
 Apple Silicon and Intel, macOS 14+). Or build the same image from this repository:
 
@@ -108,21 +111,23 @@ scripts/make-dmg.sh        # → build/OriCmd-<version>.dmg
 
 The Homebrew cask `mmag/tap/oricmd` distributes the original project's builds.
 
-Open the image and drag OriCmd to Applications. The app is ad-hoc signed,
+Open the image and drag Oriel to Applications. The app is ad-hoc signed,
 without an Apple certificate, so macOS may require approval the first time: right-click
-OriCmd → Open → Open (or System Settings → Privacy & Security → Open Anyway).
+Oriel → Open → Open (or System Settings → Privacy & Security → Open Anyway).
 Or remove the quarantine:
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/OriCmd.app
+xattr -dr com.apple.quarantine /Applications/Oriel.app
 ```
 
 This fork checks releases from [tosiabunio/OriCmd](https://github.com/tosiabunio/OriCmd/releases)
-once a day (can be turned off in Settings) and with OriCmd → Check for Updates….
+once a day (can be turned off in Settings) and with Oriel → Check for Updates….
 It installs and relaunches only after verifying the publisher's signature and the
 downloaded image's checksum. Unsigned releases open their release page instead.
 See [authenticated updates](docs/authenticated-updates.md) for publishing signed
-fork releases and managing the signing key.
+fork releases and managing the signing key. An install from 2026.10.4 or earlier is
+`OriCmd.app`: updating it keeps that file name once, and the next update renames it
+`Oriel.app` (or rename it in the Finder; settings are kept either way).
 
 ## Building
 
@@ -150,9 +155,9 @@ counter: `2026.10.0` → `2026.10.1` → `2026.10.2`; the first release in Novem
 is `2026.11.0`. Numbers advance when preparing a release, not automatically when
 building or importing upstream changes.
 
-Tags use `v2026.10.0`; disk images use `OriCmd-2026.10.0.dmg`. The app's internal
-build number and the local install counter advance independently of the calendar
-version. About shows the version and build, for example `2026.10.0 (21)`,
+Tags use `v2026.10.0`; disk images use `OriCmd-2026.10.0.dmg` and hold `Oriel.app`.
+The app's internal build number and the local install counter advance independently
+of the calendar version. About shows the version and build, for example `2026.10.0 (21)`,
 with `tosiabunio fork` below. Builds installed with `scripts/install-local.sh`
 use their local install counter in parentheses; other builds use the internal
 build number. The window also shows the app icon, name, copyright and full
@@ -334,7 +339,7 @@ browser only when clicked. Markdown is made into a page by
 helper as syntax highlighting.
 
 `F` (or Format in the context menu) lays out JSON, XML, JavaScript, TypeScript, CSS
-and HTML for reading, and stays on for the next files: JSON and XML by OriCmd
+and HTML for reading, and stays on for the next files: JSON and XML by Oriel
 itself (comments, the order of keys and broken files kept),
 JavaScript, CSS and HTML by [js-beautify](https://github.com/beautifier/js-beautify),
 TypeScript by [Prettier](https://prettier.io), in the locked-down helper too.
@@ -355,14 +360,14 @@ The viewer colors program code with [highlight.js](https://highlightjs.org)
 its instructions: x86, ARM, MIPS, AVR); texts up to about 512 thousand characters
 are highlighted, the context menu and `H` turn it on and off. highlight.js runs in
 a separate helper, `OriCmdHighlighter`, which locks itself down before it reads
-anything from OriCmd: no files (not even system ones), no network, no pasteboard,
+anything from Oriel: no files (not even system ones), no network, no pasteboard,
 no opening of URLs, no starting or signalling other programs, no looking up other
 services (the preferences daemon it met while starting checks the lockdown too).
 Only texts in a language highlight.js knows are sent to it, never key, certificate
 or signature files. A file made to attack the JavaScript engine could at most see
 the texts shown in the viewer afterwards, see which programs run, post system
 notifications, take up shared memory until a restart and send back a wrong
-coloring, which OriCmd checks; nothing can leave the Mac through it. A highlighting
+coloring, which Oriel checks; nothing can leave the Mac through it. A highlighting
 that takes more than 5 seconds is stopped (the text stays plain).
 
 #### Find Files (`Alt+F7`)
@@ -435,13 +440,13 @@ it is read-only.
 
 Encrypted zip archives (ZipCrypto or AES) ask for the password when something is
 unpacked or viewed; it is checked before anything is written, asked for again while
-it is wrong and remembered until OriCmd quits. An encrypted zip is changed with its
+it is wrong and remembered until Oriel quits. An encrypted zip is changed with its
 password and stays encrypted the same way; encrypted 7z and RAR archives cannot be
 unpacked (the system libarchive cannot decrypt them).
 
 Solid RAR 4 archives (old ones, made with "Create solid archive") cannot be read by
 the system libarchive either; with The Unarchiver's command line tools installed
-(`brew install unar`) OriCmd lists, views and unpacks them through `lsar` and `unar`.
+(`brew install unar`) Oriel lists, views and unpacks them through `lsar` and `unar`.
 
 ### Button bar and drive buttons
 
@@ -494,14 +499,14 @@ layout; on ISO keyboards the key under `Esc` (`§`, `ё` on Russian – PC) work
 too. While the terminal has the focus, every key without `⌘` goes to the
 shell — `Tab`, `Esc`, the function keys, `⌃C`; `⌘C`/`⌘V` copy and paste. When
 you go back to the files, the server folder is read again. After `exit`,
-`Return` connects again. OriCmd remembers whether you hid the terminal and
+`Return` connects again. Oriel remembers whether you hid the terminal and
 opens the next connection the same way.
 
 A server lives in its tab: switching tabs keeps the connection and the shell
 (a command keeps running). A server tab is not duplicated: a drive button there
 opens the drive in a new tab, and `⌘T` opens the local folder the tab came from.
 The terminal ends when you leave the server in its tab, disconnect, close the
-tab or quit; if a program is still running there (OriCmd asks the server), you
+tab or quit; if a program is still running there (Oriel asks the server), you
 are asked first. Disconnect keeps the connection while another tab (or the
 other panel) shows the same server.
 
@@ -553,7 +558,7 @@ panel.
 
 ## Colors
 
-Settings → Colors: the theme — as in the system, light or dark (for OriCmd only,
+Settings → Colors: the theme — as in the system, light or dark (for Oriel only,
 switches at once); the color of marked files, the cursor and the cursor text,
 alternating row backgrounds (on by default in the Modern look); the panel preview
 shows the result right away.
@@ -602,7 +607,7 @@ sets a program for all other files.
 
 ## Settings
 
-OriCmd → Settings… (`⌘,`) — a window with panes:
+Oriel → Settings… (`⌘,`) — a window with panes:
 
 - **General** — interface language, automatic update checks.
 - **Panels** — the look (Modern, or Classic as in Total Commander, which sets
@@ -623,7 +628,7 @@ OriCmd → Settings… (`⌘,`) — a window with panes:
 ## Interface language
 
 English and Russian. By default the system language is used; Settings → General
-chooses the language for OriCmd only (the Restart Now button applies it at once).
+chooses the language for Oriel only (the Restart Now button applies it at once).
 
 ## Development
 
@@ -653,7 +658,7 @@ GPL-3.0 — see [LICENSE](LICENSE). The terminal uses
 highlighting [highlight.js](https://highlightjs.org) (BSD 3-Clause License); DjVu
 text layers are decompressed as [DjVuLibre](https://djvu.sourceforge.net) does
 (GPL-2.0-or-later, used under version 3). Their [notices](OriCmd/Credits.rtf)
-are displayed in About and bundled in `OriCmd.app/Contents/Resources/Credits.rtf`.
+are displayed in About and bundled in `Oriel.app/Contents/Resources/Credits.rtf`.
 
-OriCmd is not affiliated with Ghisler Software GmbH. Total Commander is a
+Oriel, like OriCmd, is not affiliated with Ghisler Software GmbH. Total Commander is a
 trademark of its owner.

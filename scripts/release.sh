@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Publishes a signed OriCmd <version> to the fork's GitHub Releases:
+# Publishes a signed Oriel <version> to the fork's GitHub Releases:
 # sets the version, builds and signs the DMG, commits, tags, pushes and uploads
 # the disk image, signed manifest and signature.
 # Usage: scripts/release.sh 2026.10.0 [notes.md] (without notes GitHub lists the commits)
@@ -42,9 +42,9 @@ git tag "v$VERSION"
 git push fork main "v$VERSION"
 
 if [ -n "$NOTES" ]; then
-  gh release create --repo "$REPOSITORY" "v$VERSION" "$DMG" "$MANIFEST" "$SIGNATURE" --title "OriCmd $VERSION" --notes-file "$NOTES"
+  gh release create --repo "$REPOSITORY" "v$VERSION" "$DMG" "$MANIFEST" "$SIGNATURE" --title "Oriel $VERSION" --notes-file "$NOTES"
 else
-  gh release create --repo "$REPOSITORY" "v$VERSION" "$DMG" "$MANIFEST" "$SIGNATURE" --title "OriCmd $VERSION" --generate-notes
+  gh release create --repo "$REPOSITORY" "v$VERSION" "$DMG" "$MANIFEST" "$SIGNATURE" --title "Oriel $VERSION" --generate-notes
 fi
 
-echo "Signed OriCmd $VERSION published to $REPOSITORY"
+echo "Signed Oriel $VERSION published to $REPOSITORY"

@@ -1,7 +1,7 @@
 # Authenticated fork updates
 
-This fork checks `tosiabunio/OriCmd` releases. An update can be installed inside
-OriCmd only when it has a manifest and Ed25519 signature verified against the
+This fork (Oriel) checks `tosiabunio/OriCmd` releases. An update can be installed
+inside Oriel only when it has a manifest and Ed25519 signature verified against the
 public key bundled in the app. Unsigned releases offer their release page instead.
 
 Each release contains three assets:
@@ -10,8 +10,12 @@ Each release contains three assets:
 - `OriCmd-<version>.manifest.json`
 - `OriCmd-<version>.manifest.sig` (the 64-byte signature of the exact manifest bytes)
 
+The files keep the original name, which installs from 2026.10.4 and earlier look
+for; the image holds `Oriel.app`. The updater installs it in place of the running
+app, renaming an `OriCmd.app` to `Oriel.app` unless another `Oriel.app` is there.
+
 The signed manifest names the repository, version, disk image, bundle identifier,
-SHA-256 digest and byte count. OriCmd verifies the signature before decoding the
+SHA-256 digest and byte count. Oriel verifies the signature before decoding the
 manifest, limits metadata and download sizes, and checks the downloaded image
 before mounting it. It also verifies the app's bundle signature and requires its
 version to match the signed version exactly.

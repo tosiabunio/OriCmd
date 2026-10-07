@@ -63,7 +63,7 @@ enum Credentials {
         guard let password, !password.isEmpty else { return }
         var item = query
         item[kSecValueData as String] = Data(password.utf8)
-        item[kSecAttrLabel as String] = "OriCmd connection"
+        item[kSecAttrLabel as String] = "\(Bundle.main.appName) connection"
         SecItemAdd(item as CFDictionary, nil)
     }
 }

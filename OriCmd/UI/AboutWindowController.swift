@@ -8,7 +8,7 @@ final class AboutWindowController: NSWindowController {
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
                               styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: true)
         let info = Bundle.main.infoDictionary ?? [:]
-        let name = info["CFBundleDisplayName"] as? String ?? ProcessInfo.processInfo.processName
+        let name = Bundle.main.appName
         window.title = String(localized: "About \(name)")
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true

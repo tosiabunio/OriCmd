@@ -281,7 +281,7 @@ private final class GeneralPane: SettingsPane {
         restartButton.title = String(localized: "Restart Now")
         restartButton.target = self
         restartButton.action = #selector(restart(_:))
-        restartNote.stringValue = String(localized: "OriCmd shows the new language after a restart.")
+        restartNote.stringValue = String(localized: "\(Bundle.main.appName) shows the new language after a restart.")
         restartNote.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         restartNote.textColor = .secondaryLabelColor
         row(nil, restartNote, restartButton)
@@ -290,7 +290,7 @@ private final class GeneralPane: SettingsPane {
         section(String(localized: "Updates"))
         row(nil, checkbox(String(localized: "Check for updates automatically"), Settings.checksForUpdates,
                           #selector(updatesChanged(_:))))
-        note(String(localized: "Once a day OriCmd looks for a new release on GitHub and offers to install it."))
+        note(String(localized: "Once a day \(Bundle.main.appName) looks for a new release on GitHub and offers to install it."))
         row(nil, button(String(localized: "Check Now"), #selector(AppDelegate.checkForUpdates(_:)), target: NSApp.delegate),
             NSTextField(labelWithString: String(localized: "Version \(Updater.currentVersion)")))
     }

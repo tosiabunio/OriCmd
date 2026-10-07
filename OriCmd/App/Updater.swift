@@ -86,7 +86,7 @@ enum Updater {
                 AppDefaults.store.set(Date().timeIntervalSince1970, forKey: lastCheckKey)
                 guard let release, isVersion(release.version, newerThan: currentVersion) else {
                     if interactive {
-                        Prompt.info(String(localized: "OriCmd is up to date"),
+                        Prompt.info(String(localized: "\(Bundle.main.appName) is up to date"),
                                     message: String(localized: "Version \(currentVersion) is the newest one."), in: window)
                     }
                     return
@@ -156,7 +156,7 @@ enum Updater {
 
     private static func offer(_ release: Release, window: NSWindow?) {
         let alert = NSAlert()
-        alert.messageText = String(localized: "OriCmd \(release.version) is available")
+        alert.messageText = String(localized: "\(Bundle.main.appName) \(release.version) is available")
         var notes = displayNotes(release.body ?? "")
         if notes.count > 1500 {
             notes = String(notes.prefix(1500)) + "…"
@@ -209,7 +209,7 @@ enum Updater {
         }
         let app = Bundle.main.bundleURL
         let staged = app.deletingLastPathComponent().appending(path: ".OriCmd-\(version)-update.app")
-        let controller = TransferController(title: String(localized: "Downloading OriCmd \(version)"),
+        let controller = TransferController(title: String(localized: "Downloading \(Bundle.main.appName) \(version)"),
                                             failureTitle: String(localized: "Update failed"), window: window)
         Task {
             let done = await controller.run(source: dmg.absoluteString, target: app.path) { progress, _ in
@@ -263,7 +263,7 @@ enum Updater {
         guard let newApp = contents.first(where: { $0.pathExtension == "app" }),
               let info = Bundle(url: newApp)?.infoDictionary,
               info["CFBundleIdentifier"] as? String == Bundle.main.bundleIdentifier else {
-            throw UpdateError(String(localized: "The disk image does not contain OriCmd."))
+            throw UpdateError(String(localized: "The disk image does not contain \(Bundle.main.appName)."))
         }
         guard info["CFBundleShortVersionString"] as? String == manifest.version,
               isVersion(manifest.version, newerThan: currentVersion) else {
@@ -338,12 +338,24 @@ enum Updater {
         return data
     }
 
+    /// Where the new app goes: in place of this one, under the new app's own name
+    /// while this one still has its own (OriCmd.app, the fork's name before Oriel,
+    /// becomes Oriel.app) and nothing else has that name. A name given by hand stays.
+    private static func destination(replacing app: URL, with staged: URL) -> URL {
+        let current = app.deletingPathExtension().lastPathComponent
+        guard let name = Bundle(url: staged)?.appName, name != current,
+              [Bundle.main.appName, "OriCmd"].contains(current) else { return app }
+        let renamed = app.deletingLastPathComponent().appending(path: "\(name).app")
+        return FileManager.default.fileExists(atPath: renamed.path) ? app : renamed
+    }
+
     /// Starts a script that waits for this process to exit, swaps the bundles
     /// and opens the new app (and gives up after a minute if the app stays).
     private static func relaunch(replacing app: URL, with staged: URL) throws {
         let old = app.deletingLastPathComponent().appending(path: ".OriCmd-old-\(UUID().uuidString).app")
+        let target = destination(replacing: app, with: staged)
         let script = FileManager.default.temporaryDirectory.appending(path: "oricmd-update-\(UUID().uuidString).sh")
-        var relaunch = "open \"$APP\""
+        var relaunch = "open \"$TARGET\""
         #if DEBUG
         if ProcessInfo.processInfo.environment["ORICMD_UPDATE_NO_RELAUNCH"] != nil {
             relaunch = ":"
@@ -351,10 +363,10 @@ enum Updater {
         #endif
         let body = """
             #!/bin/sh
-            APP="$1"; NEW="$2"; OLD="$3"; PID="$4"
+            APP="$1"; NEW="$2"; OLD="$3"; PID="$4"; TARGET="$5"
             for i in $(seq 1 300); do kill -0 "$PID" 2>/dev/null || break; sleep 0.2; done
             if kill -0 "$PID" 2>/dev/null; then rm -rf "$NEW"; rm -f "$0"; exit 1; fi
-            if mv "$APP" "$OLD" && mv "$NEW" "$APP"; then rm -rf "$OLD"; else mv "$OLD" "$APP" 2>/dev/null; rm -rf "$NEW"; fi
+            if mv "$APP" "$OLD" && mv "$NEW" "$TARGET"; then rm -rf "$OLD"; else mv "$OLD" "$APP" 2>/dev/null; rm -rf "$NEW"; TARGET="$APP"; fi
             \(relaunch)
             rm -f "$0"
 
@@ -363,7 +375,7 @@ enum Updater {
         let process = Process()
         process.executableURL = URL(filePath: "/bin/sh")
         process.arguments = [script.path, app.path, staged.path, old.path,
-                             String(ProcessInfo.processInfo.processIdentifier)]
+                             String(ProcessInfo.processInfo.processIdentifier), target.path]
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice

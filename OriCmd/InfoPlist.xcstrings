@@ -1,0 +1,42 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "The app's name as people see it: the fork's own name (its code keeps the original's, OriCmd).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oriel"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oriel"
+          }
+        }
+      }
+    },
+    "CFBundleName" : {
+      "comment" : "The name in the menu bar: the fork's own name (its code keeps the original's, OriCmd).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oriel"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oriel"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -43,7 +43,7 @@ nonisolated struct ArchiveError: LocalizedError {
         let name = url.lastPathComponent
         guard ArchiveReader.isZip(archive) else {
             return ArchiveError(message: String(localized:
-                "\u{201C}\(name)\u{201D} is encrypted: OriCmd can unpack encrypted zip archives only, not 7z or RAR ones."),
+                "\u{201C}\(name)\u{201D} is encrypted: \(Bundle.main.appName) can unpack encrypted zip archives only, not 7z or RAR ones."),
                 kind: .unsupportedEncryption)
         }
         return password == nil

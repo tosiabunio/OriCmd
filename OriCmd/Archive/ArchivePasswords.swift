@@ -14,7 +14,7 @@ enum ArchivePasswords {
         if let password = known[key] { return password }
         guard await ArchiveReader.decryptsEntries(of: archive) else {
             throw ArchiveError(message: String(localized:
-                "\u{201C}\(archive.lastPathComponent)\u{201D} is encrypted: OriCmd can unpack encrypted zip archives only, not 7z or RAR ones."),
+                "\u{201C}\(archive.lastPathComponent)\u{201D} is encrypted: \(Bundle.main.appName) can unpack encrypted zip archives only, not 7z or RAR ones."),
                 kind: .unsupportedEncryption)
         }
         guard let window else { throw CancellationError() }

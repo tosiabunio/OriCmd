@@ -311,7 +311,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/OriCmd-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = OriCmd;
+				INFOPLIST_KEY_CFBundleDisplayName = Oriel;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 OriCmd contributors. Licensed under GPL-3.0.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
@@ -345,7 +345,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/OriCmd-Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = OriCmd;
+				INFOPLIST_KEY_CFBundleDisplayName = Oriel;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 OriCmd contributors. Licensed under GPL-3.0.";
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;

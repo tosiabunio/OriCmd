@@ -90,7 +90,7 @@ enum MainMenu {
     }
 
     private static func appMenu() -> NSMenu {
-        let name = ProcessInfo.processInfo.processName
+        let name = Bundle.main.appName
         let menu = NSMenu(title: name)
 
         menu.addItem(item(String(localized: "About \(name)"), #selector(AppDelegate.showAbout(_:))))

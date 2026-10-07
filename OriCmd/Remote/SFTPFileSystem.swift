@@ -473,11 +473,11 @@ nonisolated enum Askpass {
             on run argv
               set promptText to item 1 of argv
               if promptText contains "(yes/no" then
-                set answer to button returned of (display dialog promptText buttons {"No", "Yes"} default button "Yes" with title "OriCmd" with icon caution)
+                set answer to button returned of (display dialog promptText buttons {"No", "Yes"} default button "Yes" with title "\(Bundle.main.appName)" with icon caution)
                 if answer is "Yes" then return "yes"
                 return "no"
               end if
-              return text returned of (display dialog promptText default answer "" with hidden answer with title "OriCmd")
+              return text returned of (display dialog promptText default answer "" with hidden answer with title "\(Bundle.main.appName)")
             end run
             APPLESCRIPT
 

@@ -28,7 +28,7 @@ nonisolated enum Unarchiver {
     /// Said instead of libarchive's message when the tools are not there.
     static func solidError(_ url: URL) -> ArchiveError {
         ArchiveError(message: String(localized:
-            "\u{201C}\(url.lastPathComponent)\u{201D} is a solid RAR 4 archive, which the system libarchive cannot unpack. Install The Unarchiver's command line tools (brew install unar): OriCmd then uses them."))
+            "\u{201C}\(url.lastPathComponent)\u{201D} is a solid RAR 4 archive, which the system libarchive cannot unpack. Install The Unarchiver's command line tools (brew install unar): \(Bundle.main.appName) then uses them."))
     }
 
     /// The entries as lsar lists them (`lsar -j`).
