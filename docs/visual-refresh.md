@@ -4,7 +4,8 @@
 branch `window-shell` (2026-10-07), except 2.2 and the lists under the toolbar,
 deferred; phase 3 on branch `secondary-windows` (2026-10-07); the app icon on branch
 `app-icon` (2026-10-07); phase 4, what phases 1 and 2 left over, on branch
-`ops-badge` (2026-10-07).
+`ops-badge` (2026-10-07); phase 5, the tool windows, on branch `modern-polish`
+(2026-10-07).
 **Mockup:** [Today and proposed main window, interactive](https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP)
 (light and dark).
 
@@ -266,6 +267,54 @@ panels are not split-view items with accessories (2.2): with opaque panel header
 neither would show, and both need a second layout for macOS 14 and 15. They are
 worth another look if the headers become translucent.
 
+### Phase 5: the tool windows
+
+A survey of every window in the Modern look (2026-10-07) found the panels current
+and the dated parts elsewhere:
+
+- **The Lister** (`F3`) was titled "Lister - [path] — encoding" as in Total
+  Commander, had no toolbar (every command was a key to know), and set its text
+  against the window's edge.
+- **Lists in tool windows** (the hotlist, file colors, the Start menu, connections,
+  associations, column sets, shortcuts, Operations, Find Files, Multi-Rename,
+  Synchronize, the command palette) sat in sunken frames with square full-width
+  selection, under rows of "Add / Remove / Move Up / Move Down" buttons; an empty
+  list was a blank box. Find Files and Multi-Rename left their default button in the
+  middle of the window.
+- **The tree** (`Ctrl+F8`) kept the square full-width cursor and the list frame that
+  the panels lost in phase 1, and **quick search** typed into a plain field.
+
+1. **Lists.** One `ListBox` draws a list as System Settings does: a rounded box with
+   a hairline edge, rows with rounded selection (`NSTableView.Style.inset`), and
+   along its bottom edge small symbol buttons for adding, removing and moving
+   entries. An empty list says so in its middle. Effort S–M.
+2. **Lister toolbar and title.** The window's title is the file's name, its folder
+   and encoding are the subtitle, and a local file's icon in the title bar can be
+   dragged or ⌘-clicked. A toolbar shows the keys: previous and next file (`P`,
+   `N`), text, hex or the rich view (`1`, `3`, `7`, with the symbol of what `7`
+   shows), wrapping, highlighting and formatting (`W`, `H`, `F`), the encodings and
+   Find. The text gets a margin. Effort M.
+3. **Tree and quick search.** The tree's cursor is the panels' rounded,
+   focus-following one in the Modern look; quick search becomes a search field.
+   Effort S.
+
+**As built (phase 5).** 5.1: every list in a tool window is a `ListBox`; + and −
+(and the move chevrons) keep their old names for VoiceOver and the tooltip.
+Placeholders: the hotlist, file colors, the Start menu, connections, associations,
+shortcuts with no match, Operations ("No operations this session", now in the list
+itself) and the command palette. The palette lost its column titles, shows the
+shortcuts right-aligned in grey, and draws the chosen row in the accent color while
+the search field keeps the focus, as Spotlight does. Find Files keeps Start Search
+at the trailing edge, Multi-Rename Undo and Rename; Connections drops New for + and
+keeps Save and the default Connect at the right. The box has no fill of its own: an
+inset table draws none, and the window's background (tinted by the desktop picture
+in dark mode) shows in the list and its bar alike. The Compare window keeps its full
+width rows, and the text views in alerts their frames. 5.2: as planned, in both
+looks; the toggles are a segmented control whose segments show which are on and turn
+off where they do not apply (hex, Quick Look), and the encodings are a menu. 5.3:
+the tree's column follows the panel's width, so the rounded ends stay in view
+however deep the folders go. The search field is the same in both looks.
+
 ## The Look setting
 
 The fork already has eight appearance switches: folder brackets, Mac-style tabs,
@@ -279,7 +328,8 @@ switches at once, and the individual switches stay below it. Test runs pin
 
 The plan is built except the deferred 2.1 and 2.2. New visual work starts from what
 using the Modern look shows, on its own branch from `main`, behind the Look setting
-where it changes how the classic panels look.
+where it changes how the classic panels look. Left from the phase 5 survey: the
+Thumbnails view's `..` tile, and the Compare window's two text frames.
 
 ## Sources
 

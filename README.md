@@ -36,6 +36,15 @@ keep working as always.
   Operations share one bar under the panels. Operations also has a toolbar button
   whose badge counts what runs or waits (macOS 26), and the header shows a symbol
   for the folder, archive, server or search results before the path.
+- **Tool windows as Mac windows:** the Lister (`F3`) is titled with the file's name
+  (its folder and encoding below it, the file's icon draggable) and its keys are
+  also a toolbar: previous and next file, text, hex or Quick Look (or the table,
+  book, page or model), wrapping, highlighting, formatting, the encoding and Find.
+  Lists in tool windows (hotlist, Start menu, file colors, associations,
+  connections, shortcuts, Operations, Find Files, Multi-Rename, Synchronize, the
+  command palette) are rounded boxes with rounded rows, + and − below them, and
+  say when they are empty. Quick search and the quick filter type into a search
+  field, and in the Modern look the tree's cursor is rounded like the panels'.
 - **Mac-style panels:** compact headers, folder icons and close buttons on tabs,
   key caps on function buttons, Finder-style sizes and status summaries, folder
   colors from Finder tags, and options for folder brackets and file extensions.
@@ -273,7 +282,7 @@ shortcuts in parentheses.
 
 | Key | Action |
 |---|---|
-| `F3` | View (Lister): `1` text, `3` hex, `7` Quick Look (images, PDF, media and office documents — Word, Excel, PowerPoint, Pages, Numbers, Keynote, OpenDocument — open in it at once) or a table, an e-book, a web page, Markdown or a 3D model (see below), `W` word wrap; encodings: `8` UTF-8, `U` UTF-16, `A` Windows-1251, `S` DOS (866), `K` KOI8-R, all of them (and Automatically) in the text's context menu — the one used is in the title, kept for `N`/`P`; `H` syntax highlighting on/off, `F` formatting of JSON, XML and code (see below); `N`/`P` next/previous file, `F7`/`⌘F` find, `⇧F7` find with options (case, a regular expression, bytes in hex — found in the hex dump), `F3`/`⇧F3` find next/previous, `Esc` close |
+| `F3` | View (Lister): `1` text, `3` hex, `7` Quick Look (images, PDF, media and office documents — Word, Excel, PowerPoint, Pages, Numbers, Keynote, OpenDocument — open in it at once) or a table, an e-book, a web page, Markdown or a 3D model (see below), `W` word wrap; encodings: `8` UTF-8, `U` UTF-16, `A` Windows-1251, `S` DOS (866), `K` KOI8-R, all of them (and Automatically) in the text's context menu and the toolbar — the one used is under the title, kept for `N`/`P`; `H` syntax highlighting on/off, `F` formatting of JSON, XML and code (see below); `N`/`P` next/previous file, `F7`/`⌘F` find, `⇧F7` find with options (case, a regular expression, bytes in hex — found in the hex dump), `F3`/`⇧F3` find next/previous, `Esc` close |
 | `F4` | Open in the default text editor (or the program from the associations) |
 | `Shift+F4` | Create a new file and open it in the editor |
 | `F5` | Copy (to the other panel by default) |
