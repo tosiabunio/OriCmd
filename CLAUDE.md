@@ -973,3 +973,41 @@ went out at once instead of days after the bridge.
   `build/review-updates` (it holds the second copy of the signing key, identical to
   `build/update-signing/private.key`) remain. Worktree paths named in the entries
   above no longer exist; start new work in a new short-named worktree from `main`.
+
+## Visual refresh phase 4 installed on 2026-10-07
+
+The user asked to continue the visual plan; phase 4 built what phases 1 and 2 left
+over. Branch `ops-badge` (worktree `build/ob`): `a1dbd25`, `e5e8ab3`, `28fba44`,
+`8799b3b` (plan and README), `c40ca71`; `main` = `local-build` = `c40ca71`, not pushed.
+Installed as fork build 41 ("2026.10.6 (41)").
+- 4.1 `a1dbd25`: `ButtonBar` has an Operations button (`cm_Operations`, symbol
+  `arrow.up.arrow.down.circle`) at the end of the default bar, added once to saved
+  toolbars (`ToolbarHasOperationsButton`, after a flexible space). On macOS 26 its
+  `badge` (`NSItemBadge.count`) is running + waiting operations, updated on
+  `OperationsStore.didChange`. `MainViewController.operationsInToolbar`: the Modern
+  bottom bar hides its Operations button while the toolbar is visible with that
+  button (refreshed on toolbar add/remove notifications and `MainWindow.
+  toggleToolbarShown`); Classic, a hidden toolbar and macOS 14–15 keep it. Test action
+  `toolbar` writes the items ("cm_Operations badge 1") and "bottom: …" to
+  `<snapshot>-toolbar.txt`. A copy onto an existing file waits on its question and
+  counts as running. `cmd:` adds the colon itself (`cmd:toggleToolbarShown`).
+- 4.2 `e5e8ab3`: a Tags section at the end of the sidebar: the seven colors in
+  `FinderTags.colors` order under `FinderTags.colorNames()` (the Finder's names,
+  Polish here: Czerwony…), dots in `NSWorkspace.fileLabelColors`. `Node.tag`,
+  `isSection`; `onTag` → `MainViewController.showTagged` → `FinderTags.files(
+  taggedWith:in:)` (`mdfind -0 kMDItemUserTags == "…"`) → `showSearchResults`
+  titled "Tagged %@" (ru "С тегом %@"), [..] back to the folder shown (home for a
+  server or archive). Test runs search only the test folders; Spotlight indexes
+  `build/testdata` in about 3 s. `sidebarpick:` picks tags too.
+- 4.3 `28fba44`: `PathBar.place` (folder, archive, server, search results, set in
+  `updatePathBar`) draws `folder.fill` / `archivebox.fill` / `server.rack` /
+  `magnifyingglass` before the path in the Modern look: accent in the active panel,
+  `secondaryLabelColor` in the other (tertiary was too faint in light mode).
+- `c40ca71`: `regress.sh` runs `caffeinate -i -w $$`. The "16–17 minute stalls" of
+  earlier runs were the Mac in deep idle sleep while the user was away (pmset log:
+  DarkWake at the gaps); Claude Code's own caffeinate asserts only 300 s at a time.
+- Still deferred (recorded in the plan): lists under the glass toolbar (2.1) and
+  split-view accessories (2.2).
+- Validation: 371 of 371 regression checks (three new), the five UX suites, 11
+  accessibility checks, core tests, localization, captures of the badge, the Tags
+  section and the header symbols in light and dark.
