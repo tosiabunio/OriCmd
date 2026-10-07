@@ -50,44 +50,96 @@ final class SettingsWindowController: NSWindowController {
 
 // MARK: - Building blocks
 
-/// A pane: sections with bold titles, labelled controls and grey explanations.
+/// A pane: sections with bold titles, each a rounded group of labelled controls and
+/// grey explanations, as System Settings groups its options.
 class SettingsPane: NSViewController {
-    private var rows: [[NSView]] = []
-    private var fullWidthRows: [Int] = []
-    private var titleRows: [Int] = []
-    /// Rows whose control has no text baseline (color wells): centered instead.
-    private var centeredRows: [Int] = []
+    private struct Group {
+        var title: String?
+        var rows: [[NSView]] = []
+        var fullWidthRows: [Int] = []
+        /// Rows whose control has no text baseline (color wells): centered instead.
+        var centeredRows: [Int] = []
+    }
+
+    private var groups: [Group] = []
     static let noteWidth: CGFloat = 400
 
     override func loadView() {
         build()
-        let grid = NSGridView(views: rows)
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 6
+        for group in groups where !group.rows.isEmpty {
+            if let title = group.title {
+                let label = NSTextField(labelWithString: title)
+                label.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
+                stack.addArrangedSubview(label)
+                if stack.arrangedSubviews.count > 1 {
+                    stack.setCustomSpacing(18, after: stack.arrangedSubviews[stack.arrangedSubviews.count - 2])
+                }
+            }
+            let box = Self.groupBox(around: grid(for: group))
+            stack.addArrangedSubview(box)
+            box.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        let view = NSView()
+        view.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
+            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            stack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -22),
+        ])
+        self.view = view
+        preferredContentSize = view.fittingSize
+    }
+
+    private func grid(for group: Group) -> NSGridView {
+        let grid = NSGridView(views: group.rows)
         grid.column(at: 0).xPlacement = .trailing
         grid.rowAlignment = .firstBaseline
         grid.rowSpacing = 8
         grid.columnSpacing = 10
-        for index in fullWidthRows {
+        for index in group.fullWidthRows {
             grid.mergeCells(inHorizontalRange: NSRange(location: 0, length: 2), verticalRange: NSRange(location: index, length: 1))
             grid.row(at: index).cell(at: 0).xPlacement = .leading
         }
-        for index in titleRows where index > 0 {
-            grid.row(at: index).topPadding = 14
-        }
-        for index in centeredRows {
+        for index in group.centeredRows {
             grid.row(at: index).rowAlignment = .none
             grid.row(at: index).yPlacement = .center
         }
-        grid.translatesAutoresizingMaskIntoConstraints = false
-        let view = NSView()
-        view.addSubview(grid)
-        NSLayoutConstraint.activate([
-            grid.topAnchor.constraint(equalTo: view.topAnchor, constant: 22),
-            grid.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 28),
-            grid.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -28),
-            grid.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -24),
-        ])
-        self.view = view
-        preferredContentSize = view.fittingSize
+        return grid
+    }
+
+    /// A rounded, lightly filled group around `content`.
+    private static func groupBox(around content: NSView) -> NSBox {
+        let box = NSBox()
+        box.boxType = .custom
+        box.titlePosition = .noTitle
+        box.borderWidth = 0
+        box.cornerRadius = 10
+        box.fillColor = .quinarySystemFill
+        box.contentViewMargins = .zero
+        content.translatesAutoresizingMaskIntoConstraints = false
+        box.contentView?.addSubview(content)
+        if let inside = box.contentView {
+            NSLayoutConstraint.activate([
+                content.topAnchor.constraint(equalTo: inside.topAnchor, constant: 12),
+                content.leadingAnchor.constraint(equalTo: inside.leadingAnchor, constant: 14),
+                content.trailingAnchor.constraint(lessThanOrEqualTo: inside.trailingAnchor, constant: -14),
+                content.bottomAnchor.constraint(equalTo: inside.bottomAnchor, constant: -12),
+            ])
+        }
+        return box
+    }
+
+    private var current: Group {
+        get { groups.last ?? Group() }
+        set {
+            if groups.isEmpty { groups.append(newValue) } else { groups[groups.count - 1] = newValue }
+        }
     }
 
     /// Adds the rows of the pane.
@@ -101,17 +153,7 @@ class SettingsPane: NSViewController {
     }
 
     func section(_ title: String) {
-        if !rows.isEmpty {
-            let separator = NSBox()
-            separator.boxType = .separator
-            fullWidthRows.append(rows.count)
-            rows.append([separator, NSGridCell.emptyContentView])
-        }
-        let label = NSTextField(labelWithString: title)
-        label.font = .boldSystemFont(ofSize: NSFont.systemFontSize)
-        titleRows.append(rows.count)
-        fullWidthRows.append(rows.count)
-        rows.append([label, NSGridCell.emptyContentView])
+        groups.append(Group(title: title))
     }
 
     func row(_ label: String?, _ views: NSView...) {
@@ -120,10 +162,12 @@ class SettingsPane: NSViewController {
             stack.spacing = 8
             return stack
         }()
+        var group = current
         if content is NSColorWell {
-            centeredRows.append(rows.count)
+            group.centeredRows.append(group.rows.count)
         }
-        rows.append([label.map { NSTextField(labelWithString: $0) } ?? NSGridCell.emptyContentView, content])
+        group.rows.append([label.map { NSTextField(labelWithString: $0) } ?? NSGridCell.emptyContentView, content])
+        current = group
     }
 
     func note(_ text: String) {
@@ -132,12 +176,16 @@ class SettingsPane: NSViewController {
         label.textColor = .secondaryLabelColor
         label.preferredMaxLayoutWidth = Self.noteWidth
         label.widthAnchor.constraint(lessThanOrEqualToConstant: Self.noteWidth).isActive = true
-        rows.append([NSGridCell.emptyContentView, label])
+        var group = current
+        group.rows.append([NSGridCell.emptyContentView, label])
+        current = group
     }
 
     func fullWidth(_ view: NSView) {
-        fullWidthRows.append(rows.count)
-        rows.append([view, NSGridCell.emptyContentView])
+        var group = current
+        group.fullWidthRows.append(group.rows.count)
+        group.rows.append([view, NSGridCell.emptyContentView])
+        current = group
     }
 
     func checkbox(_ title: String, _ value: Bool, _ action: Selector) -> NSButton {
