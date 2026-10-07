@@ -20,6 +20,10 @@ print -n 'disposable disk image' > "$fixture/OriCmd-2026.10.0.dmg"
 build/update-signer sign "$fixture/private.key" "$fixture/public.txt" "$fixture/OriCmd-2026.10.0.dmg" tosiabunio/OriCmd 2026.10.0 ru.themmag.OriCmd
 [ -s "$fixture/OriCmd-2026.10.0.manifest.json" ] && [ "$(stat -f %z "$fixture/OriCmd-2026.10.0.manifest.sig")" = 64 ]
 print 'ok   the publishing tool produces a verified manifest and 64-byte signature'
+print -n 'disposable disk image' > "$fixture/Oriel-2026.10.0.dmg"
+build/update-signer sign "$fixture/private.key" "$fixture/public.txt" "$fixture/Oriel-2026.10.0.dmg" tosiabunio/OriCmd 2026.10.0 io.github.tosiabunio.oriel
+grep -q '"bundleIdentifier":"io.github.tosiabunio.oriel"' "$fixture/Oriel-2026.10.0.manifest.json"
+print "ok   the publishing tool signs an Oriel- image for the fork's own identifier"
 build/update-signer keygen "$fixture/wrong.key" "$fixture/wrong-public.txt"
 if build/update-signer sign "$fixture/wrong.key" "$fixture/public.txt" "$fixture/OriCmd-2026.10.0.dmg" tosiabunio/OriCmd 2026.10.0 ru.themmag.OriCmd 2>/dev/null; then
   print -u2 'The signer accepted the wrong publishing key'; exit 1

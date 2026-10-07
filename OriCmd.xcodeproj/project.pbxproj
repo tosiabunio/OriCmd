@@ -323,7 +323,7 @@
 				ORICMD_FORK = tosiabunio;
 				ORICMD_FORK_BUILD = "";
 				ORICMD_FORK_COMMIT = "";
-				PRODUCT_BUNDLE_IDENTIFIER = ru.themmag.OriCmd;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.tosiabunio.oriel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -357,7 +357,7 @@
 				ORICMD_FORK = tosiabunio;
 				ORICMD_FORK_BUILD = "";
 				ORICMD_FORK_COMMIT = "";
-				PRODUCT_BUNDLE_IDENTIFIER = ru.themmag.OriCmd;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.tosiabunio.oriel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -377,7 +377,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/Highlighter-Info.plist";
 				MARKETING_VERSION = 2026.10.5;
-				PRODUCT_BUNDLE_IDENTIFIER = ru.themmag.OriCmd.Highlighter;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.tosiabunio.oriel.Highlighter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -397,7 +397,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/Highlighter-Info.plist";
 				MARKETING_VERSION = 2026.10.5;
-				PRODUCT_BUNDLE_IDENTIFIER = ru.themmag.OriCmd.Highlighter;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.tosiabunio.oriel.Highlighter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -409,7 +409,7 @@
             CODE_SIGN_IDENTITY = "-";
             CODE_SIGN_STYLE = Manual;
             GENERATE_INFOPLIST_FILE = YES;
-            PRODUCT_BUNDLE_IDENTIFIER = ru.themmag.OriCmd.CoreTests;
+            PRODUCT_BUNDLE_IDENTIFIER = io.github.tosiabunio.oriel.CoreTests;
             PRODUCT_NAME = "$(TARGET_NAME)";
             SWIFT_VERSION = 6.0;
             SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
@@ -418,7 +418,7 @@
             CODE_SIGN_IDENTITY = "-";
             CODE_SIGN_STYLE = Manual;
             GENERATE_INFOPLIST_FILE = YES;
-            PRODUCT_BUNDLE_IDENTIFIER = ru.themmag.OriCmd.CoreTests;
+            PRODUCT_BUNDLE_IDENTIFIER = io.github.tosiabunio.oriel.CoreTests;
             PRODUCT_NAME = "$(TARGET_NAME)";
             SWIFT_VERSION = 6.0;
             SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";

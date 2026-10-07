@@ -45,7 +45,8 @@ enum SyntaxHighlighter {
     /// For the service to start; launchd starts it again only some seconds after
     /// it was killed.
     private static let startLimit: Duration = .seconds(15)
-    private static let serviceName = "ru.themmag.OriCmd.Highlighter"
+    /// The helper's bundle identifier: the app's own, with `.Highlighter`.
+    private static let serviceName = (Bundle.main.bundleIdentifier ?? "io.github.tosiabunio.oriel") + ".Highlighter"
     private static var connection: NSXPCConnection?
     /// highlight.js's language names and aliases, asked once: a text in none of
     /// them is not sent to the service at all.

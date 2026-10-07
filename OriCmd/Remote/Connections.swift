@@ -25,6 +25,8 @@ enum Connections {
 /// Passwords of saved connections in the login Keychain. Test runs keep them
 /// in memory instead, so they never touch the user's Keychain.
 enum Credentials {
+    /// The original's identifier, which the fork had up to 2026.10.5: the
+    /// passwords saved under it stay where they are.
     private static let service = "ru.themmag.OriCmd"
     private static var memory: [String: String] = [:]
 

@@ -29,14 +29,14 @@ sed -i '' -e "s/MARKETING_VERSION = [0-9A-Za-z.]*;/MARKETING_VERSION = $VERSION;
   -e "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $BUILD;/" $PROJECT
 
 scripts/make-dmg.sh
-DMG=build/OriCmd-$VERSION.dmg
+DMG=build/Oriel-$VERSION.dmg
 [ -f $DMG ] || { echo "$DMG was not built"; exit 1; }
 
 scripts/build-update-signer.sh
 IDENTIFIER=$(defaults read "$PWD/build/release/DerivedData/Build/Products/Release/OriCmd.app/Contents/Info" CFBundleIdentifier)
 build/update-signer sign "$SIGNING_KEY" OriCmd/UpdateSigningPublicKey.txt "$DMG" "$REPOSITORY" "$VERSION" "$IDENTIFIER"
-MANIFEST=build/OriCmd-$VERSION.manifest.json
-SIGNATURE=build/OriCmd-$VERSION.manifest.sig
+MANIFEST=build/Oriel-$VERSION.manifest.json
+SIGNATURE=build/Oriel-$VERSION.manifest.sig
 
 git commit -q -am "Release $VERSION"
 git tag "v$VERSION"

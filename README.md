@@ -98,15 +98,15 @@ The screenshots are made by `scripts/screenshots.sh` on demo folders
 
 ## Installation
 
-Download `OriCmd-<version>.dmg` (the image keeps the original name, which earlier
-installs look for when they update) from the latest release on this fork's
+Download `Oriel-<version>.dmg` (`OriCmd-<version>.dmg` up to 2026.10.5) from the
+latest release on this fork's
 [Releases](https://github.com/tosiabunio/OriCmd/releases) page (a universal app for
 Apple Silicon and Intel, macOS 14+). Or build the same image from this repository:
 
 ```sh
 git clone https://github.com/tosiabunio/OriCmd.git
 cd OriCmd
-scripts/make-dmg.sh        # → build/OriCmd-<version>.dmg
+scripts/make-dmg.sh        # → build/Oriel-<version>.dmg
 ```
 
 The Homebrew cask `mmag/tap/oricmd` distributes the original project's builds.
@@ -130,6 +130,16 @@ fork releases and managing the signing key. An install from 2026.10.4 or earlier
 `Oriel.app` (or rename it in the Finder; settings are kept either way). The Dock
 keeps the name an icon had when it was added: if its tooltip still says OriCmd,
 right-click the icon → Options → Keep in Dock to turn it off and on again.
+
+After 2026.10.5 Oriel has its own bundle identifier, `io.github.tosiabunio.oriel`,
+and its own settings, so it can sit next to the original OriCmd. Its first launch
+copies the settings it had under the original's identifier (`ru.themmag.OriCmd`),
+which stay as they were for the original app; saved server passwords stay where
+they are. macOS asks again for the permissions given to the earlier app (Full Disk
+Access, access to folders). The updater of 2026.10.5 installs these releases; an
+earlier install opens their release page instead, so download it by hand or update
+to 2026.10.5 first. If the Dock shows a second icon, keep the new one in the Dock
+and remove the old one.
 
 ## Building
 
@@ -157,7 +167,8 @@ counter: `2026.10.0` → `2026.10.1` → `2026.10.2`; the first release in Novem
 is `2026.11.0`. Numbers advance when preparing a release, not automatically when
 building or importing upstream changes.
 
-Tags use `v2026.10.0`; disk images use `OriCmd-2026.10.0.dmg` and hold `Oriel.app`.
+Tags use `v2026.10.0`; disk images use `Oriel-2026.10.0.dmg` (`OriCmd-…` up to
+2026.10.5) and hold `Oriel.app`.
 The app's internal build number and the local install counter advance independently
 of the calendar version. About shows the version and build, for example `2026.10.0 (21)`,
 with `OriCmd fork` below. Builds installed with `scripts/install-local.sh`

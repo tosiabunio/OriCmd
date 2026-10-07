@@ -15,7 +15,37 @@ enum AppDefaults {
     /// The defaults domain behind `store` (for values that must live in it
     /// rather than be inherited from the global domain, like AppleLanguages).
     static var domainName: String {
-        isTestRun ? "ru.themmag.OriCmd.tests" : Bundle.main.bundleIdentifier ?? "ru.themmag.OriCmd"
+        isTestRun ? "ru.themmag.OriCmd.tests" : Bundle.main.bundleIdentifier ?? "io.github.tosiabunio.oriel"
+    }
+
+    /// The original's settings domain, which the fork used until it had its own
+    /// bundle identifier.
+    static let originalDomainName = "ru.themmag.OriCmd"
+
+    /// Once, before anything reads a setting: the settings kept under the original's
+    /// identifier are copied into the fork's own domain (the ones not set there).
+    /// The original's file stays as it was, for the original app.
+    static func moveOriginalSettings() {
+        var source = originalDomainName
+        #if DEBUG
+        // Test runs: only from a stand-in for the original's settings, if given.
+        if isTestRun {
+            guard let standIn = ProcessInfo.processInfo.environment["ORICMD_SETTINGS_FROM"] else { return }
+            source = standIn
+        }
+        #endif
+        let target = domainName as CFString
+        let marker = "SettingsMovedFrom" as CFString
+        let user = kCFPreferencesCurrentUser, host = kCFPreferencesAnyHost
+        guard source != domainName, CFPreferencesCopyValue(marker, target, user, host) == nil else { return }
+        let keys = CFPreferencesCopyKeyList(source as CFString, user, host) as? [String] ?? []
+        let values = CFPreferencesCopyMultiple(keys as CFArray, source as CFString, user, host) as? [String: Any] ?? [:]
+        let present = Set(CFPreferencesCopyKeyList(target, user, host) as? [String] ?? [])
+        for (key, value) in values where !present.contains(key) {
+            CFPreferencesSetValue(key as CFString, value as CFPropertyList, target, user, host)
+        }
+        CFPreferencesSetValue(marker, source as CFString, target, user, host)
+        CFPreferencesSynchronize(target, user, host)
     }
 
     static let store: UserDefaults = {

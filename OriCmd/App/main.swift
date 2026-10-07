@@ -3,6 +3,8 @@ import AppKit
 // A tool that exits early (a cancelled sftp or curl) must not take the app
 // down while it is being fed its input.
 signal(SIGPIPE, SIG_IGN)
+// Before any setting is read (the interface language among them).
+AppDefaults.moveOriginalSettings()
 
 let app = NSApplication.shared
 let delegate = AppDelegate()

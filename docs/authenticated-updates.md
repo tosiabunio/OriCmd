@@ -6,19 +6,21 @@ public key bundled in the app. Unsigned releases offer their release page instea
 
 Each release contains three assets:
 
-- `OriCmd-<version>.dmg`
-- `OriCmd-<version>.manifest.json`
-- `OriCmd-<version>.manifest.sig` (the 64-byte signature of the exact manifest bytes)
+- `Oriel-<version>.dmg`
+- `Oriel-<version>.manifest.json`
+- `Oriel-<version>.manifest.sig` (the 64-byte signature of the exact manifest bytes)
 
-The files keep the original name, which installs from 2026.10.4 and earlier look
-for; the image holds `Oriel.app`. The updater installs it in place of the running
+Up to 2026.10.5 the files kept the original name, `OriCmd-<version>…`, which
+installs from 2026.10.4 and earlier look for; the image holds `Oriel.app`. The updater installs it in place of the running
 app, renaming an `OriCmd.app` to `Oriel.app` unless another `Oriel.app` is there.
 
 From 2026.10.5 the updater also accepts files named `Oriel-<version>…` and an app
 with the fork's own bundle identifier, `io.github.tosiabunio.oriel` (the signed
 manifest names it, and the app in the image must have it), so that a later release
 can move the app to its own identity. `release.sh` signs the identifier of the app
-it built.
+it built. The releases after 2026.10.5 do: their app is `io.github.tosiabunio.oriel`
+and their files are named `Oriel-<version>…`. Installs from 2026.10.4 and earlier
+find no signed files they know in them and open the release page instead.
 
 The signed manifest names the repository, version, disk image, bundle identifier,
 SHA-256 digest and byte count. Oriel verifies the signature before decoding the
@@ -74,7 +76,7 @@ To sign an already-built image without publishing:
 ```sh
 scripts/build-update-signer.sh
 build/update-signer sign /secure/path/private.key OriCmd/UpdateSigningPublicKey.txt \
-  build/OriCmd-2026.10.0.dmg tosiabunio/OriCmd 2026.10.0 ru.themmag.OriCmd
+  build/Oriel-2026.10.0.dmg tosiabunio/OriCmd 2026.10.0 io.github.tosiabunio.oriel
 ```
 
 The signer refuses a private key that does not match the app's public key. Run

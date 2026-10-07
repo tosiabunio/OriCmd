@@ -870,6 +870,15 @@ ORICMD_SETTINGS_TAB=3 ORICMD_SETTINGS_HEIGHT=400 run settingsshort "cmd:showSett
 check "a Settings pane taller than the screen scrolls instead of growing past it" "[ \$(tallness settingsshort) -gt 0 ] && [ \$(tallness settingsshort) -lt \$(tallness settingsfull) ]"
 ORICMD_SETTINGS_TAB=1 run settingsdensity "cmd:showSettings wait wait set:density=Compact_(12_pt,_more_files) wait click:Colors wait wait"
 check "the Colors pane shrinks with its preview when the rows become compact" "[ \$(tallness settingsdensity) -gt 0 ] && [ \$(tallness settingsdensity) -lt \$(tallness settingsfull) ]"
+# The settings kept under the original's identifier (ru.themmag.OriCmd) are copied
+# into the fork's own domain once, without replacing what is set there; a stand-in
+# domain plays the original's, and stays as it was.
+defaults write ru.themmag.OriCmd.tests-original Look classic
+defaults write ru.themmag.OriCmd.tests-original ShowFolderBrackets -bool true
+defaults write ru.themmag.OriCmd.tests ShowFolderBrackets -bool false
+ORICMD_SETTINGS_FROM=ru.themmag.OriCmd.tests-original run settingsmove "alt+a wait text:lpha escape sizes"
+check "settings kept under the original's identifier move to the fork's own, the ones set there stay" "names settingsmove | grep -qx 'left: name: alpha | ext: ' && grep -qx 'size: <DIR>' build/shots/reg-settingsmove-sizes.txt && [ \"\$(defaults read ru.themmag.OriCmd.tests-original Look 2>/dev/null)\" = classic ]"
+defaults delete ru.themmag.OriCmd.tests-original 2>/dev/null
 # Column widths: dragging the edge right of a title resizes that column (Name's edge
 # the next one), Name taking the difference; a double click on the edge measures again.
 run colwide "headerdrag:size:30 columns"
