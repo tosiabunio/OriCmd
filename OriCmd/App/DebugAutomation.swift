@@ -14,7 +14,7 @@ import WebKit
 ///   `droptab:left:1:right:0` (a tab dropped on a tab bar), `wheel:N` (a mouse wheel over a 3D model), `tabbardoubleclick` (the empty end of the tab bar), `tabmiddleclick:N` (the middle button on the active panel's tab N), `tabmenu:N|Item_Title` (a tab's context menu), `menuitem:Submenu>Item_Title` (a main menu item), `headermenu:Item_Title` (the column header's menu), `tree:/path` (a folder chosen in the separate tree), `file:/path` (the file the next save or open sheet chooses), `speed:5_MB/s` (the speed limit the next copy starts with), `keybindings` (the Keyboard Shortcuts window), `flippedoffmain` (the window's views asked off the main thread whether they are flipped, as a drag does), `pathclick` (the path bar), `colorpreset:N` (Settings → Colors), `rightmouse:click:N` / `hold:N` / `drag:N-M` / `ctrlclick:N` (the right button on rows), `textmenu` (the frontmost text's context menu), `promise:/path` (the file on the
 ///   `crumb:N` / `othercrumb:N` (a parent folder), `pathend` (right of the path), `crumbmenu` / `crumbmenu:N` (hidden parents).
 ///   clipboard as a promise, plus a placeholder of zeros), `lazyfile:/path` (as Microsoft Remote Desktop
-///   does: a placeholder written only when read through file coordination), `click:Button_Title` (also a tab of a tab view),
+///   does: a placeholder written only when read through file coordination), `click:Button_Title` (also a tab of a tab view, or a toolbar button by its label),
 ///   `set:identifier=value` (a control by its identifier: text, a pop-up item's title, `on`/`off`/`mixed`, a
 ///   date as `2026-01-31`, a table's row by its text; `_` stands for a space),
 ///   `dropapp:/path/App.app` (onto the toolbar), `clickapp:App_Name`, `rightclickapp:App_Name|Menu_Item`.
@@ -646,6 +646,11 @@ enum DebugAutomation {
                     }
                     if let button = find(topmost(window).contentView) {
                         button.performClick(nil)
+                    } else if let item = topmost(window).toolbar?.items.first(where: { $0.label == title }) {
+                        // A toolbar button, as the user clicks it (nothing when it is disabled).
+                        if item.isEnabled, let action = item.action {
+                            NSApp.sendAction(action, to: item.target, from: item)
+                        }
                     } else if let tabs = views(in: topmost(window).contentView).compactMap({ $0 as? NSTabView }).first(where: {
                         $0.tabViewItems.contains { $0.label == title }
                     }) {

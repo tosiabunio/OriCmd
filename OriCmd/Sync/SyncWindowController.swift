@@ -103,8 +103,14 @@ final class SyncWindowController: NSWindowController {
             [NSTextField(labelWithString: String(localized: "Right:")), rightField],
         ])
         grid.column(at: 0).xPlacement = .trailing
-        let options = NSStackView(views: [subfoldersBox, contentBox, equalBox, compareButton])
-        let bottom = NSStackView(views: [statusLabel, syncButton])
+        // The actions at the right edge, as in Mac dialogs: Compare after the options,
+        // Synchronize after the summary.
+        let optionsGap = NSView(), bottomGap = NSView()
+        for gap in [optionsGap, bottomGap] {
+            gap.setContentHuggingPriority(.init(1), for: .horizontal)
+        }
+        let options = NSStackView(views: [subfoldersBox, contentBox, equalBox, optionsGap, compareButton])
+        let bottom = NSStackView(views: [statusLabel, bottomGap, syncButton])
         statusLabel.lineBreakMode = .byTruncatingTail
         statusLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
         statusLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -114,7 +120,7 @@ final class SyncWindowController: NSWindowController {
         stack.alignment = .leading
         stack.spacing = 10
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        for view in [grid, scrollView, bottom] {
+        for view in [grid, options, scrollView, bottom] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -32).isActive = true
         }
         scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)

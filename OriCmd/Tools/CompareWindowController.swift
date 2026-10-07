@@ -65,10 +65,8 @@ final class CompareWindowController: NSWindowController, NSWindowDelegate, Handl
         }
     }
 
-    private let toRightButton = NSButton(title: String(localized: "Copy to Right →"), target: nil, action: nil)
-    private let toLeftButton = NSButton(title: String(localized: "← Copy to Left"), target: nil, action: nil)
-    private let editButton = NSButton(title: String(localized: "Edit Line…"), target: nil, action: nil)
-    private let saveButton = NSButton(title: String(localized: "Save"), target: nil, action: nil)
+    /// Differences, copying, editing and saving, as symbols in the window's toolbar.
+    private var toolbar: ToolWindowToolbar!
 
     private let table = NSTableView()
     private let statusLabel = NSTextField(labelWithString: "")
@@ -100,6 +98,21 @@ final class CompareWindowController: NSWindowController, NSWindowDelegate, Handl
         window.center()
         window.delegate = self
         window.keyHandler = { [weak self] event in self?.handleKey(event) ?? false }
+        toolbar = ToolWindowToolbar(identifier: "Compare", groups: [
+            [.init(id: "previous", label: String(localized: "Previous Difference"), symbol: "chevron.up",
+                   action: #selector(previousDifference(_:))),
+             .init(id: "next", label: String(localized: "Next Difference"), symbol: "chevron.down",
+                   action: #selector(nextDifference(_:)))],
+            [.init(id: "toLeft", label: String(localized: "← Copy to Left"), symbol: "arrow.left.to.line",
+                   action: #selector(copyToLeft(_:))),
+             .init(id: "toRight", label: String(localized: "Copy to Right →"), symbol: "arrow.right.to.line",
+                   action: #selector(copyToRight(_:)))],
+            [.init(id: "edit", label: String(localized: "Edit Line…"), symbol: "pencil", action: #selector(editLine(_:)))],
+        ], trailing: [
+            [.init(id: "save", label: String(localized: "Save"), symbol: "square.and.arrow.down", action: #selector(save(_:)))],
+        ], target: self)
+        window.toolbar = toolbar.toolbar
+        window.toolbarStyle = .unified
         buildContent()
     }
 
@@ -153,25 +166,13 @@ final class CompareWindowController: NSWindowController, NSWindowDelegate, Handl
 
         whitespaceBox.target = self
         whitespaceBox.action = #selector(reloadFromControl(_:))
-        let previous = NSButton(title: String(localized: "Previous Difference"), target: self,
-                                action: #selector(previousDifference(_:)))
-        let next = NSButton(title: String(localized: "Next Difference"), target: self, action: #selector(nextDifference(_:)))
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        for (button, action, name) in [(toRightButton, #selector(copyToRight(_:)), "compareToRight"),
-                                       (toLeftButton, #selector(copyToLeft(_:)), "compareToLeft"),
-                                       (editButton, #selector(editLine(_:)), "compareEdit"),
-                                       (saveButton, #selector(save(_:)), "compareSave")] {
-            button.target = self
-            button.action = action
-            button.identifier = NSUserInterfaceItemIdentifier(name)
-        }
-        saveButton.keyEquivalent = "s"
-        saveButton.keyEquivalentModifierMask = .command
         table.target = self
         table.doubleAction = #selector(editLine(_:))
-        let bar = NSStackView(views: [previous, next, whitespaceBox, toRightButton, toLeftButton, editButton, saveButton,
-                                      statusLabel])
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.init(1), for: .horizontal)
+        let bar = NSStackView(views: [whitespaceBox, spacer, statusLabel])
         bar.spacing = 12
 
         detail.isEditable = false
@@ -189,7 +190,7 @@ final class CompareWindowController: NSWindowController, NSWindowDelegate, Handl
         stack.alignment = .leading
         stack.spacing = 8
         stack.edgeInsets = NSEdgeInsets(top: 10, left: 12, bottom: 12, right: 12)
-        for view in [paths, scrollView, detailScroll] {
+        for view in [bar, paths, scrollView, detailScroll] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -24).isActive = true
         }
         scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
@@ -260,10 +261,10 @@ final class CompareWindowController: NSWindowController, NSWindowDelegate, Handl
     private var isEditable: Bool { formats != nil }
 
     private func updateEditing() {
-        for button in [toRightButton, toLeftButton, editButton] {
-            button.isEnabled = isEditable
+        for id in ["toRight", "toLeft", "edit"] {
+            toolbar.item(id)?.isEnabled = isEditable
         }
-        saveButton.isEnabled = edited.left || edited.right
+        toolbar.item("save")?.isEnabled = edited.left || edited.right
         window?.isDocumentEdited = edited.left || edited.right
     }
 
@@ -463,6 +464,9 @@ final class CompareWindowController: NSWindowController, NSWindowDelegate, Handl
         switch (event.specialKey, modifiers) {
         case (.downArrow?, [.option]): nextDifference(nil)
         case (.upArrow?, [.option]): previousDifference(nil)
+        case (nil, [.command]) where event.shortcutCharacters == "s":
+            guard toolbar.item("save")?.isEnabled == true else { return false }
+            save(nil)
         default:
             guard modifiers.isEmpty else { return false }
             switch event.shortcutCharacters {
