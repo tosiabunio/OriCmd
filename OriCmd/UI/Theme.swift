@@ -78,8 +78,10 @@ enum Theme {
     /// The modern look's cursor in the other panel, or while OriCmd is in the
     /// background, as unfocused Mac lists show their selection.
     static let unfocusedCursorBackground = NSColor.unemphasizedSelectedContentBackgroundColor
-    /// Marked rows are tinted lightly in the modern look.
-    static var markedRowBackground: NSColor { markedText.withAlphaComponent(0.09) }
+    /// Marked rows are tinted lightly in the modern look, more with Increase Contrast.
+    static var markedRowBackground: NSColor {
+        markedText.withAlphaComponent(NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast ? 0.22 : 0.09)
+    }
     /// Ext, Size, Date and the other columns after Name in the modern look.
     static let secondaryText = NSColor.secondaryLabelColor
 

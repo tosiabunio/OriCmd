@@ -5,6 +5,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Settings.applyAppearance()
+        // Increase Contrast and the like: the panels draw some colors for them.
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification,
+                                                          object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { Settings.notifyChange() }
+        }
         // The file lists send the selected files to Services (as URLs and as paths): told so,
         // AppKit lists the services for files and folders, as in the Finder and System Settings.
         NSApp.registerServicesMenuSendTypes([.fileURL, NSPasteboard.PasteboardType("NSFilenamesPboardType")], returnTypes: [])
