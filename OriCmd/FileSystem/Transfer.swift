@@ -404,7 +404,7 @@ nonisolated final class TransferEngine {
         let partial = target.deletingLastPathComponent()
             .appending(path: ".oricmd-\(UUID().uuidString.prefix(12)).part").path
         do {
-            try copyFile(sourcePath, to: partial, size: Int64(sourceInfo.st_size))
+            try copyFile(sourcePath, to: partial, showing: targetPath, size: Int64(sourceInfo.st_size))
             // Only regular files are read back (a symbolic link is copied as a link).
             if options.verify, sourceInfo.st_mode & S_IFMT == S_IFREG {
                 try verify(sourcePath, partial)
@@ -591,10 +591,12 @@ nonisolated final class TransferEngine {
         }
     }
 
-    private func copyFile(_ source: String, to target: String, size: Int64) throws {
+    /// `shown`: the target as the progress names it (the file being written has a
+    /// temporary name until it is complete).
+    private func copyFile(_ source: String, to target: String, showing shown: String, size: Int64) throws {
         progress.update {
             $0.source = source
-            $0.target = target
+            $0.target = shown
             $0.fileBytes = size
             $0.fileDoneBytes = 0
         }

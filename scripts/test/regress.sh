@@ -1236,12 +1236,20 @@ run climit "alt+b wait text:ig escape speed:5_MB/s f5 wait enter wait wait wait 
 part=$(print -l $R/.oricmd-*.part(N) | head -1)
 check "A copy keeps to the speed limit" "[ ! -e $R/big.bin ] && [ -n \"$part\" ] && [ \$(stat -f %z $part) -gt 1000000 ] && [ \$(stat -f %z $part) -lt 36000000 ]"
 check "Both bars of a copy under way show how far it is (the whole too, before the file is done)" "[ \"\$(grep -c '^\[progress: [1-9][0-9]%\]\$' build/shots/reg-climit-sheet.txt)\" = 2 ]"
+check "a copy under way names its target, not the file being written, and shows the amounts and the speed" "grep -q '^To: .*/right/big.bin\$' build/shots/reg-climit-sheet.txt && grep -Eq '^[0-9.,]+ MB of 40 MB · [0-9.,]+ MB/s' build/shots/reg-climit-sheet.txt"
 rm -f $R/.oricmd-*.part(N)
 rm -f $R/big.bin
 defaults write ru.themmag.OriCmd.tests CopyAttributes -bool false
 run cpause "alt+b wait text:ig escape speed:1_MB/s f5 wait enter wait click:Pause wait wait wait"
 check "A paused copy waits" "grep -qx 'Copying (paused)' build/shots/reg-cpause-sheet.txt && grep -qx '\\[button\\] Resume' build/shots/reg-cpause-sheet.txt && [ ! -e $R/big.bin ]"
 rm -f $R/.oricmd-*.part(N)
+# The overwrite question names the file and compares the two: size, date and folder,
+# the newer one said so.
+scripts/test/mkdata.sh; cp $L/readme.txt $R/readme.txt; touch -t 202001010000 $R/readme.txt
+run overwriteq "alt+r wait text:eadme escape f5 wait enter wait wait"
+newerline() { grep -n ' · newer$' build/shots/reg-overwriteq-sheet2.txt | cut -d: -f1; }
+newline() { grep -nx 'New:' build/shots/reg-overwriteq-sheet2.txt | cut -d: -f1; }
+check "the overwrite question compares the two files, the newer one marked" "grep -qx 'A file named “readme.txt” already exists' build/shots/reg-overwriteq-sheet2.txt && grep -qx 'Existing:' build/shots/reg-overwriteq-sheet2.txt && [ -n \"\$(newerline)\" ] && [ \"\$(newerline)\" -gt \"\$(newline)\" ]"
 
 # Column sets: the Default columns (without Attr in the modern look), a set used by
 # itself in the folders matching its masks (and left there), a set chosen in Show →
@@ -1705,7 +1713,7 @@ resprep; run fresup "$(connect ftp://tester@127.0.0.1:2121/left 'text:secret ent
 check "FTP: an upload resumed" "resumed $L/up.dat $R/up.dat"
 resprep; cp $L/big.dat $R/big.dat
 run snores "$(connect sftp://oritest$PWD/$L) alt+b wait text:ig.dat escape f5 wait enter wait wait"
-check "No Resume for a file as big as the source" "grep -qx 'File already exists' build/shots/reg-snores-sheet2.txt && grep -qx '\[button\] Skip' build/shots/reg-snores-sheet2.txt && ! grep -qx '\[button\] Resume' build/shots/reg-snores-sheet2.txt"
+check "No Resume for a file as big as the source" "grep -qx 'A file named “big.dat” already exists' build/shots/reg-snores-sheet2.txt && grep -qx '\[button\] Skip' build/shots/reg-snores-sheet2.txt && ! grep -qx '\[button\] Resume' build/shots/reg-snores-sheet2.txt"
 
 scripts/test/servers.sh stop
 

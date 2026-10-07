@@ -151,6 +151,16 @@
         }
       }
     },
+    "%@/s": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@/с"
+          }
+        }
+      }
+    },
     "%@: the server does not accept this name.": {
       "localizations": {
         "ru": {
@@ -3419,6 +3429,16 @@
         }
       }
     },
+    "Existing:": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Существующий:"
+          }
+        }
+      }
+    },
     "Exit": {
       "localizations": {
         "ru": {
@@ -5095,6 +5115,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Новое имя:"
+          }
+        }
+      }
+    },
+    "New:": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новый:"
           }
         }
       }
@@ -9369,6 +9399,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "имя"
+          }
+        }
+      }
+    },
+    "newer": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "новее"
           }
         }
       }

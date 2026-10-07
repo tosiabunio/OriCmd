@@ -1,4 +1,5 @@
 import AppKit
+import UniformTypeIdentifiers
 
 /// Runs a long file operation (copy, move, pack, unpack) with a Total Commander
 /// style progress sheet, "File already exists" prompts and questions about failed items.
@@ -18,6 +19,12 @@ final class TransferController {
     private let toLabel = NSTextField(labelWithString: "")
     private var fileBar = TransferController.makeBar()
     private var totalBar = TransferController.makeBar()
+    /// Under the bars: how much of the file is done; of the whole, the speed and the
+    /// time left.
+    private let fileDetail = NSTextField(labelWithString: "")
+    private let totalDetail = NSTextField(labelWithString: "")
+    /// The bytes done over the last seconds, for the speed.
+    private var samples: [(time: TimeInterval, bytes: Int64)] = []
     private var timer: Timer?
     private var operationID: UUID?
     private let backgroundButton = NSButton(title: String(localized: "Background"), target: nil, action: nil)
@@ -146,14 +153,22 @@ final class TransferController {
         buttonRow.addView(cancel, in: .trailing)
         sheet.hidesOnDeactivate = false
 
-        let stack = NSStackView(views: [heading, fromLabel, toLabel, fileBar, totalBar, buttonRow])
+        for label in [fileDetail, totalDetail] {
+            label.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+            label.textColor = .secondaryLabelColor
+            label.lineBreakMode = .byTruncatingTail
+        }
+        let stack = NSStackView(views: [heading, fromLabel, toLabel, fileBar, fileDetail, totalBar, totalDetail, buttonRow])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 6
+        stack.setCustomSpacing(2, after: fileBar)
+        stack.setCustomSpacing(2, after: totalBar)
+        stack.setCustomSpacing(12, after: totalDetail)
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 20, bottom: 16, right: 20)
         stack.translatesAutoresizingMaskIntoConstraints = false
         sheet.contentView = stack
-        for view in [fromLabel, toLabel, fileBar, totalBar, buttonRow] {
+        for view in [fromLabel, toLabel, fileBar, fileDetail, totalBar, totalDetail, buttonRow] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40).isActive = true
         }
     }
@@ -176,6 +191,7 @@ final class TransferController {
         stack.removeArrangedSubview(bar)
         bar.removeFromSuperview()
         stack.insertArrangedSubview(new, at: index)
+        stack.setCustomSpacing(2, after: new)
         new.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40).isActive = true
         return new
     }
@@ -199,7 +215,43 @@ final class TransferController {
         toLabel.stringValue = state.target.isEmpty ? "" : String(localized: "To: \(state.target)")
         fileBar.doubleValue = state.fileBytes > 0 ? Double(state.fileDoneBytes) / Double(state.fileBytes) * 100 : 0
         totalBar.doubleValue = state.totalBytes > 0 ? Double(state.doneBytes) / Double(state.totalBytes) * 100 : 0
+        fileDetail.stringValue = state.fileBytes > 0
+            ? String(localized: "\(Settings.shortSize(state.fileDoneBytes)) of \(Settings.shortSize(state.fileBytes))") : ""
+        totalDetail.stringValue = totalText(state)
     }
+
+    /// "120 MB of 2,4 GB · 85 MB/s · About 30 seconds remaining": the speed over the last
+    /// three seconds (none while paused).
+    private func totalText(_ state: TransferProgress.State) -> String {
+        let now = ProcessInfo.processInfo.systemUptime
+        if state.isPaused {
+            samples.removeAll()
+        } else {
+            samples.append((now, state.doneBytes))
+            samples.removeAll { now - $0.time > 3 }
+        }
+        guard state.totalBytes > 0 else { return "" }
+        var parts = [String(localized: "\(Settings.shortSize(state.doneBytes)) of \(Settings.shortSize(state.totalBytes))")]
+        if let first = samples.first, now - first.time >= 1, state.doneBytes > first.bytes {
+            let speed = Double(state.doneBytes - first.bytes) / (now - first.time)
+            parts.append(String(localized: "\(Settings.shortSize(Int64(speed)))/s"))
+            if let left = Self.timeLeft.string(from: Double(state.totalBytes - state.doneBytes) / speed) {
+                parts.append(left)
+            }
+        }
+        return parts.joined(separator: " \u{00B7} ")
+    }
+
+    /// "About 2 minutes remaining", as the Finder says it.
+    private static let timeLeft: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .full
+        formatter.allowedUnits = [.hour, .minute, .second]
+        formatter.maximumUnitCount = 1
+        formatter.includesApproximationPhrase = true
+        formatter.includesTimeRemainingPhrase = true
+        return formatter
+    }()
 
     /// Total Commander's "Background": the operation continues in its own small
     /// window while the panels can be used.
@@ -249,8 +301,9 @@ final class TransferController {
             return await askReplacingFolder(source, target)
         }
         let alert = NSAlert()
-        alert.messageText = String(localized: "File already exists")
-        alert.informativeText = String(localized: "Overwrite:\n\(describe(target))\n\nWith:\n\(describe(source))")
+        alert.messageText = String(localized: "A file named \u{201C}\(target.name)\u{201D} already exists")
+        alert.icon = NSWorkspace.shared.icon(for: UTType(filenameExtension: (target.name as NSString).pathExtension) ?? .data)
+        alert.accessoryView = comparison(existing: target, new: source)
         for title in [String(localized: "Overwrite"), String(localized: "Overwrite All"), String(localized: "Skip"),
                       String(localized: "Skip All"), String(localized: "Overwrite All Older")] {
             alert.addButton(withTitle: title)
@@ -260,6 +313,8 @@ final class TransferController {
             alert.addButton(withTitle: String(localized: "resume.transfer", defaultValue: "Resume"))
         }
         alert.addCancelButton()
+        // Laid out again with the comparison in it, or a title that needs two lines shows one.
+        alert.layout()
         let response = await alert.beginSheetModal(for: sheet)
         switch response.rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue {
         case 0: return .overwrite
@@ -320,9 +375,50 @@ final class TransferController {
         }
     }
 
-    private func describe(_ item: ConflictItem) -> String {
-        let size = item.size.map { String(localized: "\($0.formatted(.number.grouping(.automatic))) bytes") } ?? ""
-        let date = item.modified?.formatted(date: .numeric, time: .shortened) ?? ""
-        return "\(item.path)\n\(size)   \(date)"
+    /// The two files of an overwrite question one above the other: the size and date of
+    /// each (the newer one says so), and the folder it is in.
+    private func comparison(existing target: ConflictItem, new source: ConflictItem) -> NSView {
+        let newer: ConflictItem? = switch (target.modified, source.modified) {
+        case let (old?, new?) where abs(old.timeIntervalSince(new)) >= 1: old > new ? target : source
+        default: nil
+        }
+        // Short sizes that read the same for different files give their bytes.
+        let exact = target.size != source.size && target.size.map(Settings.formattedSize)
+            == source.size.map(Settings.formattedSize)
+        func row(_ title: String, _ item: ConflictItem) -> [NSView] {
+            let size = item.size.map { exact ? String(localized: "\($0.formatted(.number.grouping(.automatic))) bytes")
+                : Settings.formattedSize($0) }
+            let details = NSMutableAttributedString(string: [size, item.modified.map(Theme.dateText)]
+                .compactMap { $0 }.joined(separator: " \u{00B7} "))
+            if item.path == newer?.path {
+                details.append(NSAttributedString(string: " \u{00B7} " + String(localized: "newer"), attributes: [
+                    .foregroundColor: NSColor.controlAccentColor,
+                    .font: NSFont.systemFont(ofSize: NSFont.systemFontSize, weight: .semibold),
+                ]))
+            }
+            let slash = item.path.lastIndex(of: "/")
+            let folder = slash.map { String(item.path[..<$0]) }.map { $0.isEmpty || $0.hasSuffix(":") ? $0 + "/" : $0 } ?? ""
+            let place = NSTextField(labelWithString: folder)
+            place.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+            place.textColor = .secondaryLabelColor
+            place.lineBreakMode = .byTruncatingMiddle
+            place.toolTip = item.path
+            place.widthAnchor.constraint(lessThanOrEqualToConstant: 260).isActive = true
+            place.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+            let lines = NSStackView(views: [NSTextField(labelWithAttributedString: details), place])
+            lines.orientation = .vertical
+            lines.alignment = .leading
+            lines.spacing = 2
+            let label = NSTextField(labelWithString: title)
+            label.textColor = .secondaryLabelColor
+            return [label, lines]
+        }
+        let grid = NSGridView(views: [row(String(localized: "Existing:"), target), row(String(localized: "New:"), source)])
+        grid.column(at: 0).xPlacement = .trailing
+        grid.rowAlignment = .firstBaseline
+        grid.rowSpacing = 10
+        grid.columnSpacing = 8
+        grid.frame = NSRect(origin: .zero, size: grid.fittingSize)
+        return grid
     }
 }
