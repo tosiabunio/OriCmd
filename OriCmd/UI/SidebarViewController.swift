@@ -1,23 +1,40 @@
 import AppKit
 
 /// The sidebar of the main window, as the Finder's: devices with their free space,
-/// the usual folders and the directory hotlist. A click opens the place in the active
-/// panel; the place of the active panel's folder stays highlighted.
+/// the usual folders, the directory hotlist and the color tags. A click opens the
+/// place in the active panel (a tag lists its files there); the place of the active
+/// panel's folder stays highlighted.
 final class SidebarViewController: NSViewController {
-    /// A row: a section title, or a place with its icon (and a volume's free space).
+    /// A row: a section title, a place with its icon (and a volume's free space), or a tag.
     final class Node: NSObject {
         let title: String
         let url: URL?
         let icon: NSImage?
         let isVolume: Bool
+        /// A Finder tag's name, for a tag's row.
+        var tag: String?
         var detail = ""
         var children: [Node] = []
+
+        var isSection: Bool { url == nil && tag == nil }
 
         init(section title: String) {
             self.title = title
             url = nil
             icon = nil
             isVolume = false
+        }
+
+        init(tag name: String, color: NSColor) {
+            title = name
+            url = nil
+            icon = NSImage(size: NSSize(width: 16, height: 16), flipped: false) { rect in
+                color.setFill()
+                NSBezierPath(ovalIn: rect.insetBy(dx: 3, dy: 3)).fill()
+                return true
+            }
+            isVolume = false
+            tag = name
         }
 
         init(place url: URL, title: String, icon: NSImage, isVolume: Bool = false) {
@@ -30,6 +47,8 @@ final class SidebarViewController: NSViewController {
 
     /// A place chosen: its URL, and whether it goes to the other panel.
     var onOpen: ((URL, Bool) -> Void)?
+    /// A tag chosen: its name.
+    var onTag: ((String) -> Void)?
     /// The context menu of a place (the drive buttons' menu).
     var menuProvider: ((URL, Bool) -> NSMenu?)?
 
@@ -112,7 +131,14 @@ final class SidebarViewController: NSViewController {
         let hotlist = Node(section: String(localized: "Hotlist"))
         hotlist.children = Hotlist.directories.map { URL(filePath: ($0 as NSString).expandingTildeInPath) }
             .filter { manager.fileExists(atPath: $0.path) }.map(place)
-        sections = [devices, favorites] + (hotlist.children.isEmpty ? [] : [hotlist])
+        let tags = Node(section: String(localized: "Tags"))
+        let names = FinderTags.colorNames()
+        let labelColors = NSWorkspace.shared.fileLabelColors
+        tags.children = FinderTags.colors.compactMap { color in
+            guard let name = names[color], labelColors.indices.contains(color) else { return nil }
+            return Node(tag: name, color: labelColors[color])
+        }
+        sections = [devices, favorites] + (hotlist.children.isEmpty ? [] : [hotlist]) + (tags.children.isEmpty ? [] : [tags])
         outline.reloadData()
         sections.forEach { outline.expandItem($0) }
         if let revealed { reveal(revealed) }
@@ -162,15 +188,21 @@ final class SidebarViewController: NSViewController {
         (0..<outline.numberOfRows).compactMap { row in
             guard let node = outline.item(atRow: row) as? Node else { return nil }
             let mark = outline.selectedRow == row ? "> " : "  "
-            return node.url == nil ? node.title.uppercased() : mark + node.title
+            return node.isSection ? node.title.uppercased() : mark + node.title
         }
     }
 
-    /// Chooses the place titled `title` as a click would (for test runs).
+    /// Chooses the place or tag titled `title` as a click would (for test runs).
     func pick(_ title: String) -> Bool {
         guard let row = (0..<outline.numberOfRows).first(where: { (outline.item(atRow: $0) as? Node)?.title == title }),
-              let node = outline.item(atRow: row) as? Node, let url = node.url else { return false }
-        onOpen?(url, false)
+              let node = outline.item(atRow: row) as? Node else { return false }
+        if let tag = node.tag {
+            onTag?(tag)
+        } else if let url = node.url {
+            onOpen?(url, false)
+        } else {
+            return false
+        }
         return true
     }
 }
@@ -189,16 +221,16 @@ extension SidebarViewController: NSOutlineViewDataSource, NSOutlineViewDelegate 
     }
 
     func outlineView(_ outlineView: NSOutlineView, isGroupItem item: Any) -> Bool {
-        (item as? Node)?.url == nil
+        (item as? Node)?.isSection ?? false
     }
 
     func outlineView(_ outlineView: NSOutlineView, shouldSelectItem item: Any) -> Bool {
-        (item as? Node)?.url != nil
+        !((item as? Node)?.isSection ?? true)
     }
 
     func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
         guard let node = item as? Node else { return nil }
-        if node.url == nil {
+        if node.isSection {
             let cell = NSTableCellView()
             let label = NSTextField(labelWithString: node.title)
             cell.textField = label
@@ -216,8 +248,12 @@ extension SidebarViewController: NSOutlineViewDataSource, NSOutlineViewDelegate 
     }
 
     func outlineViewSelectionDidChange(_ notification: Notification) {
-        guard !isRevealing, let node = outline.item(atRow: outline.selectedRow) as? Node, let url = node.url else { return }
-        onOpen?(url, false)
+        guard !isRevealing, let node = outline.item(atRow: outline.selectedRow) as? Node else { return }
+        if let tag = node.tag {
+            onTag?(tag)
+        } else if let url = node.url {
+            onOpen?(url, false)
+        }
     }
 }
 

@@ -1931,6 +1931,25 @@ extension MainViewController: FilePanelControllerDelegate {
         activePanel.focus()
     }
 
+    /// Lists the files with the Finder tag `name` in the active panel, as Feed to Panel
+    /// lists found files; [..] returns to the folder it showed.
+    func showTagged(_ name: String) {
+        let panel = activePanel
+        let root = panel.remote == nil && panel.archive == nil ? panel.directory
+            : FileManager.default.homeDirectoryForCurrentUser
+        var folder: URL?
+        #if DEBUG
+        // Test runs look only in the test folders.
+        if AppDefaults.isTestRun { folder = DebugAutomation.initialDirectory(left: true)?.deletingLastPathComponent() }
+        #endif
+        Task { [weak self] in
+            let files = await FinderTags.files(taggedWith: name, in: folder)
+            guard let self, panel === activePanel else { return }
+            panel.showSearchResults(files, root: root, title: String(localized: "Tagged \(name)"))
+            panel.focus()
+        }
+    }
+
     /// A sidebar place's context menu: the drive buttons' (a folder's without ejecting
     /// or renaming).
     func placeMenu(for url: URL, isVolume: Bool) -> NSMenu {

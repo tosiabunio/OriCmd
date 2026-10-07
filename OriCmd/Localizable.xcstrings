@@ -7639,6 +7639,16 @@
         }
       }
     },
+    "Tagged %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "С тегом %@"
+          }
+        }
+      }
+    },
     "Tags": {
       "localizations": {
         "ru": {

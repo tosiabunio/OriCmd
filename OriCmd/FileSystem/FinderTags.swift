@@ -28,6 +28,16 @@ enum FinderTags {
         }
     }
 
+    /// The files with the tag `name`, as Spotlight finds them (only in `folder`, if given).
+    static func files(taggedWith name: String, in folder: URL? = nil) async -> [URL] {
+        let quoted = name.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+        var arguments = ["-0"]
+        if let folder { arguments += ["-onlyin", folder.path] }
+        arguments.append("kMDItemUserTags == \"\(quoted)\"")
+        guard let found = try? await ProcessRunner.run("/usr/bin/mdfind", arguments), found.status == 0 else { return [] }
+        return found.text.split(separator: "\0").map { URL(filePath: String($0)) }
+    }
+
     /// The Finder's names of the colors: its favorite tags and the standard names, each
     /// tried on a scratch file to see which color it gets.
     static func colorNames() -> [Int: String] {

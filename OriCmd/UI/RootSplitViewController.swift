@@ -20,6 +20,7 @@ final class RootSplitViewController: NSSplitViewController {
         addSplitViewItem(content)
 
         sidebar.onOpen = { [weak self] url, other in self?.main.open(url, inOtherPanel: other) }
+        sidebar.onTag = { [weak self] name in self?.main.showTagged(name) }
         sidebar.menuProvider = { [weak self] url, isVolume in self?.main.placeMenu(for: url, isVolume: isVolume) }
         main.onLocationChange = { [weak self] url in self?.sidebar.reveal(url) }
         NotificationCenter.default.addObserver(self, selector: #selector(settingsDidChange(_:)), name: Settings.didChange, object: nil)

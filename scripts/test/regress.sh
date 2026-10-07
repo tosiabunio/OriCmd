@@ -913,6 +913,16 @@ check "⌃⌘S hides the sidebar" "side sidebarhide | grep -qx hidden"
 defaults write ru.themmag.OriCmd.tests Look classic
 run sidebarclassic "sidebar"
 check "Total Commander's look has no sidebar" "side sidebarclassic | grep -qx hidden"
+# Finder tags in the sidebar: a click lists the files with that tag in the active
+# panel (found by Spotlight; test runs look only in the test folders). The first tag
+# is the red one, named as the Finder names it.
+scripts/test/mkdata.sh
+run tagsidebar "wait sidebar"
+redtag=$(awk '/^TAGS$/ { getline; sub(/^  /, ""); print; exit }' build/shots/reg-tagsidebar-sidebar.txt)
+xattr -wx com.apple.metadata:_kMDItemUserTags $(python3 -c 'import plistlib, sys; print(plistlib.dumps([sys.argv[1] + "\n6"], fmt=plistlib.FMT_BINARY).hex())' "$redtag") $L/notes.md
+for i in {1..20}; do mdfind -onlyin $PWD/build/testdata "kMDItemUserTags == \"$redtag\"" | grep -q notes.md && break; sleep 1; done
+run tagpick "wait sidebarpick:${redtag// /_} wait wait wait"
+check "a tag in the sidebar lists its files in the active panel" "[ -n \"$redtag\" ] && grep -qx 'left items: notes.md' build/shots/reg-tagpick-panels.txt"
 scripts/test/mkdata.sh
 run xfile "alt+r wait text:eadme escape ctrl+shift+right wait wait"
 check "Ctrl+Shift+Right on a file: its folder, the file selected" "panels xfile | grep -q '^right: .*/left | cursor: readme.txt'"
