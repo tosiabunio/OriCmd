@@ -14,21 +14,28 @@ nonisolated struct UpdateManifest: Codable, Sendable {
 
 nonisolated enum UpdateVerification {
     static let maximumImageSize: Int64 = 512 * 1024 * 1024
+    /// What the fork's release files are named after: Oriel, or OriCmd, as the fork
+    /// was called before.
+    static let assetPrefixes = ["Oriel", "OriCmd"]
+    /// The fork's own bundle identifier, which replaces the original's
+    /// (`ru.themmag.OriCmd`): an update may move the app to it.
+    static let forkBundleIdentifier = "io.github.tosiabunio.oriel"
 
     static func validVersion(_ version: String) -> Bool {
         version.count <= 64 && version.wholeMatch(of: /[0-9]+(?:\.[0-9]+)*(?:[a-z]+[0-9]*)?/) != nil
     }
 
     /// Verify the original bytes before decoding; never trust a key from the feed.
+    /// `bundleIdentifiers`: the apps the update may contain.
     static func manifest(_ data: Data, signature: Data, publicKey: Data, repository: String,
-                         version: String, bundleIdentifier: String) throws -> UpdateManifest {
+                         version: String, bundleIdentifiers: Set<String>) throws -> UpdateManifest {
         guard data.count <= 16 * 1024, signature.count == 64, publicKey.count == 32,
               let key = try? Curve25519.Signing.PublicKey(rawRepresentation: publicKey),
               key.isValidSignature(signature, for: data) else { throw UpdateValidationError.signature }
         let manifest = try JSONDecoder().decode(UpdateManifest.self, from: data)
         guard manifest.schemaVersion == 1, validVersion(version), manifest.version == version,
-              manifest.repository == repository, manifest.bundleIdentifier == bundleIdentifier,
-              manifest.assetName == "OriCmd-\(version).dmg",
+              manifest.repository == repository, bundleIdentifiers.contains(manifest.bundleIdentifier),
+              assetPrefixes.contains(where: { manifest.assetName == "\($0)-\(version).dmg" }),
               manifest.byteCount > 0, manifest.byteCount <= maximumImageSize,
               manifest.sha256.wholeMatch(of: /[a-f0-9]{64}/) != nil else { throw UpdateValidationError.metadata }
         return manifest

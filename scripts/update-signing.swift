@@ -25,30 +25,32 @@ struct UpdateSigner {
                 try handle.close()
                 try (key.publicKey.rawRepresentation.base64EncodedString() + "\n").write(to: publicFile, atomically: true, encoding: .utf8)
                 print("Created the private signing key and its public verification key")
-            } else if command == "sign", arguments.count == 6 {
+            } else if command == "sign", arguments.count == 7 {
                 let key = try Curve25519.Signing.PrivateKey(rawRepresentation: Data(contentsOf: URL(filePath: arguments[1])))
                 let publicText = try String(contentsOfFile: arguments[2], encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
                 guard Data(base64Encoded: publicText) == key.publicKey.rawRepresentation else {
                     throw NSError(domain: "The signing key does not match the app's trusted public key", code: 1)
                 }
                 let image = URL(filePath: arguments[3]), repository = arguments[4], version = arguments[5]
-                guard UpdateVerification.validVersion(version), image.lastPathComponent == "OriCmd-\(version).dmg" else {
+                let bundleIdentifier = arguments[6]
+                guard UpdateVerification.validVersion(version),
+                      UpdateVerification.assetPrefixes.contains(where: { image.lastPathComponent == "\($0)-\(version).dmg" }) else {
                     throw NSError(domain: "The version and disk image name must match", code: 1)
                 }
                 let digest = try UpdateVerification.digest(of: image)
                 let manifest = UpdateManifest(schemaVersion: 1, repository: repository, version: version, assetName: image.lastPathComponent,
-                                              bundleIdentifier: "ru.themmag.OriCmd", byteCount: digest.size, sha256: digest.sha256)
+                                              bundleIdentifier: bundleIdentifier, byteCount: digest.size, sha256: digest.sha256)
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = [.sortedKeys]
                 let data = try encoder.encode(manifest), signature = try key.signature(for: data)
                 _ = try UpdateVerification.manifest(data, signature: signature, publicKey: key.publicKey.rawRepresentation,
-                                                   repository: repository, version: version, bundleIdentifier: manifest.bundleIdentifier)
+                                                   repository: repository, version: version, bundleIdentifiers: [bundleIdentifier])
                 let base = image.deletingPathExtension()
                 try data.write(to: base.appendingPathExtension("manifest.json"), options: .atomic)
                 try signature.write(to: base.appendingPathExtension("manifest.sig"), options: .atomic)
                 print("Signed \(image.lastPathComponent)")
             } else {
-                throw NSError(domain: "Usage: keygen <private> <public>, or sign <private> <public> <dmg> <repository> <version>", code: 1)
+                throw NSError(domain: "Usage: keygen <private> <public>, or sign <private> <public> <dmg> <repository> <version> <bundle identifier>", code: 1)
             }
         } catch {
             FileHandle.standardError.write(Data("\(error.localizedDescription)\n".utf8))

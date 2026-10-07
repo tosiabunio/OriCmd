@@ -33,7 +33,8 @@ DMG=build/OriCmd-$VERSION.dmg
 [ -f $DMG ] || { echo "$DMG was not built"; exit 1; }
 
 scripts/build-update-signer.sh
-build/update-signer sign "$SIGNING_KEY" OriCmd/UpdateSigningPublicKey.txt "$DMG" "$REPOSITORY" "$VERSION"
+IDENTIFIER=$(defaults read "$PWD/build/release/DerivedData/Build/Products/Release/OriCmd.app/Contents/Info" CFBundleIdentifier)
+build/update-signer sign "$SIGNING_KEY" OriCmd/UpdateSigningPublicKey.txt "$DMG" "$REPOSITORY" "$VERSION" "$IDENTIFIER"
 MANIFEST=build/OriCmd-$VERSION.manifest.json
 SIGNATURE=build/OriCmd-$VERSION.manifest.sig
 

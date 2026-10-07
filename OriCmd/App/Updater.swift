@@ -37,11 +37,15 @@ enum Updater {
             tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName
         }
 
-        var manifest: URL? { assets.first { $0.name == "OriCmd-\(version).manifest.json" }?.browserDownloadURL }
-        var signature: URL? { assets.first { $0.name == "OriCmd-\(version).manifest.sig" }?.browserDownloadURL }
+        var manifest: URL? { asset(".manifest.json") }
+        var signature: URL? { asset(".manifest.sig") }
+        var dmg: URL? { asset(".dmg") }
 
-        var dmg: URL? {
-            assets.first { $0.name == "OriCmd-\(version).dmg" }?.browserDownloadURL
+        /// One of the release's files, named after the app as it was called then.
+        private func asset(_ suffix: String) -> URL? {
+            UpdateVerification.assetPrefixes.lazy.compactMap { prefix in
+                assets.first { $0.name == "\(prefix)-\(version)\(suffix)" }?.browserDownloadURL
+            }.first
         }
     }
 
@@ -236,7 +240,8 @@ enum Updater {
         let signature = try await limitedData(signatureURL, limit: 64, progress: progress)
         let manifest = try UpdateVerification.manifest(metadata, signature: signature, publicKey: publicKey,
                                                        repository: repository, version: release.version,
-                                                       bundleIdentifier: Bundle.main.bundleIdentifier ?? "")
+                                                       bundleIdentifiers: [Bundle.main.bundleIdentifier ?? "",
+                                                                           UpdateVerification.forkBundleIdentifier])
         let work = FileManager.default.temporaryDirectory.appending(path: "OriCmd-update-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: work) }
@@ -262,7 +267,7 @@ enum Updater {
         let contents = try FileManager.default.contentsOfDirectory(at: mountPoint, includingPropertiesForKeys: nil)
         guard let newApp = contents.first(where: { $0.pathExtension == "app" }),
               let info = Bundle(url: newApp)?.infoDictionary,
-              info["CFBundleIdentifier"] as? String == Bundle.main.bundleIdentifier else {
+              info["CFBundleIdentifier"] as? String == manifest.bundleIdentifier else {
             throw UpdateError(String(localized: "The disk image does not contain \(Bundle.main.appName)."))
         }
         guard info["CFBundleShortVersionString"] as? String == manifest.version,

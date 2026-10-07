@@ -11,7 +11,11 @@ Each release contains three assets:
 - `OriCmd-<version>.manifest.sig` (the 64-byte signature of the exact manifest bytes)
 
 The files keep the original name, which installs from 2026.10.4 and earlier look
-for; the image holds `Oriel.app`. The updater installs it in place of the running
+for; the image holds `Oriel.app`. From 2026.10.5 the updater also accepts files
+named `Oriel-<version>…` and an app with the fork's own bundle identifier,
+`io.github.tosiabunio.oriel` (the signed manifest names it, and the app in the image
+must have it), so that a later release can move the app to its own identity.
+`release.sh` signs the identifier of the app it built. The updater installs it in place of the running
 app, renaming an `OriCmd.app` to `Oriel.app` unless another `Oriel.app` is there.
 
 The signed manifest names the repository, version, disk image, bundle identifier,
@@ -68,7 +72,7 @@ To sign an already-built image without publishing:
 ```sh
 scripts/build-update-signer.sh
 build/update-signer sign /secure/path/private.key OriCmd/UpdateSigningPublicKey.txt \
-  build/OriCmd-2026.10.0.dmg tosiabunio/OriCmd 2026.10.0
+  build/OriCmd-2026.10.0.dmg tosiabunio/OriCmd 2026.10.0 ru.themmag.OriCmd
 ```
 
 The signer refuses a private key that does not match the app's public key. Run
