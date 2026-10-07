@@ -149,8 +149,13 @@ final class CopyDialog: NSObject {
         for button in buttons {
             button.widthAnchor.constraint(equalToConstant: Self.buttonWidth).isActive = true
         }
-        let buttonRow = NSStackView(views: buttons)
+        // As in Mac dialogs: the default button last on the right, Cancel before it and
+        // the queue beside them; the other actions at the left.
+        let gap = NSView()
+        gap.setContentHuggingPriority(.init(1), for: .horizontal)
+        let buttonRow = NSStackView(views: [optionsButton, treeButton, gap, queueButton, cancelButton, okButton])
         buttonRow.spacing = 8
+        buttonRow.setCustomSpacing(0, after: gap)
 
         buildAdvanced(selectedTargetFolders: selectedTargetFolders)
 
@@ -173,7 +178,7 @@ final class CopyDialog: NSObject {
         stack.setCustomSpacing(12, after: optionsSummary)
         stack.setCustomSpacing(14, after: buttonRow)
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 20, bottom: 18, right: 20)
-        for view in stack.arrangedSubviews where view !== message && view !== buttonRow {
+        for view in stack.arrangedSubviews where view !== message {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40).isActive = true
         }
         stack.widthAnchor.constraint(equalToConstant: 5 * Self.buttonWidth + 4 * 8 + 40).isActive = true
@@ -244,11 +249,18 @@ final class CopyDialog: NSObject {
         content.orientation = .vertical
         content.alignment = .leading
         content.spacing = 8
-        content.edgeInsets = NSEdgeInsets(top: 4, left: 8, bottom: 8, right: 8)
+        content.edgeInsets = NSEdgeInsets(top: 10, left: 12, bottom: 12, right: 12)
         for view in content.arrangedSubviews.prefix(2) {
-            view.widthAnchor.constraint(equalTo: content.widthAnchor, constant: -16).isActive = true
+            view.widthAnchor.constraint(equalTo: content.widthAnchor, constant: -24).isActive = true
         }
+        // A rounded group, as System Settings sets options apart.
         advanced.title = String(localized: "Advanced options")
+        advanced.titlePosition = .noTitle
+        advanced.boxType = .custom
+        advanced.borderWidth = 0
+        advanced.cornerRadius = 10
+        advanced.fillColor = .quinarySystemFill
+        advanced.setAccessibilityLabel(advanced.title)
         // Pinned to the box's content view, so the box gets the height it needs.
         content.translatesAutoresizingMaskIntoConstraints = false
         advanced.contentView?.addSubview(content)
