@@ -27,9 +27,8 @@ final class AboutWindowController: NSWindowController {
         let versionLabel = NSTextField(labelWithString: build.isEmpty ? version : "\(version) (\(build))")
         versionLabel.font = .monospacedDigitSystemFont(ofSize: 17, weight: .medium)
 
-        let fork = info["OriCmdFork"] as? String ?? "tosiabunio"
-        // The fork's release identity stays the same in every interface language.
-        let forkLabel = NSTextField(labelWithString: "\(fork) fork")
+        // What Oriel is a fork of, the same in every interface language.
+        let forkLabel = NSTextField(labelWithString: "OriCmd fork")
         forkLabel.font = .systemFont(ofSize: 13)
         forkLabel.textColor = .secondaryLabelColor
         let copyrightLabel = NSTextField(wrappingLabelWithString: info["NSHumanReadableCopyright"] as? String ?? "")

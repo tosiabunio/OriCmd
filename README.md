@@ -160,7 +160,7 @@ building or importing upstream changes.
 Tags use `v2026.10.0`; disk images use `OriCmd-2026.10.0.dmg` and hold `Oriel.app`.
 The app's internal build number and the local install counter advance independently
 of the calendar version. About shows the version and build, for example `2026.10.0 (21)`,
-with `tosiabunio fork` below. Builds installed with `scripts/install-local.sh`
+with `OriCmd fork` below. Builds installed with `scripts/install-local.sh`
 use their local install counter in parentheses; other builds use the internal
 build number. The window also shows the app icon, name, copyright and full
 dependency notices, with clickable links to the original project, this fork
