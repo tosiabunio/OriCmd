@@ -146,13 +146,9 @@ final class CompareWindowController: NSWindowController, NSWindowDelegate, Handl
         table.rowHeight = ceil(textFont.ascender - textFont.descender + textFont.leading) + 3
         table.usesAlternatingRowBackgroundColors = false
         table.gridStyleMask = []
-        table.style = .plain
         table.dataSource = self
         table.delegate = self
-        let scrollView = NSScrollView()
-        scrollView.documentView = table
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
+        let list = ListBox(table, style: .plain)
 
         let leftPath = NSTextField(labelWithString: leftURL.path)
         let rightPath = NSTextField(labelWithString: rightURL.path)
@@ -178,22 +174,19 @@ final class CompareWindowController: NSWindowController, NSWindowDelegate, Handl
         detail.isEditable = false
         detail.font = textFont
         detail.textContainerInset = NSSize(width: 4, height: 4)
-        let detailScroll = NSScrollView()
-        detailScroll.documentView = detail
-        detailScroll.hasVerticalScroller = true
-        detailScroll.borderType = .bezelBorder
         detail.autoresizingMask = [.width]
-        detailScroll.heightAnchor.constraint(equalToConstant: 64).isActive = true
+        let detailBox = ListBox(detail)
+        detailBox.heightAnchor.constraint(equalToConstant: 64).isActive = true
 
-        let stack = NSStackView(views: [bar, paths, scrollView, detailScroll])
+        let stack = NSStackView(views: [bar, paths, list, detailBox])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 8
         stack.edgeInsets = NSEdgeInsets(top: 10, left: 12, bottom: 12, right: 12)
-        for view in [bar, paths, scrollView, detailScroll] {
+        for view in [bar, paths, list, detailBox] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -24).isActive = true
         }
-        scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
+        detailBox.setContentHuggingPriority(.defaultHigh, for: .vertical)
         window?.contentView = stack
         window?.initialFirstResponder = table
     }

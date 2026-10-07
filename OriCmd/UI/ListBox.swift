@@ -50,9 +50,10 @@ final class ListBox: NSView {
         return button
     }
 
-    /// `document`: the table shown; `buttons` (from `button(_:target:selector:)`)
-    /// go in a bar below it, the add and remove ones apart from the others.
-    init(_ document: NSView, buttons: [NSButton] = []) {
+    /// `document`: the table or text view shown, a table in `style` (rows edge to edge
+    /// with `.plain`); `buttons` (from `button(_:target:selector:)`) go in a bar below
+    /// it, the add and remove ones apart from the others.
+    init(_ document: NSView, style: NSTableView.Style = .inset, buttons: [NSButton] = []) {
         super.init(frame: .zero)
         wantsLayer = true
         layer?.cornerRadius = 8
@@ -61,7 +62,7 @@ final class ListBox: NSView {
         updateBorder()
 
         if let table = document as? NSTableView {
-            table.style = .inset
+            table.style = style
         }
         if let table = document as? ListTableView {
             table.onRowsChange = { [weak self] in self?.updatePlaceholder() }
