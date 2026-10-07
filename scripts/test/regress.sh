@@ -902,19 +902,20 @@ check "Ctrl+Shift+Left from the right panel" "panels xleft | grep -q '^left: .*/
 
 # Drive buttons: the Finder's volume menu; a disk image (in build/testdata) is renamed
 # (its mount point stays: it is not in /Volumes) and ejected from it, the panel on it
-# leaving first.
-run drivehome "wait drivemenu:$HOME"
+# leaving first. The buttons show without the sidebar.
+nosidebar() { defaults write ru.themmag.OriCmd.tests ShowSidebar -bool false; }
+nosidebar; run drivehome "wait drivemenu:$HOME"
 check "drive menu of the home folder: no Eject" "grep -qx 'Open in Other Panel' build/shots/reg-drivehome-menu.txt && ! grep -q Eject build/shots/reg-drivehome-menu.txt"
 if hdiutil create -quiet -size 4m -fs HFS+ -volname OriTest build/testdata/ori.dmg \
    && mkdir -p build/testdata/mnt && hdiutil attach -quiet build/testdata/ori.dmg -mountroot $PWD/build/testdata/mnt; then
   M=$PWD/build/testdata/mnt/OriTest
-  run drivemenu "wait drivemenu:$M"
+  nosidebar; run drivemenu "wait drivemenu:$M"
   check "drive menu of a disk image: Eject and Rename" "grep -q '^Eject' build/shots/reg-drivemenu-menu.txt && grep -q '^Rename' build/shots/reg-drivemenu-menu.txt"
-  run driveother "wait drivemenu:$M|Open_in_Other wait wait"
+  nosidebar; run driveother "wait drivemenu:$M|Open_in_Other wait wait"
   check "drive menu: Open in Other Panel" "panels driveother | grep -q '^right: .*/mnt/OriTest |'"
-  run driverename "drive:$M wait drivemenu:$M|Rename wait cmd+a text:OriRenamed enter wait wait wait"
+  nosidebar; run driverename "drive:$M wait drivemenu:$M|Rename wait cmd+a text:OriRenamed enter wait wait wait"
   check "drive menu: Rename" "diskutil info $M | grep -q 'Volume Name: *OriRenamed'"
-  run driveeject "drive:$M wait drivemenu:$M|Eject wait wait wait wait"
+  nosidebar; run driveeject "drive:$M wait drivemenu:$M|Eject wait wait wait wait"
   check "drive menu: Eject, the panel leaves first" "! hdiutil info | grep -q testdata/ori.dmg && ! panels driveeject | grep -q mnt/"
   hdiutil info | grep -q testdata/ori.dmg && hdiutil detach -quiet -force $M
 fi
