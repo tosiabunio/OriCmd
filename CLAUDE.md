@@ -9,7 +9,8 @@ Russian. See `README.md` for what the app does and which keys it uses.
 The user intends this fork to remain an independent project. Selected changes
 from `mmag/OriCmd` may be imported, but a merge of the fork back upstream is not
 planned. Preserve upstream attribution and direct installation and contributions
-to `tosiabunio/OriCmd`.
+to `tosiabunio/Oriel` (the fork's repository, named `tosiabunio/OriCmd` until
+2026-10-07; GitHub redirects the old address, so older links below still work).
 
 ## This file
 
@@ -96,7 +97,7 @@ bundle metadata for diagnostics. While tests run, start the
 installer with `nice -n 19`.
 
 - The app's own updater (`App/Updater.swift`) checks the fork's GitHub Releases
-  (`tosiabunio/OriCmd`) once a day and asks before installing. It verifies an Ed25519
+  (`tosiabunio/Oriel`) once a day and asks before installing. It verifies an Ed25519
   manifest against `OriCmd/UpdateSigningPublicKey.txt`, then the image's size and
   SHA-256 before mounting. Unsigned releases offer their browser page instead.
   The check can be turned off in Settings → General.
@@ -198,7 +199,9 @@ scripts/test/regress.sh                   # main file operations, checked on dis
 ## GitHub
 
 - The user is `tosiabunio` on GitHub. `origin` is the upstream source
-  `mmag/OriCmd`; `fork` is the independently developed `tosiabunio/OriCmd`.
+  `mmag/OriCmd`; `fork` is the independently developed `tosiabunio/Oriel`
+  (`https://github.com/tosiabunio/Oriel.git`; GitHub still lists it as a fork of
+  `mmag/OriCmd`).
   Development and contributions target the fork. Existing upstream PR notes
   below describe earlier work; do not open a new upstream PR unless explicitly
   requested. An explicitly requested upstream PR needs its own branch from
@@ -782,7 +785,7 @@ accessibility workflow's error is only in its uploaded log artifact
 (`gh run download <id>`). `if #available` guards running, not compiling: wrap
 macOS 27 SDK APIs in `#if compiler(>=6.4)` (Swift 6.4 = Xcode 27) as well. Fix on
 branch `fix-ci-build` (worktree `build/ci`). The locally built apps and releases
-(Xcode 27) were never affected. Check `gh run list --repo tosiabunio/OriCmd` after
+(Xcode 27) were never affected. Check `gh run list --repo tosiabunio/Oriel` after
 pushing.
 - Pushed `9b974ab` (`main` = `local-build` = `fix-ci-build`): all 9 runs passed
   (Checks, File panel accessibility, Update signatures on each branch). Scheduled
@@ -943,3 +946,24 @@ release whose updater accepts the fork's own identity, then the switch itself.
   switch (2026.10.6 if still October) only some days after 2026.10.5.
 - Pushed at the user's request: `main` = `local-build` = `39ce953`, with `oriel-id`
   and `id-bridge`; all 12 CI runs passed. The switch is not published yet.
+
+## Release 2026.10.6: Oriel's own identity and repository (2026-10-07)
+
+The user said they are the fork's only user, so the switch and the repository rename
+went out at once instead of days after the bridge.
+- Branch `oriel-repo` (worktree `build/or`), `87df426`: `Updater.repository`,
+  `release.sh`'s `REPOSITORY`, About's fork link, README, the guides and the update
+  tests name `tosiabunio/Oriel`. Then `gh repo rename Oriel` (the repository is still
+  a GitHub fork of `mmag/OriCmd`; the old git and API addresses redirect, the API with
+  a 301), and the `fork` remote was set to `tosiabunio/Oriel.git`.
+- `scripts/release.sh 2026.10.6` (release commit `7fd94fc`, internal build 22, tag
+  `v2026.10.6`): https://github.com/tosiabunio/Oriel/releases/tag/v2026.10.6 has
+  `Oriel-2026.10.6.dmg` (8,803,638 bytes, SHA-256 `54f922b7…10e9d0`), its manifest and
+  signature. Verified with the app's `UpdateVerification` for `tosiabunio/Oriel` and
+  `io.github.tosiabunio.oriel`, size and checksum, codesign, universal app and helper
+  (`io.github.tosiabunio.oriel.Highlighter`). The notes tell users of 2026.10.5 and
+  earlier to install it by hand once: their updaters expect the old repository in
+  the signed manifest (and, up to 2026.10.4, the old bundle ID and file names).
+- `main` = `local-build` = `7fd94fc`, pushed. Installed as fork build 40, "2026.10.6
+  (40)", `io.github.tosiabunio.oriel`; the settings copy did not run again (the
+  `SettingsMovedFrom` marker was already set by build 39).
