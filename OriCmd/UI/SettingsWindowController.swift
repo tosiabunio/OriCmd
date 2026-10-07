@@ -5,13 +5,14 @@ import AppKit
 final class SettingsWindowController: NSWindowController {
     static let shared = SettingsWindowController()
 
-    private let tabs = NSTabViewController()
+    private let tabs = SettingsTabs()
 
     private init() {
         tabs.tabStyle = .toolbar
-        let panes: [(NSViewController, String, String)] = [
+        let panes: [(SettingsPane, String, String)] = [
             (GeneralPane(), String(localized: "General"), "gearshape"),
             (PanelsPane(), String(localized: "Panels"), "rectangle.split.2x1"),
+            (WindowPane(), String(localized: "Window"), "macwindow"),
             (ColorsPane(), String(localized: "Colors"), "paintpalette"),
             (OperationsPane(), String(localized: "Operations"), "doc.on.doc"),
             (KeyboardPane(), String(localized: "Keyboard"), "keyboard"),
@@ -25,9 +26,9 @@ final class SettingsWindowController: NSWindowController {
         }
         // One width for all panes (that of the widest): switching panes only
         // changes the height, as in the system's settings windows.
-        let width = panes.map { $0.0.view.fittingSize.width }.max() ?? 0
+        let width = panes.map { $0.0.naturalWidth }.max() ?? 0
         for (pane, _, _) in panes {
-            (pane as? SettingsPane)?.fix(width: width)
+            pane.fix(width: width)
         }
         let window = NSWindow(contentViewController: tabs)
         window.styleMask = [.titled, .closable]
@@ -48,10 +49,26 @@ final class SettingsWindowController: NSWindowController {
     }
 }
 
+/// The panes, chosen in the toolbar.
+private final class SettingsTabs: NSTabViewController {
+    /// A pane grows the window downwards: first moves it up as far as the pane
+    /// would reach below the screen.
+    override func tabView(_ tabView: NSTabView, willSelect tabViewItem: NSTabViewItem?) {
+        super.tabView(tabView, willSelect: tabViewItem)
+        guard let window = view.window, let visible = window.screen?.visibleFrame,
+              let content = window.contentView, let pane = tabViewItem?.viewController else { return }
+        let height = window.frame.height - content.frame.height + pane.preferredContentSize.height
+        if window.frame.maxY - height < visible.minY {
+            window.setFrameTopLeftPoint(NSPoint(x: window.frame.minX, y: min(visible.maxY, visible.minY + height)))
+        }
+    }
+}
+
 // MARK: - Building blocks
 
 /// A pane: sections with bold titles, each a rounded group of labelled controls and
-/// grey explanations, as System Settings groups its options.
+/// grey explanations, as System Settings groups its options. A pane taller than the
+/// screen scrolls.
 class SettingsPane: NSViewController {
     private struct Group {
         var title: String?
@@ -62,6 +79,7 @@ class SettingsPane: NSViewController {
     }
 
     private var groups: [Group] = []
+    private let content = FlippedView()
     static let noteWidth: CGFloat = 400
 
     override func loadView() {
@@ -84,16 +102,58 @@ class SettingsPane: NSViewController {
             box.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
         stack.translatesAutoresizingMaskIntoConstraints = false
-        let view = NSView()
-        view.addSubview(stack)
+        content.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-            stack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -22),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 20),
+            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -24),
+            stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -22),
         ])
-        self.view = view
-        preferredContentSize = view.fittingSize
+        let scroll = NSScrollView()
+        scroll.drawsBackground = false
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
+        content.translatesAutoresizingMaskIntoConstraints = false
+        scroll.documentView = content
+        NSLayoutConstraint.activate([
+            content.topAnchor.constraint(equalTo: scroll.contentView.topAnchor),
+            content.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor),
+            content.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
+        ])
+        view = scroll
+        preferredContentSize = content.fittingSize
+        // The preview grows and shrinks with the look and the row density.
+        NotificationCenter.default.addObserver(forName: Settings.didChange, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.fitHeight() }
+        }
+    }
+
+    /// The width the pane needs.
+    var naturalWidth: CGFloat {
+        loadViewIfNeeded()
+        return content.fittingSize.width
+    }
+
+    /// The height of the window's content leaves room on the screen for its title
+    /// bar and toolbar of panes; the rest scrolls.
+    private var maxHeight: CGFloat {
+        #if DEBUG
+        // Test runs: a screen this tall.
+        if let height = ProcessInfo.processInfo.environment["ORICMD_SETTINGS_HEIGHT"].flatMap(Double.init) {
+            return height
+        }
+        #endif
+        let screen = view.window?.screen ?? NSScreen.main
+        return (screen?.visibleFrame.height ?? 800) - 100
+    }
+
+    private func fitHeight() {
+        let width = preferredContentSize.width
+        guard width > 0 else { return }
+        let height = min(content.fittingSize.height, maxHeight)
+        if height != preferredContentSize.height {
+            preferredContentSize = NSSize(width: width, height: height)
+        }
     }
 
     private func grid(for group: Group) -> NSGridView {
@@ -145,11 +205,10 @@ class SettingsPane: NSViewController {
     /// Adds the rows of the pane.
     func build() {}
 
-    /// Lays the pane out at `width`; its height follows from that.
+    /// Lays the pane out at `width`; its height follows from that, up to the screen's.
     func fix(width: CGFloat) {
-        view.widthAnchor.constraint(equalToConstant: width).isActive = true
-        view.layoutSubtreeIfNeeded()
-        preferredContentSize = NSSize(width: width, height: view.fittingSize.height)
+        preferredContentSize = NSSize(width: width, height: 0)
+        fitHeight()
     }
 
     func section(_ title: String) {
@@ -197,6 +256,11 @@ class SettingsPane: NSViewController {
     func button(_ title: String, _ action: Selector, target: AnyObject? = nil) -> NSButton {
         NSButton(title: title, target: target ?? self, action: action)
     }
+}
+
+/// Lays the pane's sections out from the top.
+private final class FlippedView: NSView {
+    nonisolated override var isFlipped: Bool { true }
 }
 
 // MARK: - General
@@ -268,12 +332,8 @@ private final class PanelsPane: SettingsPane {
     private let lookPopUp = NSPopUpButton()
     private let densityPopUp = NSPopUpButton()
     private let statusPopUp = NSPopUpButton()
-    private var keyCapsBox: NSButton!
     private var bracketsBox: NSButton!
-    private var macTabsBox: NSButton!
-    private var compactHeaderBox: NSButton!
     private var markersBox: NSButton!
-    private var sidebarBox: NSButton!
 
     override func build() {
         section(String(localized: "Look"))
@@ -282,41 +342,12 @@ private final class PanelsPane: SettingsPane {
         lookPopUp.action = #selector(lookChanged(_:))
         lookPopUp.identifier = NSUserInterfaceItemIdentifier("look")
         row(String(localized: "Look:"), lookPopUp)
-        note(String(localized: "Modern draws the panels as Mac lists are drawn: a rounded cursor, quieter columns, the counts in the header. Choosing a look sets the options below; each can still be changed."))
-
-        section(String(localized: "Preview"))
-        fullWidth(PanelPreview())
+        note(String(localized: "Modern draws the panels as Mac lists are drawn: a rounded cursor, quieter columns, the counts in the header. Choosing a look sets the options below and in Window; each can still be changed."))
 
         section(String(localized: "Font"))
         row(String(localized: "Panel font:"), fontLabel, button(String(localized: "Choose…"), #selector(chooseFont(_:))),
             button(String(localized: "Default"), #selector(resetFont(_:))))
         updateFontLabel()
-
-        section(String(localized: "Window"))
-        row(String(localized: "Show:"), checkbox(String(localized: "Command line"), Settings.showsCommandLine,
-                                                 #selector(commandLineChanged(_:))))
-        row(nil, checkbox(String(localized: "Function key buttons (F3 View … F8 Delete)"), Settings.showsFunctionKeys,
-                          #selector(functionKeysChanged(_:))))
-        keyCapsBox = checkbox(String(localized: "Function keys drawn as key caps"), Settings.showsFunctionKeyCaps,
-                              #selector(functionKeyCapsChanged(_:)))
-        row(nil, keyCapsBox)
-        sidebarBox = checkbox(String(localized: "Sidebar: devices, favorites and the hotlist (⌃⌘S)"), Settings.showsSidebar,
-                              #selector(sidebarChanged(_:)))
-        row(nil, sidebarBox)
-        row(nil, checkbox(String(localized: "Drive buttons (while there is no sidebar)"), Settings.showsDriveButtons,
-                          #selector(driveButtonsChanged(_:))))
-        bracketsBox = checkbox(String(localized: "Folder names in [brackets]"), Settings.showsFolderBrackets,
-                               #selector(folderBracketsChanged(_:)))
-        row(nil, bracketsBox)
-        macTabsBox = checkbox(String(localized: "Mac style, with icons and close buttons"), Settings.macStyleTabs,
-                              #selector(macStyleTabsChanged(_:)))
-        row(String(localized: "Folder tabs:"), macTabsBox)
-        compactHeaderBox = checkbox(String(localized: "Compact: the volume and free space in the path bar"),
-                                    Settings.compactPanelHeader, #selector(compactHeaderChanged(_:)))
-        row(String(localized: "Panel header:"), compactHeaderBox)
-        note(String(localized: "Without the row of the volume selector and the / and .. buttons: a click on the volume lists the others, a click on a folder of the path goes there. The mask (*.*) shows only when it filters."))
-        row(String(localized: "Button bar:"), button(String(localized: "Customize Toolbar…"), #selector(customizeToolbar(_:))))
-        note(String(localized: "Optional columns (kind, created, dimensions, duration, tags) are chosen by right-clicking a panel's column headers."))
 
         section(String(localized: "File list"))
         densityPopUp.addItems(withTitles: [String(localized: "Standard (13 pt, as in the Finder)"),
@@ -329,6 +360,9 @@ private final class PanelsPane: SettingsPane {
         markersBox = checkbox(String(localized: "Show checkmarks on marked items"), Settings.showsSelectionMarkers,
                               #selector(selectionMarkersChanged(_:)))
         row(nil, markersBox)
+        bracketsBox = checkbox(String(localized: "Folder names in [brackets]"), Settings.showsFolderBrackets,
+                               #selector(folderBracketsChanged(_:)))
+        row(nil, bracketsBox)
         let extensions = NSPopUpButton()
         extensions.addItems(withTitles: [String(localized: "In their own column"), String(localized: "After the name")])
         extensions.selectItem(at: Settings.extensionDisplay == .column ? 0 : 1)
@@ -348,6 +382,7 @@ private final class PanelsPane: SettingsPane {
         statusPopUp.target = self
         statusPopUp.action = #selector(statusLineChanged(_:))
         row(String(localized: "Status line:"), statusPopUp)
+        note(String(localized: "Optional columns (kind, created, dimensions, duration, tags) are chosen by right-clicking a panel's column headers."))
 
         section(String(localized: "Mouse"))
         let rightButton = NSPopUpButton()
@@ -368,12 +403,8 @@ private final class PanelsPane: SettingsPane {
         lookPopUp.selectItem(at: Settings.isModern ? 0 : 1)
         densityPopUp.selectItem(at: Settings.density == .standard ? 0 : 1)
         statusPopUp.selectItem(at: Settings.plainStatusLine ? 0 : 1)
-        keyCapsBox.state = Settings.showsFunctionKeyCaps ? .on : .off
         bracketsBox.state = Settings.showsFolderBrackets ? .on : .off
-        macTabsBox.state = Settings.macStyleTabs ? .on : .off
-        compactHeaderBox.state = Settings.compactPanelHeader ? .on : .off
         markersBox.state = Settings.showsSelectionMarkers ? .on : .off
-        sidebarBox.state = Settings.showsSidebar ? .on : .off
         updateFontLabel()
     }
 
@@ -438,12 +469,69 @@ private final class PanelsPane: SettingsPane {
         updateFontLabel()
     }
 
+    @objc private func folderBracketsChanged(_ sender: NSButton) { Settings.showsFolderBrackets = sender.state == .on }
+}
+
+// MARK: - Window
+
+/// What the main window shows around the panels.
+private final class WindowPane: SettingsPane {
+    private var commandLineBox: NSButton!
+    private var functionKeysBox: NSButton!
+    private var keyCapsBox: NSButton!
+    private var sidebarBox: NSButton!
+    private var driveButtonsBox: NSButton!
+    private var macTabsBox: NSButton!
+    private var compactHeaderBox: NSButton!
+
+    override func build() {
+        section(String(localized: "Main window"))
+        commandLineBox = checkbox(String(localized: "Command line"), Settings.showsCommandLine,
+                                  #selector(commandLineChanged(_:)))
+        row(String(localized: "Show:"), commandLineBox)
+        functionKeysBox = checkbox(String(localized: "Function key buttons (F3 View … F8 Delete)"), Settings.showsFunctionKeys,
+                                   #selector(functionKeysChanged(_:)))
+        row(nil, functionKeysBox)
+        keyCapsBox = checkbox(String(localized: "Function keys drawn as key caps"), Settings.showsFunctionKeyCaps,
+                              #selector(functionKeyCapsChanged(_:)))
+        row(nil, keyCapsBox)
+        sidebarBox = checkbox(String(localized: "Sidebar: devices, favorites and the hotlist (⌃⌘S)"), Settings.showsSidebar,
+                              #selector(sidebarChanged(_:)))
+        row(nil, sidebarBox)
+        driveButtonsBox = checkbox(String(localized: "Drive buttons (while there is no sidebar)"), Settings.showsDriveButtons,
+                                   #selector(driveButtonsChanged(_:)))
+        row(nil, driveButtonsBox)
+        row(String(localized: "Button bar:"), button(String(localized: "Customize Toolbar…"), #selector(customizeToolbar(_:))))
+
+        section(String(localized: "Tabs and header"))
+        macTabsBox = checkbox(String(localized: "Mac style, with icons and close buttons"), Settings.macStyleTabs,
+                              #selector(macStyleTabsChanged(_:)))
+        row(String(localized: "Folder tabs:"), macTabsBox)
+        compactHeaderBox = checkbox(String(localized: "Compact: the volume and free space in the path bar"),
+                                    Settings.compactPanelHeader, #selector(compactHeaderChanged(_:)))
+        row(String(localized: "Panel header:"), compactHeaderBox)
+        note(String(localized: "Without the row of the volume selector and the / and .. buttons: a click on the volume lists the others, a click on a folder of the path goes there. The mask (*.*) shows only when it filters."))
+        // The look in Panels and ⌃⌘S change these too.
+        NotificationCenter.default.addObserver(forName: Settings.didChange, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refresh() }
+        }
+    }
+
+    private func refresh() {
+        commandLineBox.state = Settings.showsCommandLine ? .on : .off
+        functionKeysBox.state = Settings.showsFunctionKeys ? .on : .off
+        keyCapsBox.state = Settings.showsFunctionKeyCaps ? .on : .off
+        sidebarBox.state = Settings.showsSidebar ? .on : .off
+        driveButtonsBox.state = Settings.showsDriveButtons ? .on : .off
+        macTabsBox.state = Settings.macStyleTabs ? .on : .off
+        compactHeaderBox.state = Settings.compactPanelHeader ? .on : .off
+    }
+
     @objc private func commandLineChanged(_ sender: NSButton) { Settings.showsCommandLine = sender.state == .on }
     @objc private func functionKeysChanged(_ sender: NSButton) { Settings.showsFunctionKeys = sender.state == .on }
     @objc private func functionKeyCapsChanged(_ sender: NSButton) { Settings.showsFunctionKeyCaps = sender.state == .on }
     @objc private func driveButtonsChanged(_ sender: NSButton) { Settings.showsDriveButtons = sender.state == .on }
     @objc private func sidebarChanged(_ sender: NSButton) { Settings.showsSidebar = sender.state == .on }
-    @objc private func folderBracketsChanged(_ sender: NSButton) { Settings.showsFolderBrackets = sender.state == .on }
     @objc private func macStyleTabsChanged(_ sender: NSButton) { Settings.macStyleTabs = sender.state == .on }
     @objc private func compactHeaderChanged(_ sender: NSButton) { Settings.compactPanelHeader = sender.state == .on }
 

@@ -189,7 +189,7 @@ and 15) of Devices with free space, Favorites and the hotlist; the window has a
 full-size content view, the panels start at the safe area, and the toolbar gains
 the sidebar button and a tracking separator (added once to saved toolbars). The
 sidebar is on by default in Modern and hides the drive buttons; ⌃⌘S, the toolbar
-and Settings → Panels show or hide it, and its width is kept.
+and Settings → Window show or hide it, and its width is kept.
 
 **2.2 deferred.** The panels' headers are opaque and the lists never scroll under
 a bar, so split-item accessories would add little that shows (their scroll edge
@@ -223,7 +223,11 @@ Synchronize keeps its form (Return compares) with Compare and Synchronize… at 
 right edges. 3.2: the copy dialog's buttons follow Mac dialogs (Options >> and Tree
 at the left; F2 Queue, Cancel and the default Copy/Move at the right) and its
 advanced options are a rounded group. 3.3: every Settings pane shows its sections
-as rounded groups, as System Settings does; the panes keep their topics. 3.4:
+as rounded groups, as System Settings does. The groups made the Panels pane taller
+than a laptop screen, so it was split: Panels keeps the look, font and file list
+(its preview is the one in Colors), and a new Window pane holds the bars, the
+sidebar, the tabs and the panel header; a pane still taller than the screen
+scrolls. 3.4:
 marked rows are tinted more strongly with Increase Contrast, and the panels redraw
 when the display's accessibility options change. Custom cursor colors stay as
 chosen in dark mode, since their text color is chosen with them. The layered app

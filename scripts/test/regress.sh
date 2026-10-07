@@ -861,6 +861,15 @@ run lookclassic "alt+a wait text:lpha escape sizes columns"
 check "Total Commander's look shows [folders], <DIR> and Attr" "names lookclassic | grep -qx 'left: name: \\[alpha\\] | ext: ' && grep -qx 'size: <DIR>' build/shots/reg-lookclassic-sizes.txt && cols lookclassic | grep -q '^attr '"
 ORICMD_SETTINGS_TAB=1 run looksettings "cmd:showSettings wait wait set:look=Classic_(Total_Commander) wait cmd+w wait alt+a wait text:lpha escape sizes"
 check "choosing Total Commander's look in Settings brings back <DIR>" "grep -qx 'size: <DIR>' build/shots/reg-looksettings-sizes.txt"
+# Settings panes: one taller than the screen scrolls instead of growing past it. The
+# window keeps its width, so its height shows in the snapshot's proportions (snapshots
+# are scaled down to fit 1100 pixels).
+tallness() { sips -g pixelHeight -g pixelWidth build/shots/reg-$1-win1.png 2>/dev/null | awk '/pixelHeight/ { h = $2 } /pixelWidth/ { w = $2 } END { print (w ? int(h * 1000 / w) : 0) }'; }
+ORICMD_SETTINGS_TAB=3 run settingsfull "cmd:showSettings wait wait"
+ORICMD_SETTINGS_TAB=3 ORICMD_SETTINGS_HEIGHT=400 run settingsshort "cmd:showSettings wait wait"
+check "a Settings pane taller than the screen scrolls instead of growing past it" "[ \$(tallness settingsshort) -gt 0 ] && [ \$(tallness settingsshort) -lt \$(tallness settingsfull) ]"
+ORICMD_SETTINGS_TAB=1 run settingsdensity "cmd:showSettings wait wait set:density=Compact_(12_pt,_more_files) wait click:Colors wait wait"
+check "the Colors pane shrinks with its preview when the rows become compact" "[ \$(tallness settingsdensity) -gt 0 ] && [ \$(tallness settingsdensity) -lt \$(tallness settingsfull) ]"
 # Column widths: dragging the edge right of a title resizes that column (Name's edge
 # the next one), Name taking the difference; a double click on the edge measures again.
 run colwide "headerdrag:size:30 columns"

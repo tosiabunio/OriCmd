@@ -54,7 +54,7 @@ for UI in en; do
     "alt+n wait text:otes escape tab alt+n wait text:otes escape tab cmd:cm_CompareFilesByContent wait wait wait"
   shot sync $P $D/Backup/OriCmd "cmd:cm_SyncDirs wait click:$COMPARE wait wait wait"
   shot rename $D/Downloads $P "alt+i wait text:MG escape insert insert insert insert insert insert ctrl+m wait text:$MASK wait wait"
-  shot settings $P $D/Downloads "cmd:showSettings wait wait" ORICMD_SETTINGS_TAB=1
+  shot settings $P $D/Downloads "cmd:showSettings wait wait" ORICMD_SETTINGS_TAB=3
   THEME=dark shot main-dark $P $D/Downloads \
     "alt+l wait text:ICENSE escape insert alt+p wait text:ackage escape insert alt+r wait text:EADME escape wait"
 

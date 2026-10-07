@@ -528,7 +528,7 @@ out.
 By default the path bar also holds the volume, before the path (a click lists the
 volumes), and its free space at the end when there is room; the mask shows there only
 when a filter is on. This replaces the row with the volume selector and the `/` and
-`..` buttons, which Settings → Panels → Window → "Panel header" can bring back.
+`..` buttons, which Settings → Window → "Panel header" can bring back.
 Click the free-space or total-capacity readout in either header to open the current
 drive's information window in Finder.
 
@@ -606,9 +606,11 @@ OriCmd → Settings… (`⌘,`) — a window with panes:
 
 - **General** — interface language, automatic update checks.
 - **Panels** — the look (Modern, or Classic as in Total Commander, which sets
-  the switches below at once), panel preview, font, command line, function key and
-  drive buttons, the sidebar, row height (Standard 13 pt or Compact 12 pt), button
-  bar setup, what the right mouse button does.
+  the switches here and in Window at once), font, row height (Standard 13 pt or
+  Compact 12 pt), checkmarks, folder brackets, extensions, sizes, the status line,
+  what the right mouse button does.
+- **Window** — command line, function key and drive buttons, the sidebar, button
+  bar setup, folder tabs and the panel header.
 - **Colors** — light or dark theme (or as in the system), panel preview,
   ready-made colors, colors of marked files (and bold) and the cursor,
   alternating rows, colors by file mask.

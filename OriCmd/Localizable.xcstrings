@@ -4569,6 +4569,16 @@
         }
       }
     },
+    "Main window": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Главное окно"
+          }
+        }
+      }
+    },
     "Mark": {
       "localizations": {
         "ru": {
@@ -4705,6 +4715,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Современный"
+          }
+        }
+      }
+    },
+    "Modern draws the panels as Mac lists are drawn: a rounded cursor, quieter columns, the counts in the header. Choosing a look sets the options below and in Window; each can still be changed.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Современный стиль рисует панели как списки Mac: скруглённый курсор, приглушённые колонки, количество файлов в заголовке. Выбор стиля меняет настройки ниже и в разделе «Окно»; каждую можно изменить отдельно."
           }
         }
       }
@@ -7555,6 +7575,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Таблица %lld"
+          }
+        }
+      }
+    },
+    "Tabs and header": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вкладки и заголовок"
           }
         }
       }
