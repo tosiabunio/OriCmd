@@ -30,9 +30,12 @@ keep working as always.
   Composer) of two panes and a cursor that copies across, with the system's dark,
   clear and tinted versions; macOS 14 and 15 get flat images of it.
 - **Sidebar and one bottom bar:** in the Modern look a sidebar lists devices (with
-  free space), the usual folders and the directory hotlist (`⌃⌘S` or the toolbar
-  button shows or hides it); the command line, the function keys as compact hints
-  and Operations share one bar under the panels.
+  free space), the usual folders, the directory hotlist and the Finder's color tags
+  (a tag lists its files in the active panel; `⌃⌘S` or the toolbar button shows or
+  hides the sidebar); the command line, the function keys as compact hints and
+  Operations share one bar under the panels. Operations also has a toolbar button
+  whose badge counts what runs or waits (macOS 26), and the header shows a symbol
+  for the folder, archive, server or search results before the path.
 - **Mac-style panels:** compact headers, folder icons and close buttons on tabs,
   key caps on function buttons, Finder-style sizes and status summaries, folder
   colors from Finder tags, and options for folder brackets and file extensions.

@@ -1,8 +1,10 @@
 # Visual refresh
 
 **Status:** phase 1 built on branch `modern-panels` (2026-10-06); phase 2 on
-branch `window-shell` (2026-10-07), except 2.2, deferred; phase 3 on branch
-`secondary-windows` (2026-10-07); the app icon on branch `app-icon` (2026-10-07).
+branch `window-shell` (2026-10-07), except 2.2 and the lists under the toolbar,
+deferred; phase 3 on branch `secondary-windows` (2026-10-07); the app icon on branch
+`app-icon` (2026-10-07); phase 4, what phases 1 and 2 left over, on branch
+`ops-badge` (2026-10-07).
 **Mockup:** [Today and proposed main window, interactive](https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP)
 (light and dark).
 
@@ -238,19 +240,46 @@ right one (copying between panels). macOS draws its dark, clear and tinted versi
 Xcode makes the flat images for macOS 14 and 15. Open the document in Icon Composer
 (part of Xcode) to change it; `ictool` renders it from the command line.
 
+### Phase 4: what phases 1 and 2 left over
+
+1. **Operations in the toolbar** (2.4). A toolbar button for Operations whose badge
+   counts the operations running or waiting (`NSToolbarItem.badge`, macOS 26).
+2. **Tags in the sidebar** (2.3). The Finder's color tags under the names the Finder
+   gives them; a click lists the tagged files in the active panel.
+3. **A symbol before the path** (the active panel row of the table). A folder
+   symbol in the accent color in the active panel's header.
+
+**As built (phase 4).** 4.1: Operations is a toolbar button at the end of the bar
+(in new toolbars, and added once to saved ones); on macOS 26 its badge counts the
+operations running and waiting, and the Modern bottom bar then leaves Operations to
+it while the toolbar shows that button (hidden toolbar, Classic and macOS 14–15
+keep the bottom bar's Operations). 4.2: a Tags section at the end of the sidebar
+lists the seven color tags under the Finder's names for them (they depend on its
+language) with their colors; a click finds the files with that tag through Spotlight
+and lists them in the active panel as Feed to Panel does ([..] goes back). 4.3: in the
+Modern look a symbol before the path says what the panel shows — a folder, an
+archive, a server or search results — in the accent color in the active panel and
+in grey in the other.
+
+**Still deferred.** The lists do not scroll under the glass toolbar (2.1), and the
+panels are not split-view items with accessories (2.2): with opaque panel headers
+neither would show, and both need a second layout for macOS 14 and 15. They are
+worth another look if the headers become translucent.
+
 ## The Look setting
 
 The fork already has eight appearance switches: folder brackets, Mac-style tabs,
 the compact header, key caps, the Finder-style status line, extension display,
 size display and checkmarks. This plan adds more. One **Look** setting at the top
-of Settings → Appearance chooses Modern (the default) or Classic. It sets all the
+of Settings → Panels chooses Modern (the default) or Classic. It sets all the
 switches at once, and the individual switches stay below it. Test runs pin
 `Look = Classic` where a check depends on the old text.
 
 ## Next step
 
-Build phase 1 on a `modern-panels` branch, behind the Look setting, and compare
-snapshots of both looks in light and dark before phases 2 and 3.
+The plan is built except the deferred 2.1 and 2.2. New visual work starts from what
+using the Modern look shows, on its own branch from `main`, behind the Look setting
+where it changes how the classic panels look.
 
 ## Sources
 
