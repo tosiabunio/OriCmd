@@ -80,6 +80,9 @@ final class MainViewController: NSViewController {
 
         NotificationCenter.default.addObserver(self, selector: #selector(operationsDidChange(_:)),
                                                name: OperationsStore.didChange, object: nil)
+        for name in [NSToolbar.willAddItemNotification, NSToolbar.didRemoveItemNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(toolbarDidChange(_:)), name: name, object: nil)
+        }
         let workspace = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification,
                      NSWorkspace.didRenameVolumeNotification] {
@@ -217,11 +220,12 @@ final class MainViewController: NSViewController {
         let title = bottomIsBar != true ? full
             : running > 0 ? String(localized: "Operations: \(running) running")
             : queued > 0 ? String(localized: "Operations: \(queued) queued") : String(localized: "Operations")
-        if lastOperationsTitle == title + full { return }
-        lastOperationsTitle = title + full
+        let inToolbar = operationsInToolbar
+        if lastOperationsTitle == title + full + "\(inToolbar)" { return }
+        lastOperationsTitle = title + full + "\(inToolbar)"
         operationsButton.title = title
         operationsButton.toolTip = bottomIsBar == true ? full : nil
-        operationsButton.isHidden = running + queued + finished == 0
+        operationsButton.isHidden = running + queued + finished == 0 || inToolbar
         operationsHeight.constant = operationsButton.isHidden ? 0 : 24
         updateBottomBar()
     }
@@ -266,6 +270,25 @@ final class MainViewController: NSViewController {
         updateBottomBar()
     }
 
+    #if DEBUG
+    /// The Operations button under the panels, if shown (for test runs).
+    var operationsButtonTitle: String? { operationsButton.isHidden ? nil : operationsButton.title }
+    #endif
+
+    /// The modern bar leaves Operations to the toolbar's button, which counts them in
+    /// its badge (macOS 26), while the toolbar is shown with that button.
+    private var operationsInToolbar: Bool {
+        guard #available(macOS 26, *), bottomIsBar == true, let toolbar = view.window?.toolbar,
+              toolbar.isVisible else { return false }
+        return toolbar.items.contains { $0.itemIdentifier == ButtonBar.operationsIdentifier }
+    }
+
+    /// A button added to the toolbar or taken off it, or the toolbar shown or hidden.
+    @objc func toolbarDidChange(_ notification: Notification?) {
+        // An added item is in the toolbar only after the notification.
+        DispatchQueue.main.async { [weak self] in self?.operationsDidChange(nil) }
+    }
+
     /// The bar takes no room when nothing in it is shown.
     private func updateBottomBar() {
         guard bottomIsBar == true else { return }
@@ -290,6 +313,7 @@ final class MainViewController: NSViewController {
             splitView.setRatio(saved > 0.05 && saved < 0.95 ? saved : 0.5)
             activePanel.focus()
         }
+        operationsDidChange(nil)
     }
 
     /// Recreates a panel with the tabs saved at the last launch (skipping vanished folders).

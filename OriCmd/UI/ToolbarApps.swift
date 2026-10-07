@@ -134,6 +134,12 @@ final class MainWindow: NSWindow, NSDraggingDestination {
         fatalError("init(coder:) is not supported")
     }
 
+    /// The bottom bar shows Operations again while the toolbar is hidden.
+    override func toggleToolbarShown(_ sender: Any?) {
+        super.toggleToolbarShown(sender)
+        mainViewController?.toolbarDidChange(nil)
+    }
+
     /// A terminal under a panel tells its panel when it gets the focus (SwiftTerm's
     /// view does not let subclasses see that).
     override func makeFirstResponder(_ responder: NSResponder?) -> Bool {

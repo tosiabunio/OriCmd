@@ -23,7 +23,10 @@ final class ButtonBar: NSObject, NSToolbarDelegate {
         (.unpackFiles, "archivebox"),
         (.switchHidSys, "eye.slash"),
         (.executeDOS, "terminal"),
+        (.operations, "arrow.up.arrow.down.circle"),
     ]
+
+    static let operationsIdentifier = NSToolbarItem.Identifier(Command.operations.rawValue)
 
     private static let defaultItems: [NSToolbarItem.Identifier] = [
         .toggleSidebar, .sidebarTrackingSeparator,
@@ -33,7 +36,7 @@ final class ButtonBar: NSObject, NSToolbarDelegate {
         .init(Command.directoryHotlist.rawValue), .space,
         .init(Command.searchFor.rawValue), .init(Command.multiRenameFiles.rawValue), .init(Command.syncDirs.rawValue),
         .init(Command.packFiles.rawValue), .init(Command.unpackFiles.rawValue), .space,
-        .init(Command.executeDOS.rawValue),
+        .init(Command.executeDOS.rawValue), .flexibleSpace, operationsIdentifier,
     ]
 
     let toolbar = NSToolbar(identifier: "ButtonBar")
@@ -45,6 +48,8 @@ final class ButtonBar: NSObject, NSToolbarDelegate {
         toolbar.allowsUserCustomization = true
         // Saved in the standard defaults: test runs must not change the user's toolbar.
         toolbar.autosavesConfiguration = !AppDefaults.isTestRun
+        NotificationCenter.default.addObserver(self, selector: #selector(operationsDidChange(_:)),
+                                               name: OperationsStore.didChange, object: nil)
     }
 
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
@@ -69,6 +74,30 @@ final class ButtonBar: NSObject, NSToolbarDelegate {
         if !identifiers.contains(.sidebarTrackingSeparator) {
             toolbar.insertItem(withItemIdentifier: .sidebarTrackingSeparator, at: 1)
         }
+    }
+
+    /// Toolbars saved before Operations had a button get it once, at the end.
+    func addOperationsButtonOnce() {
+        let key = "ToolbarHasOperationsButton"
+        guard !AppDefaults.store.bool(forKey: key) else { return }
+        AppDefaults.store.set(true, forKey: key)
+        guard !toolbar.items.contains(where: { $0.itemIdentifier == Self.operationsIdentifier }) else { return }
+        if toolbar.items.last?.itemIdentifier != .flexibleSpace {
+            toolbar.insertItem(withItemIdentifier: .flexibleSpace, at: toolbar.items.count)
+        }
+        toolbar.insertItem(withItemIdentifier: Self.operationsIdentifier, at: toolbar.items.count)
+    }
+
+    /// Operations counts the operations running or waiting in its badge (macOS 26).
+    @objc private func operationsDidChange(_ notification: Notification?) {
+        toolbar.items.filter { $0.itemIdentifier == Self.operationsIdentifier }.forEach(Self.updateBadge)
+    }
+
+    private static func updateBadge(_ item: NSToolbarItem) {
+        guard #available(macOS 26, *) else { return }
+        let active = OperationsStore.shared.runningCount + TransferQueue.shared.waitingCount
+        let badge: NSItemBadge? = active > 0 ? .count(active) : nil
+        if item.badge != badge { item.badge = badge }
     }
 
     private static let userPrefix = "user."
@@ -130,6 +159,9 @@ final class ButtonBar: NSObject, NSToolbarDelegate {
         item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)
         item.action = command.selector
         item.isBordered = true
+        if identifier == Self.operationsIdentifier {
+            Self.updateBadge(item)
+        }
         return item
     }
 }

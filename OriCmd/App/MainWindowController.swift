@@ -14,6 +14,7 @@ final class MainWindowController: NSWindowController {
         window.title = Bundle.main.appName
         window.toolbar = buttonBar.toolbar
         buttonBar.addSidebarButtonOnce()
+        buttonBar.addOperationsButtonOnce()
         window.toolbarStyle = .unifiedCompact
         // Buttons start at the left, like Total Commander's button bar.
         window.titleVisibility = .hidden

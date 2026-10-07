@@ -879,6 +879,14 @@ defaults write ru.themmag.OriCmd.tests ShowFolderBrackets -bool false
 ORICMD_SETTINGS_FROM=ru.themmag.OriCmd.tests-original run settingsmove "alt+a wait text:lpha escape sizes"
 check "settings kept under the original's identifier move to the fork's own, the ones set there stay" "names settingsmove | grep -qx 'left: name: alpha | ext: ' && grep -qx 'size: <DIR>' build/shots/reg-settingsmove-sizes.txt && [ \"\$(defaults read ru.themmag.OriCmd.tests-original Look 2>/dev/null)\" = classic ]"
 defaults delete ru.themmag.OriCmd.tests-original 2>/dev/null
+# Operations in the toolbar counts what runs or waits in its badge (macOS 26); the
+# modern bottom bar leaves Operations to it while the toolbar shows it. A copy over an
+# existing file waits on its question, so it counts as running.
+scripts/test/mkdata.sh; cp $L/readme.txt $R/readme.txt
+run opsbadge "alt+r wait text:eadme escape f5 wait enter wait wait toolbar"
+check "Operations in the toolbar counts a running copy, the bottom bar leaves it to the toolbar" "grep -qx 'cm_Operations badge 1' build/shots/reg-opsbadge-toolbar.txt && grep -qx 'bottom: hidden' build/shots/reg-opsbadge-toolbar.txt"
+run opsnotoolbar "cmd:toggleToolbarShown wait alt+r wait text:eadme escape f5 wait enter wait wait toolbar"
+check "with the toolbar hidden the bottom bar shows Operations again" "grep -qx 'bottom: Operations: 1 running' build/shots/reg-opsnotoolbar-toolbar.txt"
 # Column widths: dragging the edge right of a title resizes that column (Name's edge
 # the next one), Name taking the difference; a double click on the edge measures again.
 run colwide "headerdrag:size:30 columns"
