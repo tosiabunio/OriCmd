@@ -589,6 +589,16 @@
         }
       }
     },
+    "3D Model": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "3D-модель"
+          }
+        }
+      }
+    },
     "4. Overwrite all older": {
       "localizations": {
         "ru": {
@@ -1095,6 +1105,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сине-жёлтая слепота (тританопия)"
+          }
+        }
+      }
+    },
+    "Book": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Книга"
           }
         }
       }
@@ -4079,6 +4099,16 @@
         }
       }
     },
+    "Hex Dump": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Шестнадцатеричный вид"
+          }
+        }
+      }
+    },
     "Hidden": {
       "localizations": {
         "ru": {
@@ -5079,6 +5109,16 @@
         }
       }
     },
+    "Next File": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Следующий файл"
+          }
+        }
+      }
+    },
     "Next Tab": {
       "localizations": {
         "ru": {
@@ -5749,6 +5789,16 @@
         }
       }
     },
+    "Page": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Страница"
+          }
+        }
+      }
+    },
     "Panel colors": {
       "localizations": {
         "ru": {
@@ -5919,12 +5969,32 @@
         }
       }
     },
+    "Previous File": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Предыдущий файл"
+          }
+        }
+      }
+    },
     "Previous Tab": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
             "value": "Предыдущая вкладка"
+          }
+        }
+      }
+    },
+    "Previous and Next File": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Предыдущий и следующий файл"
           }
         }
       }
@@ -6035,6 +6105,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Быстрый фильтр…"
+          }
+        }
+      }
+    },
+    "Quick Look": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Быстрый просмотр"
           }
         }
       }
@@ -7669,6 +7749,16 @@
         }
       }
     },
+    "Table": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Таблица"
+          }
+        }
+      }
+    },
     "Table %lld": {
       "localizations": {
         "ru": {
@@ -7755,6 +7845,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Проверка архивов"
+          }
+        }
+      }
+    },
+    "Text": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Текст"
+          }
+        }
+      }
+    },
+    "Text Options": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Параметры текста"
           }
         }
       }
@@ -8715,6 +8825,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Без строки с выбором тома и кнопками / и ..: щелчок по тому открывает список других, щелчок по папке пути переходит туда. Маска (*.*) показывается, только когда она фильтрует."
+          }
+        }
+      }
+    },
+    "Wrap Lines": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переносить строки"
           }
         }
       }

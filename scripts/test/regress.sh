@@ -412,7 +412,7 @@ printf '%s\n' "$text" | iconv -f UTF-8 -t CP866 > $L/enc-dos2.txt
 run encu16 "alt+e wait text:nc-u16 escape f3 wait wait"
 check "Lister tells UTF-16 without a byte order mark" "head -1 build/shots/reg-encu16-win1.txt | grep -q 'UTF-16$' && grep -q 'Привет, мир' build/shots/reg-encu16-win1.txt"
 run encdos "alt+e wait text:nc-dos. escape f3 wait wait s wait n wait textmenu"
-check "Lister: S shows DOS (866), kept for the next file" "head -1 build/shots/reg-encdos-win1.txt | grep -q 'enc-dos2.txt\] — DOS (866)$' && grep -q 'Привет, мир' build/shots/reg-encdos-win1.txt"
+check "Lister: S shows DOS (866), kept for the next file" "head -1 build/shots/reg-encdos-win1.txt | grep -q '^enc-dos2.txt — .* — DOS (866)$' && grep -q 'Привет, мир' build/shots/reg-encdos-win1.txt"
 check "Lister: the context menu lists the encodings" "grep -q '^Encoding ▸ Automatically .*✓DOS (866)' build/shots/reg-encdos-menu.txt"
 run enchex "alt+c wait text:p1251 escape f3 wait wait 3 wait a wait"
 check "Lister: A from hex shows Windows-1251 text" "head -1 build/shots/reg-enchex-win1.txt | grep -q 'Windows-1251$' && grep -q 'Привет, мир' build/shots/reg-enchex-win1.txt"
@@ -890,6 +890,14 @@ run opsbadge "alt+r wait text:eadme escape f5 wait enter wait wait toolbar"
 check "Operations in the toolbar counts a running copy, the bottom bar leaves it to the toolbar" "grep -qx 'cm_Operations badge 1' build/shots/reg-opsbadge-toolbar.txt && grep -qx 'bottom: hidden' build/shots/reg-opsbadge-toolbar.txt"
 run opsnotoolbar "cmd:toggleToolbarShown wait alt+r wait text:eadme escape f5 wait enter wait wait toolbar"
 check "with the toolbar hidden the bottom bar shows Operations again" "grep -qx 'bottom: Operations: 1 running' build/shots/reg-opsnotoolbar-toolbar.txt"
+# The Lister names the file in its title, its folder and encoding below, and has its
+# keys in a toolbar: the way the file is shown, the text's options (off in hex).
+scripts/test/mkdata.sh
+run listerbar "alt+c wait text:p1251 escape f3 wait wait toolbar"
+check "the Lister's title is the file's name, its folder and encoding below" "head -1 build/shots/reg-listerbar-win1.txt | grep -q '^cp1251.txt — .*/left — Windows-1251$'"
+check "the Lister's toolbar shows the text chosen and wrapping on" "grep -q '^listerMode: Text (1) ✓, Hex Dump (3), ' build/shots/reg-listerbar-toolbar.txt && grep -q '^listerOptions: Wrap Lines (W) ✓, ' build/shots/reg-listerbar-toolbar.txt"
+run listerhexbar "alt+c wait text:p1251 escape f3 wait wait 3 wait toolbar"
+check "in hex the Lister's toolbar shows Hex, the text's options off" "grep -q '^listerMode: Text (1), Hex Dump (3) ✓, ' build/shots/reg-listerhexbar-toolbar.txt && grep -q '^listerOptions: Wrap Lines (W) ✓ (off), ' build/shots/reg-listerhexbar-toolbar.txt"
 # Lists in tool windows: an empty one says so in its middle; the symbol buttons below
 # it keep their names (+ is Add).
 run hotlistempty "cmd:configureHotlist wait"

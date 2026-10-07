@@ -74,6 +74,13 @@ final class ListerWindowController: NSWindowController, NSWindowDelegate, NSText
     private var search: Search?
     /// A search in hex waiting for the hex dump to be shown.
     private var pendingSearch: (forward: Bool, Void)?
+    /// The toolbar's controls: the previous and next file, how the file is shown
+    /// (1, 3, 7), the text's options (W, H, F), and its encodings.
+    private let filesControl = NSSegmentedControl()
+    private let modeControl = NSSegmentedControl()
+    private let optionsControl = NSSegmentedControl()
+    private let encodingMenu = NSMenu()
+    private var findItem: NSToolbarItem?
 
     private struct Search {
         let text: String
@@ -116,19 +123,34 @@ final class ListerWindowController: NSWindowController, NSWindowDelegate, NSText
         textView.usesFindBar = true
         textView.isIncrementalSearchingEnabled = true
         textView.font = textFont
+        // The text and the hex dump clear of the window's edges.
+        textView.textContainerInset = NSSize(width: 10, height: 8)
+        buildToolbar()
         show(Self.defaultMode(for: url))
         updateTitle()
         window.keyHandler = { [weak self] event in self?.handleKey(event) ?? false }
     }
 
-    /// The path, and in text mode the encoding (and whether the text is formatted).
+    /// The file's name as the title; below it its folder and, in text mode, the
+    /// encoding (and whether the text is formatted). A local file's icon in the title
+    /// bar can be dragged, and ⌘-clicked for its folders.
     private func updateTitle() {
         let formatted = mode == .text && isFormatted ? String(localized: "formatted") : nil
         let detail = mode == .book ? (bookTitle.isEmpty ? nil : bookTitle)
             : mode == .model ? (modelTitle.isEmpty ? nil : modelTitle)
             : mode == .text ? [encodingName, formatted].compactMap { $0 }.joined(separator: ", ")
             : mode == .table ? encodingName : nil
-        window?.title = "Lister - [\(shownPath)]" + (detail.map { " \u{2014} \($0)" } ?? "")
+        let isLocal = shownPath == url.path
+        // A server's or an archive's path is no file path: split at its last slash.
+        let slash = shownPath.lastIndex(of: "/")
+        let name = slash.map { String(shownPath[shownPath.index(after: $0)...]) } ?? shownPath
+        var folder = slash.map { String(shownPath[..<$0]) } ?? ""
+        if folder.isEmpty, slash != nil { folder = "/" }
+        if isLocal { folder = (folder as NSString).abbreviatingWithTildeInPath }
+        window?.title = name
+        window?.subtitle = [folder, detail ?? ""].filter { !$0.isEmpty }.joined(separator: " \u{2014} ")
+        window?.representedURL = isLocal ? url : nil
+        updateToolbar()
     }
 
     @available(*, unavailable)
@@ -170,9 +192,7 @@ final class ListerWindowController: NSWindowController, NSWindowDelegate, NSText
             case "\u{1b}": window?.close()
             case "1": show(.text)
             case "3": show(.hex)
-            case "7":
-                djvuShowsText = false
-                show(bookFormat != nil ? .book : modelFormat != nil ? .model : tableFormat != nil ? .table : .preview)
+            case "7": showRich()
             case "w": toggleWrapping()
             case "n": step(1)
             case "p": step(-1)
@@ -185,6 +205,17 @@ final class ListerWindowController: NSWindowController, NSWindowDelegate, NSText
             }
         }
         return true
+    }
+
+    /// What 7 shows: the book, the model, the table, or the preview (a page for HTML
+    /// and Markdown).
+    private var richMode: Mode {
+        bookFormat != nil ? .book : modelFormat != nil ? .model : tableFormat != nil ? .table : .preview
+    }
+
+    private func showRich() {
+        djvuShowsText = false
+        show(richMode)
     }
 
     private func find(_ action: NSTextFinder.Action) {
@@ -339,6 +370,7 @@ final class ListerWindowController: NSWindowController, NSWindowDelegate, NSText
         guard mode == .text else { return }
         wrapsLines.toggle()
         setWrapping(wrapsLines)
+        updateToolbar()
     }
 
     /// N / P: shows the next or previous file of the folder in this window.
@@ -376,6 +408,7 @@ final class ListerWindowController: NSWindowController, NSWindowDelegate, NSText
             highlighting?.cancel()
             makePlain()
         }
+        updateToolbar()
     }
 
     /// F: JSON, XML and program code laid out for reading, or as in the file again.
@@ -933,6 +966,164 @@ final class ListerWindowController: NSWindowController, NSWindowDelegate, NSText
             lines.append("\n" + truncationNote(shown: data.count, of: size))
         }
         return lines.joined(separator: "\n")
+    }
+}
+
+// MARK: - Toolbar
+
+private extension NSToolbarItem.Identifier {
+    static let listerFiles = NSToolbarItem.Identifier("listerFiles")
+    static let listerMode = NSToolbarItem.Identifier("listerMode")
+    static let listerOptions = NSToolbarItem.Identifier("listerOptions")
+    static let listerEncoding = NSToolbarItem.Identifier("listerEncoding")
+    static let listerFind = NSToolbarItem.Identifier("listerFind")
+}
+
+/// The Lister's keys as a toolbar: the previous and next file (P, N), how the file
+/// is shown (1, 3, 7), wrapping, highlighting and formatting (W, H, F), the
+/// encoding and the search. Each tooltip names its key.
+extension ListerWindowController: NSToolbarDelegate {
+    private static func tip(_ title: String, _ key: String) -> String { "\(title) (\(key))" }
+
+    fileprivate func buildToolbar() {
+        func setUp(_ control: NSSegmentedControl, _ segments: [(symbol: String, title: String)],
+                   tracking: NSSegmentedControl.SwitchTracking, action: Selector) {
+            control.segmentCount = segments.count
+            for (index, segment) in segments.enumerated() {
+                control.setImage(NSImage(systemSymbolName: segment.symbol, accessibilityDescription: segment.title),
+                                 forSegment: index)
+                control.setToolTip(segment.title, forSegment: index)
+            }
+            control.trackingMode = tracking
+            control.target = self
+            control.action = action
+        }
+        setUp(filesControl, [("chevron.backward", Self.tip(String(localized: "Previous File"), "P")),
+                             ("chevron.forward", Self.tip(String(localized: "Next File"), "N"))],
+              tracking: .momentary, action: #selector(fileChosen(_:)))
+        setUp(modeControl, [("doc.plaintext", Self.tip(String(localized: "Text"), "1")),
+                            ("number", Self.tip(String(localized: "Hex Dump"), "3")),
+                            ("eye", Self.tip(String(localized: "Quick Look"), "7"))],
+              tracking: .selectOne, action: #selector(modeChosen(_:)))
+        setUp(optionsControl, [("arrow.turn.down.left", Self.tip(String(localized: "Wrap Lines"), "W")),
+                               ("paintbrush.pointed", Self.tip(String(localized: "Syntax Highlighting"), "H")),
+                               ("curlybraces", Self.tip(String(localized: "Format"), "F"))],
+              tracking: .selectAny, action: #selector(optionChosen(_:)))
+        for encoding in TextEncoding.allCases {
+            let item = encodingMenu.addItem(withTitle: encoding.title, action: #selector(encodingChosen(_:)),
+                                            keyEquivalent: encoding.key ?? "")
+            item.keyEquivalentModifierMask = []
+            item.target = self
+            item.representedObject = encoding
+            if encoding == .automatic { encodingMenu.addItem(.separator()) }
+        }
+        let toolbar = NSToolbar(identifier: "Lister")
+        toolbar.delegate = self
+        toolbar.displayMode = .iconOnly
+        toolbar.allowsUserCustomization = false
+        window?.toolbar = toolbar
+        window?.toolbarStyle = .unified
+    }
+
+    /// The controls as the file is shown now.
+    fileprivate func updateToolbar() {
+        let index = siblings.firstIndex(of: url)
+        filesControl.setEnabled(index.map { $0 > 0 } ?? false, forSegment: 0)
+        filesControl.setEnabled(index.map { $0 < siblings.count - 1 } ?? false, forSegment: 1)
+
+        let (symbol, title): (String, String) = switch richMode {
+        case .book: ("book", String(localized: "Book"))
+        case .model: ("cube", String(localized: "3D Model"))
+        case .table: ("tablecells", String(localized: "Table"))
+        default: Self.pageFormat(for: url) != nil ? ("doc.richtext", String(localized: "Page"))
+            : ("eye", String(localized: "Quick Look"))
+        }
+        modeControl.setImage(NSImage(systemSymbolName: symbol, accessibilityDescription: Self.tip(title, "7")), forSegment: 2)
+        modeControl.setToolTip(Self.tip(title, "7"), forSegment: 2)
+        modeControl.selectedSegment = mode == .text ? 0 : mode == .hex ? 1 : 2
+
+        let states = optionStates
+        for (index, state) in states.enumerated() {
+            optionsControl.setSelected(state, forSegment: index)
+        }
+        optionsControl.setEnabled(mode == .text, forSegment: 0)
+        optionsControl.setEnabled(mode == .text, forSegment: 1)
+        optionsControl.setEnabled(mode == .text && Self.formatLanguage(for: url) != nil, forSegment: 2)
+
+        for item in encodingMenu.items {
+            item.state = item.representedObject as? TextEncoding == encoding ? .on : .off
+        }
+        findItem?.isEnabled = mode != .preview && mode != .model
+    }
+
+    /// Wrapping, highlighting and formatting: on or off.
+    private var optionStates: [Bool] { [wrapsLines, Self.highlights, Self.formats] }
+
+    @objc private func fileChosen(_ sender: NSSegmentedControl) {
+        step(sender.selectedSegment == 0 ? -1 : 1)
+    }
+
+    @objc private func modeChosen(_ sender: NSSegmentedControl) {
+        switch sender.selectedSegment {
+        case 0: show(.text)
+        case 1: show(.hex)
+        default: showRich()
+        }
+    }
+
+    /// The segment clicked is the one whose state no longer matches its option's.
+    @objc private func optionChosen(_ sender: NSSegmentedControl) {
+        guard let index = optionStates.indices.first(where: { sender.isSelected(forSegment: $0) != optionStates[$0] })
+        else { return }
+        switch index {
+        case 0: toggleWrapping()
+        case 1: toggleHighlighting()
+        default: toggleFormatting()
+        }
+        updateToolbar()
+    }
+
+    @objc private func findChosen(_ sender: Any?) {
+        find(.showFindInterface)
+    }
+
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        [.flexibleSpace, .listerFiles, .listerMode, .listerOptions, .listerEncoding, .listerFind]
+    }
+
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        toolbarDefaultItemIdentifiers(toolbar)
+    }
+
+    func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier identifier: NSToolbarItem.Identifier,
+                 willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
+        let item: NSToolbarItem
+        switch identifier {
+        case .listerEncoding:
+            let menuItem = NSMenuToolbarItem(itemIdentifier: identifier)
+            menuItem.image = NSImage(systemSymbolName: "textformat.characters",
+                                     accessibilityDescription: String(localized: "Encoding"))
+            menuItem.menu = encodingMenu
+            item = menuItem
+            item.label = String(localized: "Encoding")
+        case .listerFind:
+            item = NSToolbarItem(itemIdentifier: identifier)
+            item.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: String(localized: "Find"))
+            item.label = String(localized: "Find")
+            item.toolTip = Self.tip(String(localized: "Find"), "⌘F")
+            item.target = self
+            item.action = #selector(findChosen(_:))
+            item.isBordered = true
+            item.autovalidates = false
+            findItem = item
+        default:
+            item = NSToolbarItem(itemIdentifier: identifier)
+            item.view = identifier == .listerFiles ? filesControl : identifier == .listerMode ? modeControl : optionsControl
+            item.label = identifier == .listerFiles ? String(localized: "Previous and Next File")
+                : identifier == .listerMode ? String(localized: "View") : String(localized: "Text Options")
+        }
+        item.paletteLabel = item.label
+        return item
     }
 }
 

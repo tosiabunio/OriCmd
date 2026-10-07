@@ -237,12 +237,24 @@ enum DebugAutomation {
                     try? lines.joined(separator: "\n")
                         .write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-sidebar.txt"), atomically: true, encoding: .utf8)
                 } else if token == "toolbar", let snapshot {
-                    // The toolbar's items ("cm_Operations badge 2"), then "bottom: " and the bottom
-                    // bar's Operations title or "hidden", to <snapshot>-toolbar.txt.
-                    var lines = (window.toolbar?.items ?? []).map { item in
+                    // The frontmost window's toolbar items ("cm_Operations badge 2"; a segmented
+                    // control's segments by their tooltips, ✓ when selected, "(off)" when disabled;
+                    // "(off)" after a disabled button), then "bottom: " and the bottom bar's
+                    // Operations title or "hidden", to <snapshot>-toolbar.txt.
+                    var front = topmost(window)
+                    while let parent = front.sheetParent { front = parent }
+                    var lines = (front.toolbar?.items ?? []).map { item in
                         var line = item.itemIdentifier.rawValue
                         if #available(macOS 26, *), let badge = item.badge {
                             line += " badge " + ((1...999).first { badge == .count($0) }.map(String.init) ?? "?")
+                        }
+                        if let control = item.view as? NSSegmentedControl {
+                            line += ": " + (0..<control.segmentCount).map { index in
+                                (control.toolTip(forSegment: index) ?? "") + (control.isSelected(forSegment: index) ? " ✓" : "")
+                                    + (control.isEnabled(forSegment: index) ? "" : " (off)")
+                            }.joined(separator: ", ")
+                        } else if item.view == nil, !item.isEnabled {
+                            line += " (off)"
                         }
                         return line
                     }
@@ -918,7 +930,9 @@ enum DebugAutomation {
             }
             return result + view.subviews.flatMap(texts(in:))
         }
-        let lines = (window.title.isEmpty ? [] : [window.title]) + (window.contentView.map(texts(in:)) ?? [])
+        // The title, and its subtitle after a dash (the Lister's folder and encoding).
+        let title = [window.title, window.subtitle].filter { !$0.isEmpty }.joined(separator: " \u{2014} ")
+        let lines = (title.isEmpty ? [] : [title]) + (window.contentView.map(texts(in:)) ?? [])
         try? lines.joined(separator: "\n").write(toFile: path, atomically: true, encoding: .utf8)
     }
 
