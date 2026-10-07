@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 final class AssociationsWindowController: NSWindowController {
     static let shared = AssociationsWindowController()
 
-    private let table = NSTableView()
+    private let table = ListTableView()
     private let maskField = NSTextField(string: "")
     private let openField = NSTextField(string: "")
     private let viewField = NSTextField(string: "")
@@ -51,17 +51,13 @@ final class AssociationsWindowController: NSWindowController {
         }
         table.dataSource = self
         table.delegate = self
-        let scrollView = NSScrollView()
-        scrollView.documentView = table
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
-
-        let listButtons = NSStackView(views: [
-            NSButton(title: String(localized: "Add"), target: self, action: #selector(add(_:))),
-            NSButton(title: String(localized: "Remove"), target: self, action: #selector(remove(_:))),
-            NSButton(title: String(localized: "Move Up"), target: self, action: #selector(moveEntryUp(_:))),
-            NSButton(title: String(localized: "Move Down"), target: self, action: #selector(moveEntryDown(_:))),
+        let list = ListBox(table, buttons: [
+            ListBox.button(.add, target: self, selector: #selector(add(_:))),
+            ListBox.button(.remove, target: self, selector: #selector(remove(_:))),
+            ListBox.button(.moveUp, target: self, selector: #selector(moveEntryUp(_:))),
+            ListBox.button(.moveDown, target: self, selector: #selector(moveEntryDown(_:))),
         ])
+        list.placeholder = String(localized: "No associations")
 
         maskField.delegate = self
         maskField.placeholderString = "*.swift;*.json"
@@ -91,16 +87,15 @@ final class AssociationsWindowController: NSWindowController {
         form.rowAlignment = .firstBaseline
         form.rowSpacing = 8
 
-        let stack = NSStackView(views: [scrollView, listButtons, form])
+        let stack = NSStackView(views: [list, form])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        for view in [scrollView, form] {
+        for view in [list, form] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -32).isActive = true
         }
         help.widthAnchor.constraint(lessThanOrEqualToConstant: 560).isActive = true
-        scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
         window?.contentView = stack
     }
 

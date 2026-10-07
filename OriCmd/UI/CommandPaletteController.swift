@@ -7,8 +7,7 @@ final class CommandPaletteController: NSObject, NSTableViewDataSource, NSTableVi
     private let sheet = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 560, height: 360),
                                 styleMask: [.titled], backing: .buffered, defer: true)
     private let search = NSSearchField()
-    private let table = NSTableView()
-    private let empty = NSTextField(labelWithString: String(localized: "No matching commands"))
+    private let table = ListTableView()
     private let runButton = NSButton(title: String(localized: "Run"), target: nil, action: nil)
     private var matches: [Command] = []
     private weak var previousResponder: NSResponder?
@@ -36,12 +35,15 @@ final class CommandPaletteController: NSObject, NSTableViewDataSource, NSTableVi
         search.sendsSearchStringImmediately = true
         let title = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("command"))
         title.title = String(localized: "Command")
-        title.width = 350
+        title.width = 340
+        title.resizingMask = .autoresizingMask
         let keys = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("keys"))
         keys.title = String(localized: "Shortcut")
-        keys.width = 150
+        keys.width = 130
         table.addTableColumn(title)
         table.addTableColumn(keys)
+        table.headerView = nil
+        table.columnAutoresizingStyle = .firstColumnOnlyAutoresizingStyle
         table.dataSource = self
         table.delegate = self
         table.rowHeight = 25
@@ -49,11 +51,8 @@ final class CommandPaletteController: NSObject, NSTableViewDataSource, NSTableVi
         table.allowsMultipleSelection = false
         table.target = self
         table.doubleAction = #selector(run(_:))
-        let scroll = NSScrollView()
-        scroll.documentView = table
-        scroll.hasVerticalScroller = true
-        scroll.borderType = .bezelBorder
-        empty.textColor = .secondaryLabelColor
+        let list = ListBox(table)
+        list.placeholder = String(localized: "No matching commands")
         runButton.target = self
         runButton.action = #selector(run(_:))
         runButton.keyEquivalent = "\r"
@@ -62,17 +61,17 @@ final class CommandPaletteController: NSObject, NSTableViewDataSource, NSTableVi
         let buttons = NSStackView()
         buttons.addView(cancel, in: .trailing)
         buttons.addView(runButton, in: .trailing)
-        let stack = NSStackView(views: [search, scroll, empty, buttons])
+        let stack = NSStackView(views: [search, list, buttons])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
         sheet.contentView = stack
-        for view in [search, scroll, buttons] {
+        for view in [search, list, buttons] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -32).isActive = true
         }
         stack.widthAnchor.constraint(equalToConstant: 560).isActive = true
-        scroll.heightAnchor.constraint(equalToConstant: 260).isActive = true
+        list.heightAnchor.constraint(equalToConstant: 260).isActive = true
     }
 
     private func menuItem(_ command: Command) -> NSMenuItem {
@@ -104,7 +103,6 @@ final class CommandPaletteController: NSObject, NSTableViewDataSource, NSTableVi
             return ar == br ? a.title.localizedStandardCompare(b.title) == .orderedAscending : ar < br
         }
         table.reloadData()
-        empty.isHidden = !matches.isEmpty
         if query.isEmpty { table.deselectAll(nil) }
         else if !matches.isEmpty { table.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false) }
         updateRunButton()
@@ -116,13 +114,18 @@ final class CommandPaletteController: NSObject, NSTableViewDataSource, NSTableVi
         let command = matches[row]
         let shortcuts = ([command.shortcut].compactMap { $0 } + command.aliases + KeyBindings.extras(for: command))
             .reduce(into: [Shortcut]()) { if !$0.contains($1) { $0.append($1) } }
-        let label = NSTextField(labelWithString: tableColumn?.identifier.rawValue == "keys"
-            ? shortcuts.map(\.displayText).joined(separator: " / ")
-            : command.title)
+        let isKeys = tableColumn?.identifier.rawValue == "keys"
+        let label = NSTextField(labelWithString: isKeys ? shortcuts.map(\.displayText).joined(separator: " / ") : command.title)
         label.lineBreakMode = .byTruncatingTail
-        label.textColor = isEnabled(command) ? .labelColor : .disabledControlTextColor
+        // The shortcuts quieter, at the end of the row, as menus show them.
+        label.alignment = isKeys ? .right : .natural
+        label.textColor = !isEnabled(command) ? .disabledControlTextColor : isKeys ? .secondaryLabelColor : .labelColor
         return label
     }
+
+    /// The chosen row in the accent color while the search field keeps the focus,
+    /// as Spotlight shows it.
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? { EmphasizedRowView() }
 
     func tableViewSelectionDidChange(_ notification: Notification) { updateRunButton() }
     func controlTextDidChange(_ notification: Notification) { reload() }
@@ -165,5 +168,13 @@ final class CommandPaletteController: NSObject, NSTableViewDataSource, NSTableVi
         default: return false
         }
         return true
+    }
+}
+
+/// A row drawn selected as in a focused list, whichever view has the focus.
+private final class EmphasizedRowView: NSTableRowView {
+    override var isEmphasized: Bool {
+        get { true }
+        set {}
     }
 }

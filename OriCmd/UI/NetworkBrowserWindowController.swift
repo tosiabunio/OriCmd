@@ -62,19 +62,16 @@ final class NetworkBrowserWindowController: NSWindowController, NSTableViewDataS
         table.target = self
         table.doubleAction = #selector(connect(_:))
         table.identifier = NSUserInterfaceItemIdentifier("networkServers")
-        let scroll = NSScrollView()
-        scroll.documentView = table
-        scroll.hasVerticalScroller = true
-        scroll.borderType = .bezelBorder
+        let list = ListBox(table)
         let connect = NSButton(title: String(localized: "Connect…"), target: self, action: #selector(connect(_:)))
         connect.keyEquivalent = "\r"
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         let buttons = NSStackView(views: [statusLabel, connect])
-        let stack = NSStackView(views: [scroll, buttons])
+        let stack = NSStackView(views: [list, buttons])
         stack.orientation = .vertical
         stack.edgeInsets = NSEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
-        for view in [scroll, buttons] {
+        for view in [list, buttons] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -24).isActive = true
         }
         window?.contentView = stack

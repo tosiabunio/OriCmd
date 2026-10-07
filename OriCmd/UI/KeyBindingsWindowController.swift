@@ -7,7 +7,7 @@ final class KeyBindingsWindowController: NSWindowController {
     static let shared = KeyBindingsWindowController()
 
     private let searchField = NSSearchField()
-    private let table = NSTableView()
+    private let table = ListTableView()
     private let statusLabel = NSTextField(labelWithString: "")
     private var commands: [Command] = []
 
@@ -44,10 +44,8 @@ final class KeyBindingsWindowController: NSWindowController {
         table.delegate = self
         table.target = self
         table.doubleAction = #selector(change(_:))
-        let scrollView = NSScrollView()
-        scrollView.documentView = table
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
+        let list = ListBox(table)
+        list.placeholder = String(localized: "No matching commands")
 
         let buttons = NSStackView(views: [
             NSButton(title: String(localized: "Change…"), target: self, action: #selector(change(_:))),
@@ -59,15 +57,14 @@ final class KeyBindingsWindowController: NSWindowController {
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.lineBreakMode = .byTruncatingTail
 
-        let stack = NSStackView(views: [searchField, scrollView, buttons, statusLabel])
+        let stack = NSStackView(views: [searchField, list, buttons, statusLabel])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        for view in [searchField, scrollView, statusLabel] {
+        for view in [searchField, list, statusLabel] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -32).isActive = true
         }
-        scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
         window?.contentView = stack
     }
 

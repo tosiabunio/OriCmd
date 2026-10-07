@@ -5,7 +5,7 @@ import AppKit
 final class FileColorsWindowController: NSWindowController {
     static let shared = FileColorsWindowController()
 
-    private let table = NSTableView()
+    private let table = ListTableView()
     private let maskField = NSTextField(string: "")
     private let colorWell = NSColorWell(style: .minimal)
     private var rules: [ColorSettings.Rule] = []
@@ -51,10 +51,11 @@ final class FileColorsWindowController: NSWindowController {
         table.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
         table.dataSource = self
         table.delegate = self
-        let scrollView = NSScrollView()
-        scrollView.documentView = table
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
+        let list = ListBox(table, buttons: [
+            ListBox.button(.add, target: self, selector: #selector(add(_:))),
+            ListBox.button(.remove, target: self, selector: #selector(remove(_:))),
+        ])
+        list.placeholder = String(localized: "No file colors")
 
         maskField.delegate = self
         maskField.placeholderString = "*.zip;*.rar"
@@ -64,19 +65,16 @@ final class FileColorsWindowController: NSWindowController {
         let form = NSStackView(views: [NSTextField(labelWithString: String(localized: "Mask:")), maskField, colorWell])
 
         let buttons = NSStackView(views: [
-            NSButton(title: String(localized: "Add"), target: self, action: #selector(add(_:))),
-            NSButton(title: String(localized: "Remove"), target: self, action: #selector(remove(_:))),
             NSButton(title: String(localized: "Add Examples"), target: self, action: #selector(addExamples(_:))),
         ])
-        let stack = NSStackView(views: [scrollView, form, buttons])
+        let stack = NSStackView(views: [list, form, buttons])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        for view in [scrollView, form] {
+        for view in [list, form] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -32).isActive = true
         }
-        scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
         window?.contentView = stack
     }
 

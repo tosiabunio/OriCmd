@@ -3,7 +3,7 @@ import AppKit
 /// One place to inspect queued jobs, live progress, and this session's results.
 final class OperationsWindowController: NSWindowController, NSTableViewDataSource, NSTableViewDelegate {
     static let shared = OperationsWindowController()
-    private let table = NSTableView()
+    private let table = ListTableView()
     private let detail = NSTextField(wrappingLabelWithString: "")
     private let cancelButton = NSButton(title: String(localized: "Cancel Operation"), target: nil, action: nil)
     private let clearButton = NSButton(title: String(localized: "Clear Finished"), target: nil, action: nil)
@@ -54,10 +54,8 @@ final class OperationsWindowController: NSWindowController, NSTableViewDataSourc
         table.delegate = self
         table.dataSource = self
         table.allowsMultipleSelection = false
-        let scroll = NSScrollView()
-        scroll.documentView = table
-        scroll.hasVerticalScroller = true
-        scroll.borderType = .bezelBorder
+        let list = ListBox(table)
+        list.placeholder = String(localized: "No operations this session")
         detail.textColor = .secondaryLabelColor
         detail.maximumNumberOfLines = 3
         detail.lineBreakMode = .byTruncatingMiddle
@@ -70,15 +68,15 @@ final class OperationsWindowController: NSWindowController, NSTableViewDataSourc
         buttons.addView(cancelButton, in: .trailing)
         let root = NSView()
         window.contentView = root
-        for view in [scroll, detail, buttons] {
+        for view in [list, detail, buttons] {
             view.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(view)
             view.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 16).isActive = true
             view.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -16).isActive = true
         }
         NSLayoutConstraint.activate([
-            scroll.topAnchor.constraint(equalTo: root.topAnchor, constant: 16),
-            scroll.bottomAnchor.constraint(equalTo: detail.topAnchor, constant: -8),
+            list.topAnchor.constraint(equalTo: root.topAnchor, constant: 16),
+            list.bottomAnchor.constraint(equalTo: detail.topAnchor, constant: -8),
             detail.heightAnchor.constraint(equalToConstant: 44),
             detail.bottomAnchor.constraint(equalTo: buttons.topAnchor, constant: -8),
             buttons.bottomAnchor.constraint(equalTo: root.bottomAnchor, constant: -16),
@@ -166,7 +164,8 @@ final class OperationsWindowController: NSWindowController, NSTableViewDataSourc
     private func updateSelection() {
         guard rows.indices.contains(table.selectedRow) else {
             cancelButton.isEnabled = false
-            detail.stringValue = rows.isEmpty ? String(localized: "No operations this session") : String(localized: "Select an operation to inspect its result or cancel it.")
+            // An empty list says so itself.
+            detail.stringValue = rows.isEmpty ? "" : String(localized: "Select an operation to inspect its result or cancel it.")
             return
         }
         let row = rows[table.selectedRow]

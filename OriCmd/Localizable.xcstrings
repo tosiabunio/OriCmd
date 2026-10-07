@@ -5089,6 +5089,26 @@
         }
       }
     },
+    "No associations": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет ассоциаций"
+          }
+        }
+      }
+    },
+    "No commands in the Start menu": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В меню «Запуск» нет команд"
+          }
+        }
+      }
+    },
     "No differences": {
       "localizations": {
         "ru": {
@@ -5109,6 +5129,26 @@
         }
       }
     },
+    "No file colors": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цвета файлов не заданы"
+          }
+        }
+      }
+    },
+    "No folders in the hotlist": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В избранном нет каталогов"
+          }
+        }
+      }
+    },
     "No matching commands": {
       "localizations": {
         "ru": {
@@ -5125,6 +5165,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "В этом сеансе ещё нет операций"
+          }
+        }
+      }
+    },
+    "No saved connections": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет сохранённых соединений"
           }
         }
       }

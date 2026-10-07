@@ -10,7 +10,7 @@ final class ColumnSetsWindowController: NSWindowController, NSTableViewDataSourc
     private let table = NSTableView()
     private let nameField = NSTextField(string: "")
     private let foldersField = NSTextField(string: "")
-    private let removeButton = NSButton(title: "−", target: nil, action: nil)
+    private lazy var removeButton = ListBox.button(.remove, target: self, selector: #selector(removeSet(_:)))
     private let columnBoxes: [(SortColumn, NSButton)] = SortColumn.optional.map { column in
         (column, NSButton(checkboxWithTitle: FileListHeaderView.titles[column] ?? "", target: nil, action: nil))
     }
@@ -45,22 +45,9 @@ final class ColumnSetsWindowController: NSWindowController, NSTableViewDataSourc
         table.addTableColumn(column)
         table.dataSource = self
         table.delegate = self
-        let scroll = NSScrollView()
-        scroll.documentView = table
-        scroll.hasVerticalScroller = true
-        scroll.borderType = .bezelBorder
-        scroll.widthAnchor.constraint(equalToConstant: 200).isActive = true
-
-        let add = NSButton(title: "+", target: self, action: #selector(addSet(_:)))
-        removeButton.target = self
-        removeButton.action = #selector(removeSet(_:))
-        for button in [add, removeButton] {
-            button.bezelStyle = .smallSquare
-            button.widthAnchor.constraint(equalToConstant: 24).isActive = true
-        }
-        let left = NSStackView(views: [scroll, NSStackView(views: [add, removeButton])])
-        left.orientation = .vertical
-        left.alignment = .leading
+        let add = ListBox.button(.add, target: self, selector: #selector(addSet(_:)))
+        let left = ListBox(table, buttons: [add, removeButton])
+        left.widthAnchor.constraint(equalToConstant: 200).isActive = true
 
         for field in [nameField, foldersField] {
             field.delegate = self
@@ -95,6 +82,7 @@ final class ColumnSetsWindowController: NSWindowController, NSTableViewDataSourc
         stack.alignment = .top
         stack.spacing = 16
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+        left.heightAnchor.constraint(equalTo: stack.heightAnchor, constant: -32).isActive = true
         window?.contentView = stack
 
         for (view, name) in [(table, "columnSetList"), (nameField, "columnSetName"), (foldersField, "columnSetFolders"),

@@ -5,7 +5,7 @@ import AppKit
 final class ConnectionsWindowController: NSWindowController {
     static let shared = ConnectionsWindowController()
 
-    private let table = NSTableView()
+    private let table = ListTableView()
     private let nameField = NSTextField(string: "")
     private let addressField = NSTextField(string: "")
     private let passwordField = NSSecureTextField(string: "")
@@ -52,10 +52,11 @@ final class ConnectionsWindowController: NSWindowController {
         table.delegate = self
         table.target = self
         table.doubleAction = #selector(connect(_:))
-        let scrollView = NSScrollView()
-        scrollView.documentView = table
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
+        let list = ListBox(table, buttons: [
+            ListBox.button(.add, target: self, selector: #selector(add(_:))),
+            ListBox.button(.remove, target: self, selector: #selector(remove(_:))),
+        ])
+        list.placeholder = String(localized: "No saved connections")
 
         addressField.placeholderString = "sftp://user@host/path, ftp://user@host:21/"
         let form = NSGridView(views: [
@@ -69,21 +70,17 @@ final class ConnectionsWindowController: NSWindowController {
 
         let connectButton = NSButton(title: String(localized: "Connect"), target: self, action: #selector(connect(_:)))
         connectButton.keyEquivalent = "\r"
-        let buttons = NSStackView(views: [
-            NSButton(title: String(localized: "New"), target: self, action: #selector(add(_:))),
-            NSButton(title: String(localized: "Remove"), target: self, action: #selector(remove(_:))),
-            NSButton(title: String(localized: "Save"), target: self, action: #selector(save(_:))),
-            connectButton,
-        ])
-        let stack = NSStackView(views: [scrollView, form, buttons])
+        let buttons = NSStackView()
+        buttons.addView(NSButton(title: String(localized: "Save"), target: self, action: #selector(save(_:))), in: .trailing)
+        buttons.addView(connectButton, in: .trailing)
+        let stack = NSStackView(views: [list, form, buttons])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        for view in [scrollView, form] {
+        for view in [list, form, buttons] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -32).isActive = true
         }
-        scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
         window?.contentView = stack
     }
 

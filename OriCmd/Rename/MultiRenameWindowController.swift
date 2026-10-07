@@ -128,24 +128,26 @@ final class MultiRenameWindowController: NSWindowController {
         table.usesAlternatingRowBackgroundColors = true
         table.dataSource = self
         table.delegate = self
-        let scrollView = NSScrollView()
-        scrollView.documentView = table
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
+        let list = ListBox(table)
 
         statusLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
         statusLabel.lineBreakMode = .byTruncatingTail
-        let buttons = NSStackView(views: [editNames, namesFromFile, masksButton, statusLabel, undoButton, renameButton])
+        let buttons = NSStackView()
+        for view in [editNames, namesFromFile, masksButton, statusLabel] {
+            buttons.addView(view, in: .leading)
+        }
+        buttons.addView(undoButton, in: .trailing)
+        buttons.addView(renameButton, in: .trailing)
 
-        let stack = NSStackView(views: [grid, scrollView, buttons])
+        let stack = NSStackView(views: [grid, list, buttons])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        for view in [grid, scrollView, buttons] {
+        for view in [grid, list, buttons] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -32).isActive = true
         }
-        scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
+        list.setContentHuggingPriority(.defaultLow, for: .vertical)
         window?.contentView = stack
     }
 

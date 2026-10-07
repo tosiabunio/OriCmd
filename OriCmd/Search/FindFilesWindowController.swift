@@ -140,10 +140,7 @@ final class FindFilesWindowController: NSWindowController {
         resultsTable.target = self
         resultsTable.doubleAction = #selector(goToFile(_:))
         resultsTable.onReturn = { [weak self] in self?.goToFile(nil) }
-        let scrollView = NSScrollView()
-        scrollView.documentView = resultsTable
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
+        let list = ListBox(resultsTable)
 
         depthPopup.addItems(withTitles: [String(localized: "All"), String(localized: "None")] + (1...9).map(String.init))
         encodingPopup.addItems(withTitles: Self.textEncodings.map(\.title))
@@ -179,20 +176,25 @@ final class FindFilesWindowController: NSWindowController {
         tabs.addTabViewItem(templatesTab)
         updateAdvanced()
 
-        let buttons = NSStackView(views: [statusLabel, feedButton, goToButton, startButton])
+        // The status at the leading edge; the buttons at the trailing one, Start Search last.
+        let buttons = NSStackView()
+        buttons.addView(statusLabel, in: .leading)
+        for button in [feedButton, goToButton, startButton] {
+            buttons.addView(button, in: .trailing)
+        }
         statusLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
         statusLabel.lineBreakMode = .byTruncatingTail
 
-        let stack = NSStackView(views: [tabs, scrollView, buttons])
+        let stack = NSStackView(views: [tabs, list, buttons])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
         stack.edgeInsets = NSEdgeInsets(top: 12, left: 16, bottom: 16, right: 16)
-        for view in [tabs, scrollView, buttons] {
+        for view in [tabs, list, buttons] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -32).isActive = true
         }
         tabs.setContentHuggingPriority(.required, for: .vertical)
-        scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
+        list.setContentHuggingPriority(.defaultLow, for: .vertical)
         window?.contentView = stack
 
         // Identifiers for the test harness (`set:findSize=10`).
@@ -290,11 +292,8 @@ final class FindFilesWindowController: NSWindowController {
         templatesTable.delegate = self
         templatesTable.target = self
         templatesTable.doubleAction = #selector(loadTemplate(_:))
-        let scrollView = NSScrollView()
-        scrollView.documentView = templatesTable
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
-        scrollView.heightAnchor.constraint(equalToConstant: 170).isActive = true
+        let list = ListBox(templatesTable)
+        list.heightAnchor.constraint(equalToConstant: 170).isActive = true
 
         let buttons = NSStackView(views: [
             NSButton(title: String(localized: "Load"), target: self, action: #selector(loadTemplate(_:))),
@@ -307,7 +306,7 @@ final class FindFilesWindowController: NSWindowController {
         for case let button as NSButton in buttons.arrangedSubviews {
             button.widthAnchor.constraint(equalTo: buttons.widthAnchor).isActive = true
         }
-        let pane = NSStackView(views: [scrollView, buttons])
+        let pane = NSStackView(views: [list, buttons])
         pane.alignment = .top
         pane.spacing = 10
         return pane

@@ -93,10 +93,7 @@ final class SyncWindowController: NSWindowController {
         table.target = self
         table.doubleAction = #selector(toggleAction(_:))
         table.onToggle = { [weak self] in self?.toggleAction(nil) }
-        let scrollView = NSScrollView()
-        scrollView.documentView = table
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
+        let list = ListBox(table)
 
         let grid = NSGridView(views: [
             [NSTextField(labelWithString: String(localized: "Left:")), leftField],
@@ -115,15 +112,15 @@ final class SyncWindowController: NSWindowController {
         statusLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
         statusLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let stack = NSStackView(views: [grid, options, scrollView, bottom])
+        let stack = NSStackView(views: [grid, options, list, bottom])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        for view in [grid, options, scrollView, bottom] {
+        for view in [grid, options, list, bottom] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -32).isActive = true
         }
-        scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
+        list.setContentHuggingPriority(.defaultLow, for: .vertical)
         window?.contentView = stack
     }
 

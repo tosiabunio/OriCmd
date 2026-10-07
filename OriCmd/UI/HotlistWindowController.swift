@@ -4,7 +4,7 @@ import AppKit
 final class HotlistWindowController: NSWindowController {
     static let shared = HotlistWindowController()
 
-    private let table = NSTableView()
+    private let table = ListTableView()
     private var paths: [String] = []
 
     private init() {
@@ -34,22 +34,17 @@ final class HotlistWindowController: NSWindowController {
         table.addTableColumn(column)
         table.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
         table.dataSource = self
-        let scrollView = NSScrollView()
-        scrollView.documentView = table
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
-
-        let buttons = NSStackView(views: [
-            NSButton(title: String(localized: "Move Up"), target: self, action: #selector(moveEntryUp(_:))),
-            NSButton(title: String(localized: "Move Down"), target: self, action: #selector(moveEntryDown(_:))),
-            NSButton(title: String(localized: "Remove"), target: self, action: #selector(remove(_:))),
+        let list = ListBox(table, buttons: [
+            ListBox.button(.remove, target: self, selector: #selector(remove(_:))),
+            ListBox.button(.moveUp, target: self, selector: #selector(moveEntryUp(_:))),
+            ListBox.button(.moveDown, target: self, selector: #selector(moveEntryDown(_:))),
         ])
-        let stack = NSStackView(views: [scrollView, buttons])
+        list.placeholder = String(localized: "No folders in the hotlist")
+        let stack = NSStackView(views: [list])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        scrollView.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -32).isActive = true
-        scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
+        list.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -32).isActive = true
         window?.contentView = stack
     }
 

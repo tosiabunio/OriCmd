@@ -890,6 +890,12 @@ run opsbadge "alt+r wait text:eadme escape f5 wait enter wait wait toolbar"
 check "Operations in the toolbar counts a running copy, the bottom bar leaves it to the toolbar" "grep -qx 'cm_Operations badge 1' build/shots/reg-opsbadge-toolbar.txt && grep -qx 'bottom: hidden' build/shots/reg-opsbadge-toolbar.txt"
 run opsnotoolbar "cmd:toggleToolbarShown wait alt+r wait text:eadme escape f5 wait enter wait wait toolbar"
 check "with the toolbar hidden the bottom bar shows Operations again" "grep -qx 'bottom: Operations: 1 running' build/shots/reg-opsnotoolbar-toolbar.txt"
+# Lists in tool windows: an empty one says so in its middle; the symbol buttons below
+# it keep their names (+ is Add).
+run hotlistempty "cmd:configureHotlist wait"
+check "an empty hotlist says so" "grep -qx 'No folders in the hotlist' build/shots/reg-hotlistempty-win1.txt"
+run startadd "cmd:showStartMenuEditor wait click:Add wait"
+check "the Start menu's + adds a command, and the list no longer says it is empty" "grep -q '^\\[row\\] New Command' build/shots/reg-startadd-win1.txt && ! grep -qx 'No commands in the Start menu' build/shots/reg-startadd-win1.txt"
 # Column widths: dragging the edge right of a title resizes that column (Name's edge
 # the next one), Name taking the difference; a double click on the edge measures again.
 run colwide "headerdrag:size:30 columns"
