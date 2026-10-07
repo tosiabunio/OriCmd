@@ -1,6 +1,9 @@
 #!/bin/zsh
 # Plays key scenarios on fresh test data and checks the results on disk.
 cd "$(dirname $0)/../.."
+# Keeps the Mac awake while the checks run: asleep they only pause, and a full run
+# then stretches by the sleeps (17 minutes each when the user is away).
+caffeinate -i -w $$ &!
 L=build/testdata/left; R=build/testdata/right
 pass=0; fail=0
 check() { if eval "$2"; then pass=$((pass+1)); echo "ok   $1"; else fail=$((fail+1)); echo "FAIL $1"; fi; }
