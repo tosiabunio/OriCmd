@@ -1019,3 +1019,58 @@ Installed as fork build 41 ("2026.10.6 (41)").
   checksum, codesign, universal app and helper; it is the latest release. Reinstalled
   as fork build 42, "2026.10.7 (42)". The notes present phase 4; upstream base still
   0.13.3b.
+
+## Visual refresh phase 5 on 2026-10-07: the tool windows
+
+The user asked to continue the visual upgrades. A survey of every window in the
+Modern look (Debug app, demo folders, `ORICMD_DEMO` captures) found the panels
+current and the tool windows dated. Branch `modern-polish` (worktree `build/p5`):
+`a88744f` (lists), `0ab3e48` (Lister), `9373fa6` (tree, search field), `03e2638`
+(plan and README), `983d1cd` (two checks fixed); `main` = `local-build` = this, plus
+this entry. The user asked to install and push once the tests passed, then release.
+- 5.1 `UI/ListBox.swift`: `ListBox(table, buttons:)` is a rounded box (layer corner
+  8, `separatorColor` border, set in `viewDidChangeEffectiveAppearance`) around a
+  borderless scroll view; it sets `table.style = .inset`. `ListBox.button(.add /
+  .remove / .moveUp / .moveDown, target:selector:)` is a borderless symbol button
+  that keeps its title (`imagePosition = .imageOnly`), so `click:Add` and VoiceOver
+  still find it. `ListTableView` reports reloads; `placeholder` is an NSTextField
+  shown (its text set) only while the table is empty, so window dumps contain it.
+  The box has no fill: an inset table draws no background, the window's shows
+  (AppKit tints `NSColor` fills in dark mode, but not a layer's `cgColor`, so a
+  layer fill did not match). Used by the hotlist, file colors, Start menu,
+  connections (+ replaces New), associations, column sets, shortcuts, Operations
+  ("No operations this session" moved into the list), Find Files (results and
+  templates), Multi-Rename, Synchronize, the network browser and the command palette
+  (no header, shortcuts right-aligned grey, `EmphasizedRowView` keeps the chosen row
+  in the accent color while the search field has the focus). Compare, the Finder-like
+  Connect to Server sheet and the text views in alerts are unchanged. Find Files and
+  Multi-Rename put their buttons in the stack's trailing gravity area.
+- 5.2 Lister: title = file name, `subtitle` = folder (`~`) — detail (encoding,
+  book, model); `representedURL` for local files. Toolbar (unified, both looks):
+  `filesControl` (momentary P/N), `modeControl` (1/3/7; segment 2's symbol and
+  tooltip follow `richMode`: Quick Look, Table, Book, 3D Model, Page),
+  `optionsControl` (`.selectAny` W/H/F; the clicked segment is the one whose state
+  differs from `optionStates`), `NSMenuToolbarItem` of encodings, Find. Tooltips are
+  "Title (key)". `updateToolbar()` runs from `updateTitle()` and the toggles. Text
+  inset 10 × 8.
+- 5.3 Tree: Modern sets `.inset` and keeps the outline column at the panel's width
+  (`autoresizesOutlineColumn = false`), else the column grows with deep folders and
+  the rounded ends leave the view. The tree cannot show folders under `/tmp`
+  (`/private` is hidden, symlinks are left out). Quick search: `PanelView.
+  quickSearchField` is an `NSSearchField` in both looks (`FilePanelController` is its
+  `NSSearchFieldDelegate`; doCommandBy still gets Escape/Return/arrows first).
+- Test harness: a window dump's first line is "title — subtitle"; `toolbar` lists the
+  frontmost window's toolbar (a sheet's owner), segmented controls as
+  "tooltip ✓ (off), …". `cmd:cm_InternalAssociate` opens Associations. New checks:
+  the Lister's title and toolbar in text and hex (on `cp1251.txt`: the test data's
+  `readme.txt` is random bytes and opens in hex), an empty hotlist's placeholder,
+  the Start menu's + (`click:Add`).
+- Left for later (in the plan): the Thumbnails `..` tile, Compare's text frames.
+- Validation: 374 of 376 regression checks on the first run; the two failures were
+  the tests' (the hang check still expected `spin2.swift]` of the old title; the
+  toolbar dump marked buttons a sheet disables, so `cm_Operations badge 1` no longer
+  matched exactly). Fixed and rerun with the new checks on the final build: all pass.
+  Five UX suites, 11 accessibility checks, 13 core tests, localization; captures of
+  every changed window in light and dark.
+- When rerunning a few checks, a copy of regress.sh's header must `cd` to the
+  worktree: its `cd "$(dirname $0)/../.."` is relative to where the copy lies.
