@@ -23,6 +23,8 @@ final class MainViewController: NSViewController {
     private var bottomBarHeight: NSLayoutConstraint!
     private var bottomConstraints: [NSLayoutConstraint] = []
     private var bottomIsBar: Bool?
+    /// Whether the keys are alone in the bar, centered.
+    private var keysCentered: Bool?
     /// The active panel's folder, for the sidebar's highlight.
     var onLocationChange: ((URL) -> Void)?
 
@@ -155,6 +157,7 @@ final class MainViewController: NSViewController {
         if bar {
             root.addSubview(bottomBar)
             root.addSubview(bottomSeparator)
+            keysCentered = nil
             bottomBar.setViews([commandLine.view, functionKeyBar, operationsButton], in: .leading)
             commandLine.view.setContentHuggingPriority(.defaultLow, for: .horizontal)
             functionKeyBar.setContentHuggingPriority(.required, for: .horizontal)
@@ -174,7 +177,9 @@ final class MainViewController: NSViewController {
                 functionKeyBar.heightAnchor.constraint(equalToConstant: 24),
             ]
         } else {
-            bottomBar.setViews([], in: .leading)
+            for area in [NSStackView.Gravity.leading, .center, .trailing] {
+                bottomBar.setViews([], in: area)
+            }
             for part in parts {
                 root.addSubview(part)
             }
@@ -264,6 +269,14 @@ final class MainViewController: NSViewController {
     /// The bar takes no room when nothing in it is shown.
     private func updateBottomBar() {
         guard bottomIsBar == true else { return }
+        // Without the command line the keys are centered, Operations still at the end.
+        let centered = commandLine.view.isHidden
+        if centered != keysCentered {
+            keysCentered = centered
+            bottomBar.setViews(centered ? [] : [commandLine.view, functionKeyBar, operationsButton], in: .leading)
+            bottomBar.setViews(centered ? [functionKeyBar] : [], in: .center)
+            bottomBar.setViews(centered ? [operationsButton] : [], in: .trailing)
+        }
         let empty = commandLine.view.isHidden && functionKeyBar.isHidden && operationsButton.isHidden
         bottomBarHeight.constant = empty ? 0 : Self.bottomBarHeight
         bottomSeparator.isHidden = empty
