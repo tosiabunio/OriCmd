@@ -20,7 +20,9 @@ final class PanelView: NSView {
     let listView = FileListView()
     let statusLabel = NSTextField(labelWithString: "")
     /// Quick search box shown over the status line.
-    let quickSearchField = NSTextField()
+    /// Quick search and the quick filter: a search field, with its magnifier and its
+    /// button that clears the text.
+    let quickSearchField = NSSearchField()
     let terminalPane = TerminalPane()
 
     var onVolumeSelected: ((Volume) -> Void)?
@@ -94,6 +96,7 @@ final class PanelView: NSView {
         quickSearchField.font = Theme.chromeFont
         quickSearchField.placeholderString = String(localized: "Quick search")
         quickSearchField.isHidden = true
+        quickSearchField.sendsSearchStringImmediately = true
 
         loadingIndicator.style = .spinning
         loadingIndicator.controlSize = .small

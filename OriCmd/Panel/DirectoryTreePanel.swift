@@ -70,6 +70,16 @@ final class DirectoryTreePanel: NSView {
         outline.headerView = nil
         outline.rowHeight = Theme.rowHeight
         outline.indentationPerLevel = 14
+        // The modern look rounds the selection as it rounds the panels' cursor, in
+        // the accent color while the tree has the focus and grey otherwise.
+        if Settings.isModern {
+            outline.style = .inset
+            // The column as wide as the panel, so the rounded ends stay in view however
+            // deep the folders go (long names are cut short instead).
+            outline.autoresizesOutlineColumn = false
+            column.resizingMask = .autoresizingMask
+            outline.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
+        }
         outline.dataSource = self
         outline.delegate = self
         outline.onSwitchPanel = { [weak self] in self?.onSwitchPanel?() }
@@ -77,7 +87,7 @@ final class DirectoryTreePanel: NSView {
         let scrollView = NSScrollView()
         scrollView.documentView = outline
         scrollView.hasVerticalScroller = true
-        scrollView.borderType = .lineBorder
+        scrollView.borderType = Settings.isModern ? .noBorder : .lineBorder
 
         for view in [titleBar, scrollView] {
             view.translatesAutoresizingMaskIntoConstraints = false

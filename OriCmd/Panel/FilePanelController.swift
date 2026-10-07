@@ -2233,7 +2233,7 @@ extension FilePanelController: NSMenuItemValidation {
 
 // MARK: - Quick search
 
-extension FilePanelController: NSTextFieldDelegate {
+extension FilePanelController: NSSearchFieldDelegate {
     /// Ctrl+S: shows the box as a quick filter (Enter keeps the filter, Esc removes it).
     @objc(cm_QuickFilter:)
     func quickFilterCommand(_ sender: Any?) {
