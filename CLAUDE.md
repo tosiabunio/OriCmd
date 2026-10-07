@@ -800,3 +800,40 @@ icon and the regenerated README screenshots; upstream base still 0.13.3b.
 `local-build` fast-forwarded and pushed; reinstalled as fork build 34, so About
 reads "2026.10.4 (34)". CLAUDE.md was then committed to the repository (see "This
 file" at the top) and the main checkout moved to `main`.
+
+## Settings split to fit the screen on 2026-10-07
+
+The user reported (urgently) that Settings → Panels was taller than their screen:
+1,436 pt against 1,027 pt of visible height on a 16" MacBook Pro (1728×1117), after
+phase 3's rounded groups. Branch `settings-fit` (worktree `build/sf`), commit
+`714bb7b`; `main` = `local-build` = `714bb7b`.
+- New **Window** pane (`WindowPane`, symbol `macwindow`) after Panels: "Main window"
+  (command line, function keys, key caps, sidebar, drive buttons, Customize
+  Toolbar…) and "Tabs and header" (Mac-style tabs, compact header). It refreshes on
+  `Settings.didChange`, so the Look popup (in Panels) and ⌃⌘S update it.
+- **Panels** keeps Look, Font, File list (folder brackets and the optional-columns
+  note moved here) and Mouse; its preview was dropped (Colors has the same one).
+  Heights now: General 342, Panels 838 (Russian 894), Window 474, Colors 902,
+  Operations 636, Keyboard 484 pt. `ORICMD_SETTINGS_TAB`: 0 General, 1 Panels,
+  2 Window, 3 Colors, 4 Operations, 5 Keyboard.
+- `SettingsPane` puts its content in a flipped view inside an `NSScrollView`; its
+  `preferredContentSize` height is capped at the screen's visible height − 100
+  (title bar and toolbar), the rest scrolls, and it is recomputed on
+  `Settings.didChange` (the preview's height follows the look and density).
+  `naturalWidth` gives the width for the common one. Debug: `ORICMD_SETTINGS_HEIGHT`
+  overrides the cap.
+- `SettingsTabs.tabView(_:willSelect:)` moves the window up before a taller pane
+  would grow past the bottom of the visible frame (NSTabViewController keeps the
+  top edge when it resizes).
+- Test snapshots from `run.sh` are scaled to fit 1100 pixels, so compare their
+  proportions, not heights (`tallness` in `regress.sh`). Two new checks: the cap
+  scrolls, and the Colors pane shrinks when rows become compact.
+- The README Settings screenshot now shows Colors (with the preview);
+  `scripts/screenshots.sh` uses `ORICMD_SETTINGS_TAB=3`.
+- Installed as fork build 35 (`714bb7b`, About "2026.10.4 (35)"); pushed to the fork
+  with `settings-fit` at the user's request once the tests passed.
+- Validation: 367 of 367 regression checks (the two new ones included), 13 core
+  tests, localization, snapshots of every pane in English and Russian, and a low
+  window moved up when switching to Colors. Two steps of this run (test data setup
+  after the SMB-cancel and promise-paste checks) each stalled about 16 minutes
+  outside the app, which earlier runs did in seconds; the cause is unknown.
