@@ -355,6 +355,25 @@ final class FileListView: NSView {
 
     static let thumbnailSize: CGFloat = 112
 
+    /// [..] among the thumbnails in the modern look: a folder as big as the others,
+    /// faded, with the arrow up to it.
+    private static let parentThumbnail: NSImage = {
+        let size = NSSize(width: thumbnailSize, height: thumbnailSize)
+        let folder = FileIcons.folder(tagColor: 0, size: size)
+        let arrow = NSImage(systemSymbolName: "arrow.turn.left.up", accessibilityDescription: nil)?
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 34, weight: .semibold)
+                .applying(NSImage.SymbolConfiguration(paletteColors: [.white])))
+        return NSImage(size: size, flipped: false) { bounds in
+            folder.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 0.55)
+            if let arrow {
+                // In the folder's body, below its tab.
+                arrow.draw(in: NSRect(x: bounds.midX - arrow.size.width / 2, y: bounds.midY - arrow.size.height / 2 - 6,
+                                      width: arrow.size.width, height: arrow.size.height))
+            }
+            return true
+        }
+    }()
+
     private var thumbnailCell: NSSize {
         NSSize(width: Self.thumbnailSize + 20, height: Self.thumbnailSize + rowHeight + 14)
     }
@@ -608,15 +627,18 @@ final class FileListView: NSView {
         }
         let imageArea = NSRect(x: rect.minX + (rect.width - size) / 2, y: rect.minY + 6, width: size, height: size)
         let image: NSImage
-        if item.isParent || item.isFolder {
+        if item.isParent, Settings.isModern {
+            image = Self.parentThumbnail
+        } else if item.isParent || item.isFolder {
             image = item.isParent ? FileIcons.icon(for: item)
                 : FileIcons.folder(tagColor: item.tagColor, size: NSSize(width: size, height: size))
         } else {
-            image = ThumbnailCache.shared.thumbnail(for: item.url, size: size) { [weak self] in
+            image = ThumbnailCache.shared.thumbnail(for: item.url, size: size, asIcon: Settings.isModern) { [weak self] in
                 self?.setNeedsDisplay(rect)
             } ?? NSWorkspace.shared.icon(forFile: item.url.path)
         }
-        let scale = min(size / max(image.size.width, 1), size / max(image.size.height, 1), item.isParent ? 1 : 8)
+        let scale = min(size / max(image.size.width, 1), size / max(image.size.height, 1),
+                        item.isParent && !Settings.isModern ? 1 : 8)
         let drawn = NSSize(width: image.size.width * scale, height: image.size.height * scale)
         image.draw(in: NSRect(x: imageArea.midX - drawn.width / 2, y: imageArea.maxY - drawn.height,
                               width: drawn.width, height: drawn.height),
