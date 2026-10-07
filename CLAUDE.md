@@ -1,0 +1,802 @@
+# OriCmd — tosiabunio fork
+
+A two-panel file manager for macOS in the style of Total Commander. It is written in
+Swift and AppKit, without SwiftUI. The interface is in English and Russian. See
+`README.md` for what the app does and which keys it uses.
+
+The user intends this fork to remain an independent project. Selected changes
+from `mmag/OriCmd` may be imported, but a merge of the fork back upstream is not
+planned. Preserve upstream attribution and direct installation and contributions
+to `tosiabunio/OriCmd`.
+
+## This file
+
+Since 2026-10-07 CLAUDE.md is part of the repository (the user's choice: Claude is
+the fork's main contributor). It is public on GitHub, so keep secrets and personal
+data out of it (key contents, email addresses, account names, home-folder paths).
+The main checkout (the repository root) stays on `main`; update CLAUDE.md there and
+commit it with the work it describes (it travels with `main` and `local-build`).
+Feature branches still live in worktrees under `build/`. Releases run from the main
+checkout, where `scripts/release.sh` finds the signing key at its default path; the
+former `build/rel` worktree is gone. Entries below that say the primary checkout is
+on `key-caps` or that releases ran from `build/rel` describe how it was then.
+
+The fork uses calendar versions `YEAR.MONTH.RELEASE`, starting with `2026.10.0`.
+Increment RELEASE for another release in the same month and start at 0 for the
+first release of a new month. Use a four-digit year and an unpadded month (1–12).
+Version changes are explicit, not based on the date of every build. Preserve this
+numbering during upstream imports; record upstream versions/commits separately.
+The app's internal build number and the local install counter keep increasing.
+
+## Environment on this machine
+
+- Xcode 27.0 is installed in `/Applications/Xcode.app`. It is the active developer
+  directory (set with `xcode-select`) and its licence has been accepted.
+- The project needs Xcode 16 or later (`objectVersion = 77`), macOS 14 or later
+  (`MACOSX_DEPLOYMENT_TARGET = 14.0`) and Swift 6.0.
+- Dependencies:
+  - **SwiftTerm**, a Swift package pinned to an exact version. Xcode downloads it on
+    the first build, which needs access to GitHub.
+  - **libarchive**, the copy built into macOS (`/usr/lib/libarchive.2.dylib`).
+    `CLibArchive/` holds the declarations OriCmd uses, because the SDK ships no
+    headers for it. Nothing needs installing, and Homebrew's libarchive is not used.
+- Signing is ad hoc (`CODE_SIGN_IDENTITY = "-"`) and needs no team or certificate.
+- `sudo` cannot read a password through the `!` prefix. When a command needs admin
+  rights, run it through
+  `osascript -e 'do shell script "…" with administrator privileges'`, which shows the
+  system password dialog.
+
+## Building
+
+`build/` is ignored by git. Put all build output in it.
+
+```sh
+# Debug build, the one the test scripts use
+xcodebuild -project OriCmd.xcodeproj -scheme OriCmd -configuration Debug \
+  -derivedDataPath build/DerivedData build
+# → build/DerivedData/Build/Products/Debug/OriCmd.app
+
+# Release build for both Apple Silicon and Intel, as scripts/make-dmg.sh makes it
+xcodebuild -project OriCmd.xcodeproj -scheme OriCmd -configuration Release \
+  -derivedDataPath build/release/DerivedData ONLY_ACTIVE_ARCH=NO build
+# → build/release/DerivedData/Build/Products/Release/OriCmd.app
+```
+
+The output of `xcodebuild` is long. Send it to a log file and search the log for
+`error:`, `warning:` and `BUILD (SUCCEEDED|FAILED)`. Two warnings are known and can be
+ignored:
+- a `weak var` that could be `let` in `Viewer/ListerWindowController.swift:489`
+- "Metadata extraction skipped" from the App Intents step
+
+## Installing the custom build
+
+The user runs their own build from `/Applications/OriCmd.app` instead of the official
+release.
+- The Homebrew cask `mmag/tap/oricmd` has been uninstalled so that `brew upgrade`
+  does not replace the custom build.
+- The user's settings are in `~/Library/Preferences/ru.themmag.OriCmd.plist`. Do not
+  delete them. Do not use `brew uninstall --zap`, because it deletes them.
+
+`/Applications/OriCmd.app` is built from the branch `local-build`, which is pushed
+only to the fork, never sent upstream. It is a merge of the feature branches (see "Work in progress"), checked
+out as a git worktree in `build/local-build`. After a feature branch changes, merge it
+there (`git -C build/local-build merge <branch>`), then build and install from that
+worktree. Install with `build/local-build/scripts/install-local.sh` (from the `fork-about`
+branch). It makes the Release build, quits only the installed copy (`pkill -x OriCmd`
+would also kill a test run's Debug app) and installs it. It also numbers the build:
+the counter is in `.git/oricmd-fork-build`, shared by all worktrees, and goes up by one
+on every install. About shows the calendar version with this number in
+parentheses, and "tosiabunio fork" below. Its icon, app name, copyright and full
+dependency notices remain visible, with clickable original-project, fork and
+dependency links. The commit (with `+` for an uncommitted checkout) stays in
+bundle metadata for diagnostics. While tests run, start the
+installer with `nice -n 19`.
+
+- The app's own updater (`App/Updater.swift`) checks the fork's GitHub Releases
+  (`tosiabunio/OriCmd`) once a day and asks before installing. It verifies an Ed25519
+  manifest against `OriCmd/UpdateSigningPublicKey.txt`, then the image's size and
+  SHA-256 before mounting. Unsigned releases offer their browser page instead.
+  The check can be turned off in Settings → General.
+- The private update publishing key is in the primary checkout at
+  `build/update-signing/private.key` (0600), with a copy in the
+  `build/review-updates` worktree. Both are ignored by Git. Preserve the key before
+  cleaning build directories; never commit it or include it in the app. Publishing
+  from another worktree needs `ORICMD_UPDATE_SIGNING_KEY` set to this path. See
+  `docs/authenticated-updates.md` on `local-build`.
+- To go back to the official app: `brew install --cask --force mmag/tap/oricmd`.
+- `brew cat` turns on Homebrew's developer mode as a side effect. Run
+  `brew developer off` afterwards.
+
+## Code layout (`OriCmd/`)
+
+- `App/`: the app delegate, main menu, `Settings.swift` (preferences),
+  `AppDefaults.swift` (the settings store; test runs use a separate suite),
+  `Updater.swift` and `DebugAutomation.swift` (key playback for tests).
+- `Panel/`: the file panels. `FileListView.swift` draws the Full, Brief and Thumbnails
+  views; `FileListView+Accessibility.swift` exposes their rows and actions.
+  `FilePanelController.swift` handles panel lifecycle and loading folders; its
+  `+Locations`, `+Tabs`, `+Archives` and `+Transfers` extensions group related state
+  and operations. See `docs/panel-controller.md` on `local-build`.
+- `FileSystem/`, `Archive/`, `Remote/` (FTP and SFTP), `Commands/` (`cm_` commands and
+  key bindings), `Search/`, `Sync/`, `Rename/`, `Tools/`, `Viewer/` (the F3 Lister).
+- `UI/`: windows and dialogs. `SettingsWindowController.swift` holds the Settings panes
+  and `ColorSettings.swift` the panel colors.
+- `Highlighter/`: the `OriCmdHighlighter` XPC service, a locked-down service built with
+  the app. It does syntax highlighting with bundled minified JS libraries.
+- `Localizable.xcstrings`: the string catalog. Strings are written in English in the
+  code and translated into Russian (`ru`) in the catalog.
+
+## Conventions
+
+- **Adding a setting:**
+  1. Add a key to `Settings.Key` and a property built on `bool(_:default:)` or
+     `set(_:_:)`. Setting a value posts `Settings.didChange`, which redraws the panels
+     through `MainViewController.settingsDidChange` → `FilePanelController` →
+     `FileListView.settingsDidChange`.
+  2. Add a control in the matching pane of `SettingsWindowController.swift`, using
+     `row`, `checkbox` and `note`.
+  - Example: `Settings.showsFolderBrackets` together with `Settings.panelName(_:isFolder:)`.
+    Any code that shows a folder name in a panel should call `panelName` and not add
+    the `[ ]` itself.
+- **Localization:** every user-facing string goes through `String(localized:)`. After a
+  build, `python3 scripts/test/loc.py` lists keys that are missing from the catalog.
+  `python3 scripts/test/loc.py ru.json` adds Russian translations from a
+  `{"English": "Русский"}` file. Its output must be `[]`.
+- **Code style:** follow the existing code. Doc comments (`///`) are written as plain
+  sentences, there are few inline comments, and access is `private` wherever possible.
+- **Commit messages:** a single line written as a sentence that describes the change
+  as the user sees it. The repo's history has many examples.
+- **Docs:** the fork's README is English only (`README.md`). The user removed
+  `README.ru.md` and `docs/screenshots/ru` on 2026-10-06 (branch `drop-ru-readme`);
+  do not recreate them. Upstream still edits `README.ru.md`, so an import may show a
+  modify/delete conflict there: keep it deleted. The app itself stays bilingual, so
+  the Russian string catalog is still maintained.
+
+## Testing
+
+The Debug app can play keystrokes and save snapshots of its windows. It only does this
+on throw-away folders in `build/testdata`, never on real files, and it uses a separate
+settings suite, `ru.themmag.OriCmd.tests`. Details are in `scripts/test/README.md`.
+
+```sh
+scripts/test/mkdata.sh                    # recreate build/testdata/{left,right}
+scripts/test/run.sh <name> "<keys>"       # e.g. "down space f5 wait enter" → build/shots/<name>.png
+scripts/test/regress.sh                   # main file operations, checked on disk
+```
+
+- To test a setting, write it to the test suite before the run, for example
+  `defaults write ru.themmag.OriCmd.tests ShowFolderBrackets -bool false`.
+  `run.sh` deletes that suite when it finishes.
+- To check a UI change, read the snapshot PNG. `<name>-names.txt` (from
+  `extensions-with-names`) has the Name and Ext text of each cursor row as Full view
+  draws it.
+- Never run two test runs at the same time, even in different worktrees. They share
+  the `ru.themmag.OriCmd.tests` settings suite, and `run.sh` deletes it after every
+  step, so one run wipes or leaks settings into the other.
+
+- `scripts/test/check.sh` runs the independent core tests and localization check.
+  `scripts/test/update-auth.sh` uses disposable keys to test authentication and
+  publishing. `scripts/test/accessibility.sh` exercises live row APIs and actions.
+  These scripts are on their review branches and integrated into `local-build`.
+  The shared UI launcher lock and fresh completion markers reject overlapping or
+  incomplete runs; never run two UI suites together.
+
+- `regress.sh` needs GNU `timeout`. It comes from Homebrew's `coreutils` (installed)
+  as `/opt/homebrew/bin/timeout`. A full run takes well over 10 minutes, so run it
+  in the background with a long time limit.
+
+## Things not to do without asking
+
+- Run `scripts/release.sh`. It sets the version, builds and signs the image,
+  commits, tags, pushes and publishes a fork GitHub release with its manifest
+  and signature.
+- Push branches or open pull requests.
+
+## GitHub
+
+- The user is `tosiabunio` on GitHub. `origin` is the upstream source
+  `mmag/OriCmd`; `fork` is the independently developed `tosiabunio/OriCmd`.
+  Development and contributions target the fork. Existing upstream PR notes
+  below describe earlier work; do not open a new upstream PR unless explicitly
+  requested. An explicitly requested upstream PR needs its own branch from
+  `origin/main` containing only the relevant commits.
+- Since 2026-10-03 (the user's choice) the fork's `main` and the local `main` equal
+  `local-build`: every feature branch plus `fork-about`, merged with upstream. They
+  are no longer a copy of `mmag/OriCmd` main. New fork features and upstream import
+  branches start from fork `main`, remain separate, and are integrated into
+  `local-build`. Select upstream changes for compatibility with the fork instead
+  of assuming that every upstream change must be imported. Test an import, then
+  fast-forward `main` to the integration and push to `fork`. Preserve the fork's
+  behavior, preferences, signing key and independent version policy.
+- Upstream imports continue (the user's wish, 2026-10-07): integrate upstream
+  changes that do not conflict with the fork's direction, even now that the fork
+  has its own look. When asked to "integrate changes from upstream":
+  `git fetch origin`, list `git log <last imported>..origin/main`, and if there is
+  nothing new, say so and change nothing. Otherwise merge `origin/main` on a new
+  `upstream-<version>` branch from `main` in a short worktree path (the path bar
+  check fails in long ones), keep the fork's version and the higher internal build
+  number, update the README's "latest imported upstream checkpoint" line, run the
+  full tests, fast-forward `main` and `local-build`, install, and push to the fork
+  once the user agrees (pushing still needs asking). Where an
+  upstream change conflicts with the fork (its look, the Look setting, the sidebar,
+  the bottom bar, dialogs restyled here), keep the fork's behavior and port the
+  upstream fix into it rather than dropping either; ask only when the two cannot
+  both be kept.
+- Last upstream check: 2026-10-07. `origin/main` was still `a7cda51` (0.13.3b,
+  2026-10-05), already merged; nothing to import.
+
+## Work in progress
+
+- Branch `folder-brackets-option` (from `main` at the 0.12b release) has commit
+  `2b90976`. It adds an option to show folder names without `[ ]`: Settings → Panels →
+  Window → "Folder names in [brackets]", on by default.
+- Commit `dba61da` on the same branch makes windows keep their size between launches.
+  `NSWindow.rememberFrame(as:)` in `App/AppDefaults.swift` must be called *after*
+  `super.init(window:)`, because `NSWindowController` clears the window's autosave
+  name. It also saves the window's real frame under `WindowFrame <name>`, because
+  AppKit's autosave stores a filled or tiled window about 40 pt too short.
+- The window fix alone is on branch `window-frame-fix` (cherry-picked from `main`) and
+  open as https://github.com/mmag/OriCmd/pull/1.
+- Branch `path-breadcrumbs` (from `main`) has commit `d1f37ca`: the path bar works as
+  breadcrumbs. Open as https://github.com/mmag/OriCmd/pull/2.
+- Branch `fork-about` (from `main`), commit `22b039c`, is fork-only and must never go
+  into a PR to `mmag/OriCmd`. It adds the fork line in the About window (Info.plist
+  keys `OriCmdFork*` from `Config/OriCmd-Info.plist`, filled from the build settings
+  `ORICMD_FORK*`) and `scripts/install-local.sh`.
+- Branch `extensions-with-names` (from `main`), commit `dfa357d`: Settings → Panels →
+  File list → "File extensions: In their own column / After the name" (key
+  `ExtensionDisplay`). Pushed to the fork, no PR yet.
+- Branch `finder-menu-items` (from `main`): the context menu ends with Share and Tags,
+  as in the Finder, and AppKit adds Services below. Open as https://github.com/mmag/OriCmd/pull/3.
+  - Root cause of the missing and wrong Services: OriCmd never called
+    `NSApp.registerServicesMenuSendTypes`. It now registers `.fileURL` +
+    `NSFilenamesPboardType` (`AppDelegate`), as ForkLift does. AppKit then adds
+    Services to the context menu by itself, filtered as in System Settings → Keyboard
+    Shortcuts → Services → Files and Folders (SnailSVN included).
+  - The earlier `ServicesLoan` (lending `NSApp.servicesMenu` to the context menu) was
+    a workaround for the missing registration. It showed the wrong list, a second
+    Services entry once registration was added, and was the suspect for the crash
+    below. It has been removed.
+  - Finder color tag names depend on the Finder's language (Polish here: "Czerwony"…).
+    Writing an English "Red" makes a new uncoloured tag. `FinderTags.colorNames()`
+    finds the real names by writing candidates to a scratch file.
+  - Upstream bug: Services never received the files, not even from the menu bar.
+    `writeSelection(to:types:)` was a plain `@objc` method, so Swift exported it as
+    `writeSelectionTo:types:` instead of `writeSelectionToPasteboard:types:`. Fixed by
+    `extension FileListView: NSServicesMenuRequestor` (commit `935ffa3`). Check a
+    selector with `strings -a <binary> | grep '^writeSelection'`.
+  - Services also get the files in every form: URLs, `NSFilenamesPboardType` and the
+    path text. SnailSVN's service declares paths but reads the text.
+  - The crashes after using the context menu were not caused by Services. They were
+    caused by an upstream bug: see `fix-draw-range`.
+  - Test runs stay in the background, where AppKit neither filters Services nor adds
+    it to context menus. Check Services by hand in the installed app.
+- Branch `fix-draw-range` (from `main`) fixes an upstream crash (on `main` since
+  2026-09-27).
+  - Cause: `FileListView.draw` built `max(first,0)...min(last,count-1)` before its
+    guard. When only the empty area below the last row needed drawing (a menu
+    closing over a short list), the range ran backwards and Swift trapped
+    (SIGTRAP, "Range requires lowerBound <= upperBound").
+  - Commit `a282cca` fixes it and adds a regression check (the `drawbelow` test
+    action). Commit `2f6f2e1` makes test runs launch with
+    `-ApplePersistenceIgnoreState YES`. After a crash, macOS asks "reopen windows?",
+    and that alert stopped every test run, because test runs share the app's restore
+    state.
+  - Open as https://github.com/mmag/OriCmd/pull/4. Merged into `local-build`.
+- The user runs the Mole cleaner (`~/Library/Logs/mole`). It seems to remove standard
+  `~/Library` folders such as `Saved Application State` and `Logs/DiagnosticReports`.
+- `~/Library/Logs/DiagnosticReports` was missing, so macOS could not save crash
+  reports ("destination is unavailable"). It was created on 2026-10-02; read new
+  `.ips` reports there.
+- In Release builds, `NSLog` text appears as `<private>` in `log show`. For temporary
+  diagnostics use `Logger` with `privacy: .public`.
+- Branch `folder-tag-colors` (from `main`), commit `cce069b`: folders are drawn in
+  their Finder tag color (`labelNumberKey`, read with the listing into
+  `FileItem.tagColor`; `FileIcons.folder(tagColor:size:)` tints the icon). Pushed to
+  the fork. Full regression suite passed (166 checks) on 2026-10-02. No PR for now;
+  the user decides when.
+  - The folder watcher (kqueue: write/delete/rename/link) does not see tag changes,
+    so tags changed in the Finder show after a refresh.
+  - In `local-build` only (the merge commit `ec768f3`), the context menu's Tags item
+    calls `reread()`, so the color shows at once. This needs both branches; add it
+    when both are upstream.
+- Branch `short-sizes` (from `main`), commit `e781c41`: Settings → Panels → File list →
+  Sizes: Short (Finder-style decimal units through `ByteCountFormatter`, `.file`, no
+  "Zero KB"; the default) or Exact. It applies to the Size column, the status line,
+  the free space and the Synchronize window. `Settings.formattedSize` /
+  `Settings.shortSize` (nonisolated). The listing carries `VolumeSpace`, not the text,
+  so free space is formatted on the main thread. Pushed to the fork, no PR.
+- UX changes modelled on ForkLift (chosen 2026-10-02). Each is a setting that is
+  **on by default** (the user's choice), with the old TC look one click away:
+  - `key-caps` (from `main`), commit `ac1975c`: the function key bar draws keys as
+    key caps. `Settings.showsFunctionKeyCaps` (`FunctionKeyCaps`).
+  - `mac-tabs` (from `main`), commit `8c2687d`: folder tabs with the folder's icon, a
+    rounded selected card and a close button on hover. `Settings.macStyleTabs`
+    (`MacStyleTabs`). Test actions `tabhover:N`, `tabclose:N`.
+  - `compact-header` (from `path-breadcrumbs`, so it needs PR #2 first), commit
+    `abfdad9`: no volume row; the path bar starts with a volume chip (menu of
+    volumes), ends with the free space (only when the whole path fits) and shows the
+    mask only as a filter chip. `Settings.compactPanelHeader` (`CompactPanelHeader`).
+    Test action `volumemenu`. The free space text is the volume row's own, so it
+    follows `short-sizes` once both are merged.
+  - `status-summary` (from `short-sizes`), commit `48743e6`: Finder-style status line
+    ("2 of 15 selected · 35 KB of 1,2 MB"). `Settings.plainStatusLine`
+    (`PlainStatusLine`). The catalog's first plural variations (`%lld files`,
+    `%lld folders`) were written into the JSON by hand; `loc.py` cannot add plurals.
+  - `key-caps` has a second commit `0f2919c` (more padding, a 28 pt bar).
+  - All four are pushed to the fork; none is in a PR yet.
+- `local-build` = `folder-brackets-option` + `window-frame-fix` + `path-breadcrumbs`
+  + `fork-about` + `extensions-with-names` + `finder-menu-items` + `fix-draw-range`
+  + `folder-tag-colors` + `short-sizes` + `key-caps` + `mac-tabs` + `compact-header`
+  + `status-summary`, merged with upstream 0.12.1b (`6078929`; the upstream
+  middle-click tab closing was combined with the Mac-style tabs).
+- `git merge` of the string catalog can conflict as text; merge it as JSON instead
+  (take `git show :2:` and `:3:` of the file, union the `strings`, dump with
+  `indent=2, sort_keys=True, ensure_ascii=False` like `loc.py`).
+- When resolving "both sides added" conflicts by concatenating, check the shared
+  closing lines: git keeps a common `}` outside the conflict block, so pasting both
+  sides drops a brace (this broke the `short-sizes` merge build once). Merging `extensions-with-names` conflicted
+  with the brackets option; it was resolved so folder names go through
+  `Settings.panelName` in both modes.
+  It is what `/Applications/OriCmd.app` is built from.
+- All branches are pushed to the fork (`git push fork <branch>`; each tracks
+  `fork/<branch>`).
+- More changes are planned. Each feature gets its own branch from `main`, and is then
+  merged into `local-build`.
+
+## UX improvements installed on 2026-10-03
+
+Fork build 18 (`384adbe`) is installed. Local `main` and `local-build` point to this
+integration; the root checkout remains on `key-caps`. These new branches are local:
+
+- `ux-copy-dialog` (`810ae88`): source, destination, names and marked/cursor scope;
+  explicit Copy/Move buttons and an always-visible overwrite summary.
+- `ux-selection-markers` (`898f777`): checkmarks in Full, Brief and Thumbnails;
+  Settings → Panels → Show checkmarks on marked items, on by default.
+- `ux-operations` (`7dc9269`): shared Operations window, panel indicator, pending-job
+  cancellation, live progress and session results (most recent 100 finished jobs).
+  Cancelling from Operations also dismisses an outstanding overwrite question.
+- `ux-filter-indicators` (`ff317c7`): text and mask rules together, match count,
+  clear button and accessible clear action in either header style.
+- `ux-command-palette` (`fb72b3a`): Commands → Run Command… (Shift+Cmd+P), localized
+  names or cm_* search, current keys including aliases, validated execution,
+  recent commands and focus restoration. Exact title matches ignore trailing
+  ellipses; a customized plus key displays as +, not as its modifier prefix.
+
+All five feature branches started from `main` at `07a05fb`, and remain separate.
+English/Russian README and catalog updates are included on each branch.
+
+Validation: 13 core tests, the first 78 existing file-operation regression checks
+(before the Associations section), 11 live accessibility checks, all five
+`scripts/test/ux-*.sh` suites, and English/Russian and light/dark visual checks.
+The installed app matches the universal Release bundle and passes deep strict
+codesign verification. Nothing was pushed or published for these UX branches.
+
+Run UI suites serially. Finish rebuilding the Debug app before testing it; never
+replace the tested Debug bundle during a running UI suite. A Release build with a
+separate DerivedData directory can run alongside the Debug UI tests.
+
+## Clickable drive capacity installed on 2026-10-03
+
+Fork build 19 (`64325cb`) includes local branch `clickable-drive-space` (`47a0aab`).
+Clicking the free-space or total-capacity readout opens Finder's information window
+for the clicked panel's current volume, in either compact or classic headers.
+The readout has a hand cursor, a localized Drive Information tooltip and an
+accessible button. Server panels do not offer a local-drive information action.
+
+Validation: Debug build, localization check, capacity clicks and accessible Press
+in both headers, inactive-panel activation, Russian UI, snapshots, and the existing
+`ux-filters.sh` suite. Test Get Info requests are recorded by DebugAutomation instead
+of opening Finder windows. The universal Release build was installed from
+`local-build`; local `main` matches that integration. Nothing was pushed.
+
+## Recent branches pushed on 2026-10-03
+
+The user authorized pushing all recent changes to the fork. All 11 new
+review, UX and drive-capacity branches were pushed to `fork`, along with
+`main` and `local-build` at `64325cb`. All local branches now track the
+matching fork branches, including `main` (previously `origin/main`).
+The push was atomic, with no force push, tags, releases or pull requests.
+
+## Upstream 0.13b integrated on 2026-10-03
+
+Fork build 20 (`3821c37`, version `0.13b`) is installed in `/Applications/OriCmd.app`.
+The 38 new upstream commits through `origin/main` at `096ccd3` were merged on the
+separate `upstream-0.13b` branch. Merge `c73f00e` preserves the fork's panel-controller
+split, authenticated updates, accessibility, custom headers, tabs, selection markers,
+filter indicators, operations window, command palette, and clickable drive capacity.
+Upstream's selected-only filter participates in the filter summary and clear action;
+custom column sets without an Ext column still show complete filenames.
+
+Commit `3821c37` renames the breadcrumb test depth variable so upstream's search
+fixtures cannot overwrite it. `main`, `local-build`, and `upstream-0.13b` were pushed
+atomically to the fork at this revision and track their matching fork branches.
+Existing feature branches remain separate. The primary checkout remains on `key-caps`.
+
+Validation: 13 core tests, 5 launcher contract tests, 11 live accessibility checks,
+all five UX suites, capacity-click checks, signed-update checks, localization, and
+335 passing regression checks. The initial regression invocation could not advertise
+its Bonjour service inside the sandbox; both checks passed when rerun with discovery
+access. After the test-variable fix, the remaining nine checks passed separately.
+Optional DjVu page-rendering checks were skipped because this worktree has no
+`build/djvulibre/bin/ddjvu`. The installed app matches the universal Release bundle
+and passes deep strict codesign verification. No pull request or release was created.
+
+## Independent fork README updated on 2026-10-03
+
+Branch `fork-readme` (`0e586d4`) updates both READMEs with the independent fork's
+identity, selected upstream imports, fork additions, installation, contributions
+and upstream attribution. The fork has no packaged GitHub releases yet and its
+GitHub issue tracker is disabled; the README links source builds, fork releases
+and fork pull requests. The original Homebrew cask is identified as upstream.
+Inherited screenshots are identified as such.
+
+Documentation integration `8ea9e35` is on `main` and `local-build`; these and
+`fork-readme` were pushed atomically and track their fork branches. Only the two
+README files changed. Local links, installation targets, code fences, translations
+and `git diff --check` were reviewed. The installed app remains build 20 at
+`3821c37`; this documentation-only change did not rebuild or install the app.
+
+At that point version numbering was a proposal: `YEAR.MONTH.RELEASE`, starting
+with `2026.10.0`, then `2026.10.1` for the next release that month and `2026.11.0`
+for November's first release. Plain numeric dotted versions fit the current
+updater, version validator and release script. Record upstream versions/commits
+separately in release notes and retain the local build counter independently.
+The user had not yet chosen a scheme; app metadata then reported `0.13b`.
+
+## Calendar numbering implemented on 2026-10-03
+
+The user accepted the proposed numbering and requested implementation. Branch
+`calendar-versioning` (`e48afeb`) sets `MARKETING_VERSION = 2026.10.0` and
+`CURRENT_PROJECT_VERSION = 15` in both configurations of the app and its XPC
+helper. The updater's existing numerical comparison supports calendar versions
+and upgrades from legacy `0.13b`; its behavior did not need changing.
+
+`scripts/release.sh` requires canonical YEAR.MONTH.RELEASE, rejects older versions,
+and allows the current version for its first publication if its tag does not
+exist. Both READMEs and the authenticated-update guide describe the scheme and
+calendar asset names. Signature and publishing tests now use disposable
+`2026.10.0` fixtures. Running release.sh still requires an explicit publication
+request; implementation did not create a tag or GitHub release.
+
+Integration `908c1d5` is on `main` and `local-build`; these and `calendar-versioning`
+were pushed atomically to the fork and track their matching fork branches.
+The installed app is universal fork build 21 (`908c1d5`), version `2026.10.0`,
+internal build 15. It matches the Release bundle and passes deep strict codesign
+verification; the app and helper both have Intel and Apple Silicon architectures.
+
+Validation: 13 core tests, 5 launcher contract checks, localization, 22 signed-update
+checks, 11 isolated updater checks (including calendar counters, month/year rollover,
+legacy migration and release asset lookup), and 16 release-preflight checks without
+publishing. The About window visibly shows `2026.10.0 (15)` and fork attribution.
+The primary checkout remains on `key-caps`.
+
+## Two-line About installed on 2026-10-03
+
+The version/fork display request was initially interpreted as limiting the entire
+window to the calendar version with the fork build number in parentheses and
+"tosiabunio fork" below. The user later clarified that other app information and
+dependency credits should remain; the next section records that correction.
+Branch `compact-about` (`c11331f`) replaces the standard About panel with
+`UI/AboutWindowController.swift`: a compact window containing exactly those two
+labels. The window's title is hidden visually but retained for accessibility.
+The fork identity remains "tosiabunio fork" in both interface languages.
+
+The parenthesized number prefers `OriCmdForkBuild`, falling back to
+`CFBundleVersion` for builds without a local install counter. Revisions remain
+in metadata, never in About. Credits remain bundled as `Credits.rtf`; both
+READMEs now link the notices and describe the two-line format.
+
+Integration `ff96fac` is on `main` and `local-build`; these and `compact-about`
+were pushed atomically to the fork. The installed universal app is fork build
+22 (`ff96fac`), so its About text is "2026.10.0 (22)" and "tosiabunio fork".
+The build number increased from 21 when installing this update.
+
+Validation: Debug builds, localization, six isolated About runs (internal-number
+fallback, local build precedence with a diagnostic revision present, Escape,
+reopening, Russian, light mode), English/Russian and light/dark visual checks,
+universal Release build, matching installed bundle, and deep strict codesign.
+The app and XPC helper have both Intel and Apple Silicon architectures.
+
+## About credits restored on 2026-10-03
+
+The user clarified that the compact two-line instruction applies only to version
+and fork information. Keep the app icon, name, copyright and full dependency
+notices in About. Branch `about-credits` (`12cf092`) restores these in the custom
+window while retaining the version/build and "tosiabunio fork" lines, without
+commit revisions. A scrollable, selectable text view loads the original bundled
+`Credits.rtf` verbatim, adds clickable fork/original repository links and makes
+the dependency URLs clickable. Labels are localized in English and Russian;
+original license notice text is unchanged. Both READMEs describe the restored
+information and notices.
+
+Integration `7c533f2` is on `main` and `local-build`; these and `about-credits`
+were pushed atomically to the fork and track their matching branches. The
+installed universal app is fork build 23 (`7c533f2`), version `2026.10.0`. Its
+version and fork lines read "2026.10.0 (23)" and "tosiabunio fork".
+
+Validation: Debug build, localization, five isolated UI checks (English, Russian,
+Escape, reopening and app-selected light appearance), visual checks in light and
+dark mode, and a disposable AppKit probe against the actual controller. The probe
+verifies the entire original credits text is preserved, all six dependencies have
+links, all 12 links deliver their URL through native link handling without opening
+the browser, the final notice is reachable by scrolling, and no diagnostic
+revision appears. Universal Release build, matching installed bundle, deep strict
+codesign and both architectures in the app/helper passed. Installed Credits.rtf
+matches the source byte for byte. The primary checkout remains on `key-caps`.
+
+## Upstream 0.13.2b integrated on 2026-10-04
+
+Fork build 24 (`8fe3090`, version `2026.10.0`, internal build 16) is installed.
+Branch `upstream-0.13.2b` (worktree `build/upstream-0.13.2b`) merges upstream
+0.13.1b and 0.13.2b through `origin/main` at `1cd4881`: SFTP non-ASCII names,
+.DS_Store skipped by default (F5/F6 options and Settings → Operations), refused
+NAS names explained, and Skip/Skip All/Retry/Cancel for failed items through
+`TransferPrompts`. Merge `ad1a45f` keeps the fork's version, takes the higher
+internal build number (16), ports the transfer API change into
+`FilePanelController+Transfers.swift`, and adds "Copy .DS_Store" to the copy
+dialog's options summary when skipping is off. Commit `8fe3090` updates
+`Tests/CoreTests.swift` for `TransferPrompts`. Both READMEs name 0.13.2b/`1cd4881`
+as the latest imported upstream checkpoint. `main`, `local-build` and
+`upstream-0.13.2b` were pushed atomically to the fork and track their branches.
+
+Validation: 13 core tests, 5 launcher contract checks, localization, 348 of 349
+regression checks (all new upstream checks included), a copy dialog snapshot,
+universal Release build, matching installed bundle and deep strict codesign.
+- "/ in the path bar goes to the root" fails only because the worktree path
+  (`build/upstream-0.13.2b`) is long enough that the path bar hides the root
+  crumb; the same commit passes it in `build/local-build`. Keep worktree names
+  short or run that check from a shorter path.
+- The `scripts/test/ux-*.sh` suites call `rg`. It was missing on PATH at first
+  (Claude Code's `rg` is only an interactive shell function); on 2026-10-05 the
+  user had Homebrew's `ripgrep` installed (`/opt/homebrew/bin/rg`), and all five
+  UX suites and all 11 live accessibility checks passed on `local-build` at
+  `d5b2e26` (this import plus the release and screenshot commits).
+- Rerun from `build/local-build` on 2026-10-05 at `d5b2e26`: the full regression
+  suite passed 349 of 349 (the path bar check included); only the optional DjVu
+  page checks were skipped.
+
+## First fork release 2026.10.1 published on 2026-10-04
+
+At the user's request, `scripts/release.sh 2026.10.1` (the user wrote "2016.10.01",
+taken as the canonical 2026.10.1; 2026.10.0 was never published) ran from a
+`main` worktree in `build/rel` with `ORICMD_UPDATE_SIGNING_KEY` pointing to the
+primary checkout's key. Commit `860a564` first updated both READMEs' installation
+sections to point at the downloadable DMG. Release commit `a0cbf35` (internal
+build 17) and tag `v2026.10.1` are on the fork; `local-build` was fast-forwarded
+and pushed, so `main` = `local-build` = `a0cbf35`.
+
+https://github.com/tosiabunio/OriCmd/releases/tag/v2026.10.1 has
+`OriCmd-2026.10.1.dmg` (7,690,774 bytes, SHA-256 `bd4e42bb…5fbd08`), the signed
+manifest and its signature. The notes record upstream base 0.13.2b (`1cd4881`).
+The downloaded manifest verifies against `OriCmd/UpdateSigningPublicKey.txt`; the
+DMG matches its size and checksum; the app inside passes deep strict codesign and
+reports 2026.10.1 (17). Afterwards the user asked to reinstall from `local-build`:
+the installed app is now fork build 25 (`a0cbf35`), so About reads
+"2026.10.1 (25)" and the updater does not offer the release over it.
+
+## Fork README screenshots on 2026-10-04
+
+Branch `fork-screenshots` (worktree `build/scr`) replaces all 14 README screenshots
+(`docs/screenshots/{en,ru}`) with the fork's default look, regenerated by
+`scripts/screenshots.sh`. Commit `8c5135f` changes the tooling: shots are light unless
+`THEME=dark` (the system here is dark), each language has its own region
+(`-AppleLocale en_GB` / `ru_RU`), and with `ORICMD_DEMO` the Debug app replaces each
+window picture with a ScreenCaptureKit capture of its own window
+(`SCShareableContent.currentProcess`, no Screen Recording permission needed).
+`cacheDisplay` paints the macOS 26 toolbar glass as blank white pills (invisible
+icons in dark mode). Commit `d5b2e26` has the images and README notes ("show this
+fork's interface with its default settings"). `main`, `local-build` and
+`fork-screenshots` were pushed atomically to the fork at `d5b2e26` and track their
+fork branches. The Release app is unchanged (Debug-only code), so nothing was
+reinstalled.
+
+## Upstream 0.13.3b integrated on 2026-10-06
+
+Branch `upstream-0.13.3b` (worktree `build/up133`, kept short for the path bar
+check) merges upstream through `origin/main` at `a7cda51`: `ProcessRunner` no longer
+leaves pipe handlers spinning at 200% CPU after a cancelled server command, and a
+failed command-line command reports its stderr. Merge `6663361` keeps the fork's
+version 2026.10.1 (internal build 17 on both sides) and names 0.13.3b/`a7cda51` in
+the README. Branch `drop-ru-readme` (`069eff0`, from that merge) removes `README.ru.md`
+and `docs/screenshots/ru`; `scripts/screenshots.sh` makes only the English set.
+`main` = `local-build` = `069eff0`; these and both new branches were pushed
+atomically to the fork and track their fork branches. Fork build 26 (`069eff0`) is
+installed.
+
+Validation: Debug build, 13 core tests, 5 launcher contract checks, localization,
+352 of 352 regression checks (the three new upstream checks included; DjVu skipped),
+universal Release build, matching installed bundle and deep strict codesign.
+
+## Release 2026.10.2 published on 2026-10-06
+
+At the user's request, `scripts/release.sh 2026.10.2 <notes>` ran from the `main`
+worktree `build/rel` with `ORICMD_UPDATE_SIGNING_KEY` pointing to the primary
+checkout's key. Release commit `ed2c25f` (internal build 18) and tag `v2026.10.2`
+are on the fork; `local-build` was fast-forwarded and pushed, so `main` =
+`local-build` = `ed2c25f`. https://github.com/tosiabunio/OriCmd/releases/tag/v2026.10.2
+has `OriCmd-2026.10.2.dmg` (7,701,665 bytes, SHA-256 `0e424334…9ceb26`), the signed
+manifest and its signature. The notes name upstream base 0.13.3b (`a7cda51`) and
+its two fixes, and the English-only README.
+
+Verification: the downloaded manifest passes `UpdateVerification.manifest` (the
+app's own code, compiled with a small driver) against
+`OriCmd/UpdateSigningPublicKey.txt`; the DMG matches its size and checksum; the app
+inside reports 2026.10.2 (18), passes deep strict codesign, and the app and helper
+are universal. The installed app was then rebuilt from `local-build`: fork build 27
+(`ed2c25f`), so About reads "2026.10.2 (27)".
+
+## Visual refresh plan accepted on 2026-10-06
+
+The user accepted the visual refresh proposal. It is public as
+`docs/visual-refresh.md` (commit `61b5aa7`, branch `visual-refresh-plan`, linked
+from README → Development), with an interactive Today/Proposed mockup at
+https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP (its source is a scratchpad file;
+republish by `url` from another session). `main` = `local-build` = `61b5aa7`,
+pushed to the fork. Docs only, so the app was not rebuilt (installed: build 27).
+- Phase 1 (macOS 14+, drawing only): rounded focus-aware cursor, neutral path bar
+  with an accent strip, no brackets/`--`/medium dates/Attr hidden/dim secondary
+  columns, modern column header, density setting and no list frames.
+- Phase 2 (macOS 26 APIs behind `#available`): full-size content, split-view
+  accessories, optional sidebar, one bottom bar, macOS 27 menu image visibility.
+- Phase 3: Compare/Sync toolbars, HIG button order in the copy dialog, Settings
+  split, Icon Composer icon, Increase Contrast colors.
+- One Look setting (Modern default / Classic) sets the existing look switches;
+  test runs pin Classic where checks expect `[name]` or `<DIR>`.
+- Next step: build phase 1 on `modern-panels` and compare light/dark snapshots.
+- Remember `PanelPreview` in `SettingsWindowController.swift` duplicates the list
+  drawing. On macOS 27, AppKit hides menu item images unless
+  `preferredImageVisibility = .visible`.
+
+## Visual refresh phase 1 installed on 2026-10-07
+
+Branch `modern-panels` (worktree `build/mp`), commit `375cd4a`: phase 1 of
+`docs/visual-refresh.md`. `main` = `local-build` = `375cd4a`, pushed atomically to
+the fork with `modern-panels`. Installed: fork build 28 (version 2026.10.2).
+- `Settings.look` (`Look`: modern default / classic). Setting it writes
+  `ShowFolderBrackets`, `MacStyleTabs`, `CompactPanelHeader`, `FunctionKeyCaps`,
+  `PlainStatusLine`, `SelectionMarkers` and `PanelDensity`; unset switches follow
+  the look (their `default:` is `isModern`). `Settings.density` (standard 13 pt /
+  22 pt rows, compact 12 / 19); `defaultFontSize` follows it. Alternating rows
+  default to on in modern; High contrast records whether it found them off (1) or
+  unset (2) in `AlternatingRowsByPreset`, and other presets restore exactly that.
+- Drawing: `Theme.rowInset`/`contentInset`/`rowPath`/`dateText`; `FileListView`
+  rounded focus-aware cursor (`showsFocusedCursor`: key window; test runs count as
+  focused), marked-row tint, grey detail columns, `--` for folders/packages (Classic
+  keeps `<DIR>`/`<PKG>`); `ColumnLayout(width:columns:inset:)`, dragged widths in
+  `ColumnWidths` (global); header modern style, hover/pressed, resizing; `PathBar`
+  accent strip, semibold current folder, info line (`status`, free space) when
+  modern + compact, and `PanelView` then folds the status row except during quick
+  search (`isQuickSearching`). Divider 1 pt with 3 pt grab slop (delegate
+  `effectiveRect`). Modern default columns omit Attr (`ColumnSet.standard`).
+- Tests: `columns`, `headerdrag:col:DX`, `headerdoubleclick:col`, `headerclick:col`
+  (do not use a bare `header` prefix: `headermenu:` exists). New regress checks for
+  looks, widths and preset stripes; column-set checks now expect no Attr.
+- Validation: 355 regression checks passed on the first run; its 5 failures (the
+  preset stripes bug, Attr expectations) were fixed and their sections (17 checks)
+  rerun green; 13 core tests, localization, 5 UX suites, 11 accessibility checks.
+  Lesson: never edit `regress.sh` while it runs (zsh reads it as it goes); keep
+  changes aside until the run ends.
+- The user's own prefs use Monaco 15 pt and already had brackets off, so the
+  installed app shows the modern look with their font.
+- Follow-up `51af228` (build 29, installed and pushed to the fork): the user found the
+  relative/medium dates ("Today at 09:12") visually uneven and wants one uniform
+  date/time format, so both looks use `Theme.dateText` = short date + short time
+  on every row; no relative form, no narrow-column fallback.
+
+## Visual refresh phase 2 installed on 2026-10-07
+
+Branch `window-shell` (worktree `build/ws`), `main` = `local-build` = `a818e6c`,
+pushed to the fork; installed as fork build 30.
+- `9771b28`: `NSMenuItem.keepsImageVisible()` (`UI/MenuItemImages.swift`) keeps tag
+  colors, Open With apps and volume icons on macOS 27.
+- `33af8b2`: Modern bottom bar: `MainViewController.layoutBottom()` re-parents the
+  command line, `FunctionKeyBar` (compact hints mode) and Operations into one
+  `NSStackView` (34 pt); Classic keeps the stacked rows.
+- `c1846dd`: `RootSplitViewController` (sidebar item + `MainViewController`) is the
+  window's content; `NSWindow.mainViewController` replaces
+  `contentViewController as? MainViewController` everywhere. `SidebarViewController`
+  (Devices with free space, Favorites, Hotlist; `Hotlist.didChange`). Window has
+  `.fullSizeContentView`; panels start at the safe area. Toolbar gets
+  `.toggleSidebar` + `.sidebarTrackingSeparator` (once for saved toolbars,
+  `ToolbarHasSidebarButton`). `Settings.showsSidebar` (`ShowSidebar`, follows the
+  look) hides the drive bar; width in `SidebarWidth`. `DirectoryTreePanel.panelInsets`
+  aligns the tree/Quick View headers. Test actions `sidebar`, `sidebarpick:Title`.
+- `a818e6c`: drive-button checks set `ShowSidebar false` (the drive bar is hidden
+  with the sidebar, so `drivemenu:` finds no buttons).
+- 2.2 (split-item accessories) deferred: no visible gain with opaque headers.
+- Test snapshots draw the glass sidebar blank; capture with `ORICMD_DEMO=1` (SCK)
+  to see it, as `scripts/screenshots.sh` does.
+- Validation: 360 + 5 regression checks, 5 UX suites, 11 accessibility checks, core
+  tests, localization.
+
+## Visual refresh phase 3 installed on 2026-10-07
+
+Branch `secondary-windows` (worktree `build/p3`), `main` = `local-build` = `c7ac224`,
+pushed to the fork with `window-shell` (`44a1ddd`); installed as fork build 31. The
+user asked to continue the phases unsupervised (test, install, push; no release).
+- `fdc33a5`: copy dialog buttons in Mac order (Options >> and Tree left; F2 Queue,
+  Cancel, default Copy/Move right); advanced options in a rounded custom `NSBox`.
+- `e78bcc9`: `ToolWindowToolbar` (fixed symbol toolbar, items enabled by the window)
+  for Compare (previous/next, copy left/right, edit, save; ⌘S in `handleKey`);
+  Synchronize keeps its form with Compare and Synchronize… at the right edges.
+  Test `click:` also presses toolbar items by label (only when enabled).
+- `98941a7`: `SettingsPane` builds one grid per section inside a rounded group
+  (`quinarySystemFill`); panes keep their topics (no Appearance/File List split).
+- `24e748b`: stronger marked tint with Increase Contrast; panels redraw on
+  `accessibilityDisplayOptionsDidChangeNotification`. Custom cursor colors stay as
+  chosen in dark mode (their text color is chosen with them).
+- `44a1ddd` (window-shell): the user asked for the function key hints to be
+  centered when they are alone in the bottom bar (command line hidden): they move
+  to the stack's center gravity area, Operations to the trailing one.
+- Not done: the layered Icon Composer app icon (needs design work).
+- Validation: 365 regression checks, 5 UX suites, 11 accessibility checks, core
+  tests, localization; the command-line checks again after the centering merge.
+
+## Release 2026.10.3 published on 2026-10-07
+
+At the user's request, `scripts/release.sh 2026.10.3 <notes>` ran from `build/rel`
+(main) with the primary checkout's signing key. Release commit `f87ecf2` (internal
+build 19) and tag `v2026.10.3` are on the fork; `main` = `local-build` = `f87ecf2`.
+https://github.com/tosiabunio/OriCmd/releases/tag/v2026.10.3 has
+`OriCmd-2026.10.3.dmg` (7,844,059 bytes, SHA-256 `9db07634…1b7f`), the signed
+manifest and its signature. The notes cover all three visual refresh phases, the
+Look setting and how to return to Classic; upstream base still 0.13.3b (`a7cda51`).
+Verified like 2026.10.2 (app's `UpdateVerification` against the public key, size
+and checksum, deep strict codesign, universal app and helper). Reinstalled from
+`local-build` as fork build 32, so About reads "2026.10.3 (32)".
+- README screenshots regenerated afterwards on branch `readme-screenshots`
+  (`a33993c`, worktree `build/rs`); `main` = `local-build` = `a33993c`, pushed.
+  `scripts/screenshots.sh` now passes `ORICMD_DEMO=<demo folder>` and a demo
+  hotlist; in Debug the sidebar then shows the demo folder as "Home" and its
+  Downloads, so the account name is never pictured. Release app unchanged (Debug-only
+  code), so nothing was reinstalled; installed is still build 32.
+
+## Liquid Glass app icon on 2026-10-07
+
+Branch `app-icon` (worktree `build/ai`), commit `484a5d4`; `main` = `local-build` =
+`484a5d4`, pushed to the fork with `app-icon`; installed as fork build 33.
+- `OriCmd/AppIcon.icon` is an Icon Composer document written by hand: `icon.json`
+  (automatic blue gradient fill; group "Cursor" = `cursor.svg`, opaque, shadow 0.65;
+  group "Panes" = `lines.svg` over `panes.svg`, translucency 0.4) and SVG layers on a
+  1024 canvas. Groups are listed front first. The old `AppIcon.appiconset` was
+  removed; Xcode compiles the `.icon` into `Assets.car` and an `AppIcon.icns`
+  fallback for macOS 14/15 (`ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon` unchanged).
+- Render without the GUI: `"$(xcode-select -p)/../Applications/Icon Composer.app/
+  Contents/Executables/ictool" OriCmd/AppIcon.icon --export-image --output-file x.png
+  --platform macOS --rendition Default|Dark|ClearLight|ClearDark|TintedLight|TintedDark
+  --width 512 --height 512 --scale 1`. `scripts/mkdemo.sh` now renders its sample
+  pictures this way. Upstream's `scripts/make-icon.swift` (the old generated icon) is
+  left untouched and unused.
+
+## CI failures from the macOS 27 SDK (2026-10-07)
+
+GitHub Actions on the fork ("Checks" and "File panel accessibility") failed on every
+push from phase 2 (`a818e6c`) on: the runners use the `macos-26-arm64` image, whose
+Xcode has the macOS 26 SDK, and `NSMenuItem.preferredImageVisibility` (macOS 27 SDK)
+did not compile there ("cannot find 'preferredImageVisibility' in scope"). The
+accessibility workflow's error is only in its uploaded log artifact
+(`gh run download <id>`). `if #available` guards running, not compiling: wrap
+macOS 27 SDK APIs in `#if compiler(>=6.4)` (Swift 6.4 = Xcode 27) as well. Fix on
+branch `fix-ci-build` (worktree `build/ci`). The locally built apps and releases
+(Xcode 27) were never affected. Check `gh run list --repo tosiabunio/OriCmd` after
+pushing.
+- Pushed `9b974ab` (`main` = `local-build` = `fix-ci-build`): all 9 runs passed
+  (Checks, File panel accessibility, Update signatures on each branch). Scheduled
+  runs (the nightly `interface` job) have never run on the fork: GitHub disables
+  schedules on forks by default, so the "Run failed" emails came from push runs.
+  When watching runs, match the full commit (`git rev-parse`), not a typed prefix.
+
+## Release 2026.10.4 published on 2026-10-07
+
+The user asked to publish once CI passed; CI was green for `9b974ab` (the CI build
+fix plus the new icon). `scripts/release.sh 2026.10.4 <notes>` (from `build/rel`, its
+last use) made release commit `df28945` (internal build 19 → 20) and tag
+`v2026.10.4`. https://github.com/tosiabunio/OriCmd/releases/tag/v2026.10.4 has
+`OriCmd-2026.10.4.dmg` (8,782,513 bytes, SHA-256 `68202b76…04343f`), the signed
+manifest and signature, verified as before (signature, size and checksum, codesign,
+universal, `AppIcon.icns` and `Assets.car` present). The notes describe the new
+icon and the regenerated README screenshots; upstream base still 0.13.3b.
+`local-build` fast-forwarded and pushed; reinstalled as fork build 34, so About
+reads "2026.10.4 (34)". CLAUDE.md was then committed to the repository (see "This
+file" at the top) and the main checkout moved to `main`.
