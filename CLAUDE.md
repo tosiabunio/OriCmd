@@ -967,3 +967,9 @@ went out at once instead of days after the bridge.
 - `main` = `local-build` = `7fd94fc`, pushed. Installed as fork build 40, "2026.10.6
   (40)", `io.github.tosiabunio.oriel`; the settings copy did not run again (the
   `SettingsMovedFrom` marker was already set by build 39).
+- Worktrees tidied on 2026-10-07 at the user's request: all 37 finished ones under
+  `build/` were removed (every branch was pushed and clean; the branches remain,
+  locally and on the fork), freeing about 13 GB. Only `build/local-build` and
+  `build/review-updates` (it holds the second copy of the signing key, identical to
+  `build/update-signing/private.key`) remain. Worktree paths named in the entries
+  above no longer exist; start new work in a new short-named worktree from `main`.
