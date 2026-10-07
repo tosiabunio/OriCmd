@@ -1,7 +1,8 @@
 # Visual refresh
 
 **Status:** phase 1 built on branch `modern-panels` (2026-10-06); phase 2 on
-branch `window-shell` (2026-10-07), except 2.2, deferred; phase 3 not started.
+branch `window-shell` (2026-10-07), except 2.2, deferred; phase 3 on branch
+`secondary-windows` (2026-10-07), except the app icon, left for design work.
 **Mockup:** [Today and proposed main window, interactive](https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP)
 (light and dark).
 
@@ -214,6 +215,19 @@ for macOS 14 and 15.
    tinted versions. Increase Contrast versions of the custom colors, and custom
    cursor colors adapted to dark mode the way marked and file colors already are
    ([`ColorSettings.swift:85–90`][colors]). Effort S, plus the icon design.
+
+**As built (phase 3).** 3.1: the Compare window's commands are a toolbar of
+symbols (previous/next difference, copy left/right, edit line, save at the far
+end; ⌘S still saves), with "Ignore whitespace" and the summary in the window;
+Synchronize keeps its form (Return compares) with Compare and Synchronize… at the
+right edges. 3.2: the copy dialog's buttons follow Mac dialogs (Options >> and Tree
+at the left; F2 Queue, Cancel and the default Copy/Move at the right) and its
+advanced options are a rounded group. 3.3: every Settings pane shows its sections
+as rounded groups, as System Settings does; the panes keep their topics. 3.4:
+marked rows are tinted more strongly with Increase Contrast, and the panels redraw
+when the display's accessibility options change. Custom cursor colors stay as
+chosen in dark mode, since their text color is chosen with them. The layered app
+icon (Icon Composer) needs design work and is not part of this branch.
 
 ## The Look setting
 

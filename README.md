@@ -262,7 +262,7 @@ shortcuts in parentheses.
 | `Shift+F8`, `Shift+Del`, `Shift+⌫`, `⇧⌘⌫`, `⌥⌘⌫` | Delete permanently, past the Trash (in the context menu, Delete becomes Delete Permanently while Shift is held) |
 | `Ctrl+Shift+F5` | Create a symbolic link (in the other panel by default) |
 | Files → Create Hard Link… | Another name of the same file, on the same volume (in the other panel by default) |
-| Files → Compare by Content | Two marked files, or the files under the cursors of both panels. The compare window aligns the lines: changed ones are yellow (with the differing part highlighted), removed ones red, added ones green; `N`/`P` (`⌥↓`/`⌥↑`) — next/previous difference, "Ignore whitespace"; text files can be edited: "Copy to Right →" / "← Copy to Left" puts a difference on the other side, "Edit Line…" (or a double click) changes both lines of a row, `⌘S` saves in the file's own encoding and line breaks (closing with changes asks first); binary files are compared byte by byte in hex |
+| Files → Compare by Content | Two marked files, or the files under the cursors of both panels. The compare window aligns the lines: changed ones are yellow (with the differing part highlighted), removed ones red, added ones green; `N`/`P` (`⌥↓`/`⌥↑`, or the chevrons in the toolbar) — next/previous difference, "Ignore whitespace"; text files can be edited: the toolbar's copy-left and copy-right arrows put a difference on the other side, its pencil ("Edit Line…", or a double click) changes both lines of a row, `⌘S` (or its save button) saves in the file's own encoding and line breaks (closing with changes asks first); binary files are compared byte by byte in hex |
 | `Ctrl+Z` | Edit the Finder comment of the file under the cursor (kept with the file, found by Spotlight); the Comment column shows it |
 | `⌘I` | Change attributes: rwx permissions, hidden, locked, modification date (also recursively) |
 | `Alt+Enter` (`⌥↩`) | Get Info: the Finder's info windows of the selected files (of the folder shown on `[..]`) |
@@ -399,10 +399,11 @@ that takes more than 5 seconds is stopped (the text stays plain).
   `F8` (the "+ F8" button) — saved filters and examples.
 - **Copy extended attributes and ACLs** (tags, Finder comments, access
   rights); **Verify** compares every copied file with the original.
-- Buttons: **OK** (`Return`), **F2 Queue** — the operation joins the queue and
-  runs one at a time in its own progress window, **Tree**, **Cancel** (`Esc`),
-  **Options >>**. Right-click OK or F2 Queue to move instead of copying (and the
-  other way round).
+- Buttons, in the order of Mac dialogs: **Options >>** and **Tree** at the left;
+  **F2 Queue** — the operation joins the queue and runs one at a time in its own
+  progress window — **Cancel** (`Esc`) and **Copy**/**Move** (`Return`) at the
+  right. Right-click Copy or F2 Queue to move instead of copying (and the other
+  way round).
 - **Options >>**: overwrite mode (ask, overwrite all, skip all, overwrite older,
   auto-rename the copied or the existing files — `name(2).ext`, copy larger or
   smaller ones), skip unreadable files, overwrite/delete locked files, skip
