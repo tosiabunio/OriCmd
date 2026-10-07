@@ -1083,3 +1083,35 @@ this entry. The user asked to install and push once the tests passed, then relea
   checksum, codesign, universal app and helper; it is the latest release. Reinstalled
   as fork build 44, "2026.10.8 (44)". The notes present phase 5; upstream base still
   0.13.3b.
+
+## Visual refresh phase 6 on 2026-10-08: thumbnails and copying
+
+The user asked to continue the visual upgrades after 2026.10.8. A second survey
+(including the copy progress, caught with `speed:5_MB/s` and `CopyAttributes` off,
+since a copy on one APFS volume is an instant clone) found four dated spots. Branch
+`modern-details` (worktree `build/p6`): `be0c33f` (thumbnails), `1c5c73f` (progress
+and overwrite question), `108bee3` (Compare), `993c32d` (plan and README).
+- Thumbnails (Modern only): `ThumbnailCache.thumbnail(for:size:asIcon:ready:)` sets
+  `QLThumbnailGenerator.Request.iconMode` (pages with an edge, pictures with a
+  border); the cache key holds the URL and the mode. `FileListView.parentThumbnail`:
+  the folder icon at the thumbnail size, faded to 0.55, with a white
+  `arrow.turn.left.up`. Classic keeps both as before.
+- Copy progress: `TransferEngine.copyFile(_:to:showing:size:)` reports the final
+  target, not `.oricmd-….part`. `TransferController` has `fileDetail` ("x of y") and
+  `totalDetail` ("x of y · speed/s · About N seconds remaining", a
+  `DateComponentsFormatter` with the approximation and time-remaining phrases; speed
+  from `samples` of the last 3 s, none while paused or before 1 s).
+- Overwrite question: title "A file named “x” already exists" (the existing string
+  of the folder-replacing alert), the file type's icon, and `comparison(existing:new:)`
+  as the accessory (size via `Settings.formattedSize`, bytes when two short sizes read
+  the same; `Theme.dateText`; the folder; " · newer" in the accent color).
+  `alert.layout()` after adding the buttons, or the two-line title showed one line.
+- Compare: `ListBox(table, style: .plain)` and a `ListBox` around the detail text view.
+- Test snapshots of an NSAlert in dark mode come out white with the white text
+  missing (`cacheDisplay` and the alert's glass); only light ones are readable.
+- Checks: "a copy under way names its target…" (climit), "the overwrite question
+  compares the two files…" (overwriteq); the SFTP "No Resume" check now expects the
+  new title.
+- Validation: 378 of 378 regression checks (the two new ones included), the five UX
+  suites, 11 accessibility checks, 13 core tests, localization, captures in light and
+  dark. The user asked to install, push and release 2026.10.9 once the tests passed.
