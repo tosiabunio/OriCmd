@@ -737,7 +737,7 @@ run stltext "alt+b wait text:ox.s escape f3 wait wait wait 1 wait"
 check "a file named .stl that is no model shows as hex; 1 shows a text STL's text" "! grep -q '\[model' build/shots/reg-stlnoise-win1.txt && grep -q '00000000' build/shots/reg-stlnoise-win1.txt && grep -q 'vertex 1.000E+01' build/shots/reg-stltext-win1.txt"
 
 run hlhang "alt+s wait text:pin. escape f3 wait wait n wait wait wait wait wait wait wait wait wait wait wait wait wait wait wait wait"
-check "a highlighting that never ends is killed, the next file is highlighted" "head -1 build/shots/reg-hlhang-win1.txt | grep -q 'spin2.swift\\]' && [ \"\$(colors hlhang)\" -ge 5 ]"
+check "a highlighting that never ends is killed, the next file is highlighted" "head -1 build/shots/reg-hlhang-win1.txt | grep -q '^spin2.swift — ' && [ \"\$(colors hlhang)\" -ge 5 ]"
 # The service locks itself down: no file (the user's or the system's), no other
 # service (the pasteboard, LaunchServices); a probe colors one character if it got
 # through, two if it was refused.
