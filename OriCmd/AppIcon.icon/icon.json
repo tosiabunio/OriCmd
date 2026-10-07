@@ -1,0 +1,50 @@
+{
+  "fill": {
+    "automatic-gradient": "extended-srgb:0.10000,0.40000,0.92000,1.00000"
+  },
+  "groups": [
+    {
+      "name": "Cursor",
+      "layers": [
+        {
+          "image-name": "cursor.svg",
+          "name": "cursor"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.65
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.2
+      }
+    },
+    {
+      "name": "Panes",
+      "layers": [
+        {
+          "image-name": "lines.svg",
+          "name": "lines"
+        },
+        {
+          "image-name": "panes.svg",
+          "name": "panes"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.4
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "macOS"
+    ]
+  }
+}

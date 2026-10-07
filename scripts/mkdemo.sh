@@ -32,7 +32,11 @@ Release checklist
 6. Tell everyone
 TEXT
 printf '## 0.2\n- Copy dialog like in Total Commander\n- Settings with panes\n' > $P/CHANGELOG.md
-sips -s format png OriCmd/Assets.xcassets/AppIcon.appiconset/icon_256x256.png --out $P/icon.png >/dev/null
+# Pictures rendered from the app icon (Icon Composer's ictool, part of Xcode).
+ictool="$(xcode-select -p)/../Applications/Icon Composer.app/Contents/Executables/ictool"
+icon() { "$ictool" OriCmd/AppIcon.icon --export-image --output-file $2 --platform macOS --rendition Default \
+  --width $1 --height $1 --scale 1 >/dev/null; }
+icon 256 $P/icon.png
 bytes $P/release.zip 2400000
 bytes $P/OriCmd-0.2.dmg 3600000
 for f in App Panel Transfer Settings; do printf 'import AppKit\n// %s\n' $f > $P/Sources/$f.swift; done
@@ -59,10 +63,11 @@ printf 'draft\n' > $D/Backup/OriCmd/todo.txt
 at 202609051200 $D/Backup/OriCmd/todo.txt
 
 # Downloads: pictures, video, music, archives, documents.
+icon 512 $D/icon-512.png
 for n in 2041 2042 2043 2044 2045 2046; do
-  sips -s format jpeg -z $((200 + n % 7 * 20)) $((300 + n % 5 * 30)) \
-    OriCmd/Assets.xcassets/AppIcon.appiconset/icon_512x512.png --out $D/Downloads/IMG_$n.jpg >/dev/null
+  sips -s format jpeg -z $((200 + n % 7 * 20)) $((300 + n % 5 * 30)) $D/icon-512.png --out $D/Downloads/IMG_$n.jpg >/dev/null
 done
+rm $D/icon-512.png
 bytes $D/Downloads/holiday.mov 1800000
 bytes $D/Downloads/song.mp3 420000
 bytes $D/Downloads/photos.zip 950000

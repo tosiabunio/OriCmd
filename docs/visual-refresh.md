@@ -2,7 +2,7 @@
 
 **Status:** phase 1 built on branch `modern-panels` (2026-10-06); phase 2 on
 branch `window-shell` (2026-10-07), except 2.2, deferred; phase 3 on branch
-`secondary-windows` (2026-10-07), except the app icon, left for design work.
+`secondary-windows` (2026-10-07); the app icon on branch `app-icon` (2026-10-07).
 **Mockup:** [Today and proposed main window, interactive](https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP)
 (light and dark).
 
@@ -227,7 +227,12 @@ as rounded groups, as System Settings does; the panes keep their topics. 3.4:
 marked rows are tinted more strongly with Increase Contrast, and the panels redraw
 when the display's accessibility options change. Custom cursor colors stay as
 chosen in dark mode, since their text color is chosen with them. The layered app
-icon (Icon Composer) needs design work and is not part of this branch.
+icon came separately (branch `app-icon`): `OriCmd/AppIcon.icon`, an Icon Composer
+document of two glass groups over the system's blue gradient — two white panes with
+lines of files, and an orange cursor that leaves the left pane as an arrow into the
+right one (copying between panels). macOS draws its dark, clear and tinted versions;
+Xcode makes the flat images for macOS 14 and 15. Open the document in Icon Composer
+(part of Xcode) to change it; `ictool` renders it from the command line.
 
 ## The Look setting
 

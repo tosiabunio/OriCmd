@@ -24,6 +24,9 @@ keep working as always.
   panels. Rows are 22 pt with 13 pt names, or compact. Settings → Panels → Look →
   Classic (Total Commander) brings back the traditional panels in one step; see
   the [visual refresh plan](docs/visual-refresh.md).
+- **App icon:** a layered Liquid Glass icon (`OriCmd/AppIcon.icon`, made for Icon
+  Composer) of two panes and a cursor that copies across, with the system's dark,
+  clear and tinted versions; macOS 14 and 15 get flat images of it.
 - **Sidebar and one bottom bar:** in the Modern look a sidebar lists devices (with
   free space), the usual folders and the directory hotlist (`⌃⌘S` or the toolbar
   button shows or hides it); the command line, the function keys as compact hints
