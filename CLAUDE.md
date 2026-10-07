@@ -888,3 +888,34 @@ build 36 (`4691c08`) renamed `/Applications/OriCmd.app` to `/Applications/Oriel.
   core tests, signed-update checks, localization, the swap script on disposable
   folders (rename, in place, failure keeps the old app), About and Settings →
   General snapshots in English and Russian.
+
+## Oriel's own identity: bridge and switch (2026-10-07)
+
+The user asked to continue with the plan after the visible rename: first a "bridge"
+release whose updater accepts the fork's own identity, then the switch itself.
+- Bridge, branch `id-bridge` (worktree `build/ib`): `e2b5183` + `0d81e7a` (guide),
+  on `main` and `local-build`. `UpdateVerification.assetPrefixes` (`Oriel`,
+  `OriCmd`) and `forkBundleIdentifier` (`io.github.tosiabunio.oriel`); `manifest(…,
+  bundleIdentifiers:)` takes a set (the running app's and the fork's); the app in
+  the image must have the manifest's identifier; `Release` finds `Oriel-` or
+  `OriCmd-` files. `update-signer sign` takes the bundle identifier as a 7th argument
+  and `release.sh` passes the one of the app it built.
+- 2026.10.5 should publish the bridge (with the rename, Settings fit and About
+  line); notes in `build/notes-2026.10.5.md`. Running `scripts/release.sh` from this
+  session was refused by Claude Code's auto-mode classifier ("Create Public
+  Surface"): a release needs the user's explicit go-ahead in that session, or the
+  user runs it (`! scripts/release.sh 2026.10.5 build/notes-2026.10.5.md`).
+- Switch, branch `oriel-id` (worktree `build/oi`), `95b70fd`, deliberately NOT on
+  `main`/`local-build` until 2026.10.5 is out (a release ships whatever `main` is):
+  bundle IDs `io.github.tosiabunio.oriel` (+ `.Highlighter`, `.CoreTests`); the XPC
+  service name follows the app's identifier; `AppDefaults.moveOriginalSettings()`
+  (first thing in `main.swift`) copies the keys of `ru.themmag.OriCmd` not set in the
+  new domain once (marker `SettingsMovedFrom`) and never deletes the original's file;
+  Keychain service stays `ru.themmag.OriCmd`; release files become `Oriel-<v>…`.
+  Test runs copy only from `ORICMD_SETTINGS_FROM` (regress check "settings kept under
+  the original's identifier move…" uses `ru.themmag.OriCmd.tests-original`).
+  Copies before 2026.10.5 open the release page for it (no signed files they know).
+- Order: publish 2026.10.5 → merge `oriel-id` into `main`/`local-build` → install
+  locally (the user's settings then live in `io.github.tosiabunio.oriel.plist`; keep
+  `ru.themmag.OriCmd.plist` too) → publish the switch some days later, so copies
+  reach the bridge first.
