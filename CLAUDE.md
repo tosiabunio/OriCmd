@@ -1,8 +1,10 @@
-# OriCmd — tosiabunio fork
+# Oriel — tosiabunio's fork of OriCmd
 
-A two-panel file manager for macOS in the style of Total Commander. It is written in
-Swift and AppKit, without SwiftUI. The interface is in English and Russian. See
-`README.md` for what the app does and which keys it uses.
+A two-panel file manager for macOS in the style of Total Commander. Since 2026-10-07
+the fork's visible name is **Oriel** (see "Visible rename to Oriel" below); the
+repository, project, target, module, executable, bundle ID and source keep OriCmd.
+It is written in Swift and AppKit, without SwiftUI. The interface is in English and
+Russian. See `README.md` for what the app does and which keys it uses.
 
 The user intends this fork to remain an independent project. Selected changes
 from `mmag/OriCmd` may be imported, but a merge of the fork back upstream is not
@@ -70,14 +72,14 @@ ignored:
 
 ## Installing the custom build
 
-The user runs their own build from `/Applications/OriCmd.app` instead of the official
-release.
+The user runs their own build from `/Applications/Oriel.app` (`OriCmd.app` before
+2026-10-07) instead of the official release.
 - The Homebrew cask `mmag/tap/oricmd` has been uninstalled so that `brew upgrade`
   does not replace the custom build.
 - The user's settings are in `~/Library/Preferences/ru.themmag.OriCmd.plist`. Do not
   delete them. Do not use `brew uninstall --zap`, because it deletes them.
 
-`/Applications/OriCmd.app` is built from the branch `local-build`, which is pushed
+`/Applications/Oriel.app` is built from the branch `local-build`, which is pushed
 only to the fork, never sent upstream. It is a merge of the feature branches (see "Work in progress"), checked
 out as a git worktree in `build/local-build`. After a feature branch changes, merge it
 there (`git -C build/local-build merge <branch>`), then build and install from that
@@ -86,7 +88,7 @@ branch). It makes the Release build, quits only the installed copy (`pkill -x Or
 would also kill a test run's Debug app) and installs it. It also numbers the build:
 the counter is in `.git/oricmd-fork-build`, shared by all worktrees, and goes up by one
 on every install. About shows the calendar version with this number in
-parentheses, and "tosiabunio fork" below. Its icon, app name, copyright and full
+parentheses, and "OriCmd fork" below ("tosiabunio fork" before 2026-10-07). Its icon, app name, copyright and full
 dependency notices remain visible, with clickable original-project, fork and
 dependency links. The commit (with `+` for an uncommitted checkout) stays in
 bundle metadata for diagnostics. While tests run, start the
@@ -837,3 +839,52 @@ phase 3's rounded groups. Branch `settings-fit` (worktree `build/sf`), commit
   window moved up when switching to Colors. Two steps of this run (test data setup
   after the SMB-cancel and promise-paste checks) each stalled about 16 minutes
   outside the app, which earlier runs did in seconds; the cause is unknown.
+
+## Visible rename to Oriel on 2026-10-07
+
+The user wanted a name that sets the fork apart from upstream and chose **Oriel**
+(suggested after checking for clashes: "OriCmdr" sat next to Cmdr, an existing
+two-pane macOS file manager). Only the visible name changed, so upstream imports
+and earlier installs' updates keep working; the identity (bundle ID
+`ru.themmag.OriCmd`, settings, Keychain service) is a later, separate step. Branch
+`oriel-name` (worktree `build/on`): `4691c08` (the rename), `ba5110e` (README: Dock
+labels), `fc70a00` (About: "OriCmd fork"); `main` = `local-build` = `fc70a00`, pushed
+to the fork with `oriel-name` at the user's request once the tests passed. Fork
+build 36 (`4691c08`) renamed `/Applications/OriCmd.app` to `/Applications/Oriel.app`
+(a rename keeps the Dock item); fork build 37 (`fc70a00`) is installed.
+- `CFBundleDisplayName = Oriel` (build setting) and `OriCmd/InfoPlist.xcstrings`
+  (CFBundleName and CFBundleDisplayName = Oriel for en and ru): Xcode's generated
+  Info.plist always writes `CFBundleName = $(PRODUCT_NAME)`, ignoring the key in
+  `Config/OriCmd-Info.plist` and `INFOPLIST_KEY_CFBundleName`, so the localized
+  InfoPlist.strings carry the menu bar name. `PRODUCT_NAME`, the executable
+  (`Contents/MacOS/OriCmd`) and the built `OriCmd.app` stay, so test scripts are
+  unchanged.
+- `Bundle.appName` (`App/AppName.swift`) is the name in code: the app menu (About,
+  Hide, Quit), the main window title, About, update alerts, the archive messages,
+  Settings → General notes, the SFTP password dialog title and new Keychain item
+  labels. Catalog keys now take it as `%@` (Russian keeps the Latin name).
+- Updates: release assets keep `OriCmd-<version>.dmg/.manifest.json/.manifest.sig`
+  (2026.10.4 and earlier look for exactly those). `scripts/make-dmg.sh` puts
+  `Oriel.app` in the image (volume "Oriel <version>"), `release.sh` titles releases
+  "Oriel <version>". The updater accepts any `.app` in the image with the same
+  bundle ID; `Updater.destination(replacing:with:)` installs it as
+  `<its name>.app` when the current file is still named `OriCmd` or the app's own
+  name and nothing else has that name, so an `OriCmd.app` updated by 2026.10.4 is
+  renamed by the following update. The swap script takes the target as `$5`.
+- `scripts/install-local.sh` quits `/Applications/(Oriel|OriCmd).app/Contents/MacOS/
+  OriCmd`, renames the fork's own `OriCmd.app` (checked by `OriCmdFork = tosiabunio`)
+  and installs `Oriel.app`.
+- About's copyright line ("OriCmd contributors") is unchanged. At the user's request
+  the line under the version reads "OriCmd fork" (fixed text, not translated) instead
+  of "tosiabunio fork"; the `OriCmdFork` Info.plist value stays `tosiabunio`, which
+  `install-local.sh` uses to recognise the fork's own `OriCmd.app`.
+- The README calls the app Oriel and keeps OriCmd for upstream, file names and code
+  paths. It also says the Dock keeps the label an icon had when it was pinned: the
+  user's Dock tooltip still said OriCmd after the rename (`file-label` in
+  `com.apple.dock` persistent-apps); Options → Keep in Dock off and on refreshes it.
+- Validation: 366 of 367 regression checks; the one failure, "the context menu ends
+  with Share and Tags", opens a real menu and wrote nothing while the new Oriel had
+  just launched and the user was looking at its menu bar; rerun alone it passed. 13
+  core tests, signed-update checks, localization, the swap script on disposable
+  folders (rename, in place, failure keeps the old app), About and Settings →
+  General snapshots in English and Russian.
