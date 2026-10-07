@@ -76,8 +76,9 @@ The user runs their own build from `/Applications/Oriel.app` (`OriCmd.app` befor
 2026-10-07) instead of the official release.
 - The Homebrew cask `mmag/tap/oricmd` has been uninstalled so that `brew upgrade`
   does not replace the custom build.
-- The user's settings are in `~/Library/Preferences/ru.themmag.OriCmd.plist`. Do not
-  delete them. Do not use `brew uninstall --zap`, because it deletes them.
+- The user's settings are in `~/Library/Preferences/io.github.tosiabunio.oriel.plist`
+  since fork build 39 (copied once from `ru.themmag.OriCmd.plist`, which stays). Do
+  not delete either. Do not use `brew uninstall --zap`, because it deletes them.
 
 `/Applications/Oriel.app` is built from the branch `local-build`, which is pushed
 only to the fork, never sent upstream. It is a merge of the feature branches (see "Work in progress"), checked
@@ -919,3 +920,21 @@ release whose updater accepts the fork's own identity, then the switch itself.
   locally (the user's settings then live in `io.github.tosiabunio.oriel.plist`; keep
   `ru.themmag.OriCmd.plist` too) → publish the switch some days later, so copies
   reach the bridge first.
+- Done on 2026-10-07: 2026.10.5 was published at the user's explicit "publish
+  2026.10.5" (release commit `a22488a`, internal build 21,
+  https://github.com/tosiabunio/OriCmd/releases/tag/v2026.10.5, `OriCmd-2026.10.5.dmg`
+  8,800,755 bytes, SHA-256 `b40b7fc8…79d0e`); verified with the app's
+  `UpdateVerification` (driver `build/verify-driver.swift`), size, checksum, codesign,
+  universal app and helper, `Oriel.app` inside with `ru.themmag.OriCmd`. All 9 CI runs
+  passed. Installed as fork build 38.
+- Then `oriel-id` was rebased onto the release (`90b0bf7`; the helper's
+  `MARKETING_VERSION` and bundle ID lines conflicted) and `main` = `local-build` =
+  `90b0bf7` locally, not pushed. Installed as fork build 39: its first launch copied
+  all 35 keys of `ru.themmag.OriCmd` unchanged into `io.github.tosiabunio.oriel`
+  (plus `SettingsMovedFrom`); the original's file kept its 35 keys.
+- Validation of the switch: 367 of 368 regression checks (the new settings-move check
+  included); "SFTP: a cancelled download leaves the app idle" failed under load and
+  passed alone (CPU time flat at 2.00 s). 13 core tests, 25 signed-update checks,
+  localization, the Look and Settings section after the rebase.
+- Next: push `main`, `local-build` and `oriel-id` when the user agrees; publish the
+  switch (2026.10.6 if still October) only some days after 2026.10.5.
