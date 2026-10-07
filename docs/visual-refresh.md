@@ -5,7 +5,8 @@ branch `window-shell` (2026-10-07), except 2.2 and the lists under the toolbar,
 deferred; phase 3 on branch `secondary-windows` (2026-10-07); the app icon on branch
 `app-icon` (2026-10-07); phase 4, what phases 1 and 2 left over, on branch
 `ops-badge` (2026-10-07); phase 5, the tool windows, on branch `modern-polish`
-(2026-10-07).
+(2026-10-07); phase 6, thumbnails and copying, on branch `modern-details`
+(2026-10-08).
 **Mockup:** [Today and proposed main window, interactive](https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP)
 (light and dark).
 
@@ -315,6 +316,41 @@ off where they do not apply (hex, Quick Look), and the encodings are a menu. 5.3
 the tree's column follows the panel's width, so the rounded ends stay in view
 however deep the folders go. The search field is the same in both looks.
 
+### Phase 6: thumbnails and copying
+
+A second survey (2026-10-08) of what phase 5 left and of the windows it had not
+pictured:
+
+- **Thumbnails** showed text files as a few lines of tiny text floating on the
+  background (Quick Look's bare page with no edge), and `..` as an empty tile with a
+  small arrow in it.
+- **The overwrite question** wrote both files as a path broken across lines and a
+  size in bytes, under the title "File already exists"; which file was newer had
+  to be read from the dates.
+- **The copy progress** named the file being written by its temporary name
+  (`.oricmd-….part`) and showed two bars with no numbers: no amounts, no speed, no
+  time left.
+- **Compare** still framed its lines and its detail in sunken boxes.
+
+1. **Thumbnails as the Finder draws them.** In the Modern look Quick Look is asked
+   for icon-style thumbnails (`QLThumbnailGenerator.Request.iconMode`): a document is
+   a page with its edge and shadow, a picture has a border. `..` is a folder as large
+   as the others, faded, with the arrow up to it. Effort S.
+2. **The overwrite question** is titled with the file's name and compares the two
+   files under it: size and date, the folder each is in, and which of them is newer.
+   Its icon is the file type's. Effort S.
+3. **The copy progress** names the target itself; under the file's bar how much of
+   it is done, under the whole's the amounts, the speed and the time left, worded as
+   the Finder words it ("About 2 minutes remaining"). Effort S.
+4. **Compare** puts its lines and its detail in the rounded boxes of phase 5, its
+   rows still edge to edge. Effort S.
+
+**As built (phase 6).** As planned. The thumbnails cache keeps the plain and the
+icon-style pictures apart, so switching the look redraws with the right ones; the
+Classic look keeps both as before. Short sizes that read the same for two different
+files show their bytes in the overwrite question. The speed is measured over the last
+three seconds and left out while the copy is paused or before it has run a second.
+
 ## The Look setting
 
 The fork already has eight appearance switches: folder brackets, Mac-style tabs,
@@ -328,8 +364,8 @@ switches at once, and the individual switches stay below it. Test runs pin
 
 The plan is built except the deferred 2.1 and 2.2. New visual work starts from what
 using the Modern look shows, on its own branch from `main`, behind the Look setting
-where it changes how the classic panels look. Left from the phase 5 survey: the
-Thumbnails view's `..` tile, and the Compare window's two text frames.
+where it changes how the classic panels look. Phase 6 built what the phase 5
+survey left.
 
 ## Sources
 

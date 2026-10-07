@@ -45,6 +45,10 @@ keep working as always.
   command palette) are rounded boxes with rounded rows, + and − below them, and
   say when they are empty. Quick search and the quick filter type into a search
   field, and in the Modern look the tree's cursor is rounded like the panels'.
+- **Copying you can follow:** the progress shows the amounts, the speed and the time
+  left; the overwrite question compares the two files (size, date, folder) and says
+  which is newer. In the Modern look thumbnails are drawn as the Finder draws them,
+  documents as pages and pictures with a border.
 - **Mac-style panels:** compact headers, folder icons and close buttons on tabs,
   key caps on function buttons, Finder-style sizes and status summaries, folder
   colors from Finder tags, and options for folder brackets and file extensions.
