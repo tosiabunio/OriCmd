@@ -621,6 +621,27 @@ extension CompareWindowController: NSTableViewDataSource, NSTableViewDelegate {
         updateDetail()
         updateStatus()
     }
+
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        DifferenceRowView()
+    }
+}
+
+/// The chosen line outlined in the accent color, with a bar at its leading edge: the
+/// line keeps its own color (changed, only on one side) and its text its colors.
+private final class DifferenceRowView: NSTableRowView {
+    override var interiorBackgroundStyle: NSView.BackgroundStyle { .normal }
+
+    override func drawSelection(in dirtyRect: NSRect) {
+        guard selectionHighlightStyle != .none else { return }
+        let color = NSColor.controlAccentColor.withAlphaComponent(isEmphasized ? 1 : 0.55)
+        color.setStroke()
+        let outline = NSBezierPath(rect: bounds.insetBy(dx: 1, dy: 1))
+        outline.lineWidth = 2
+        outline.stroke()
+        color.setFill()
+        NSRect(x: bounds.minX, y: bounds.minY, width: 4, height: bounds.height).fill()
+    }
 }
 
 /// Lets the window handle N / P / Esc before the table sees them.
