@@ -1160,4 +1160,12 @@ README screenshots regenerated). The user asked to install, push and release
 - Validation: 382 of 382 regression checks (four new), the five UX suites, 11
   accessibility checks, 13 core tests, localization, captures in light and dark, the
   Russian copy dialog, the Classic dialog unchanged.
-- `main` = `local-build` = `901604f` plus this entry; installed as fork build 47.
+- Installed as fork build 47 and pushed (`main` = `local-build` = `2350ef0`, with
+  `modern-dialogs`), then `scripts/release.sh 2026.10.10` (release commit `be8c227`,
+  internal build 26): https://github.com/tosiabunio/Oriel/releases/tag/v2026.10.10 has
+  `Oriel-2026.10.10.dmg` (8,880,689 bytes, SHA-256 `d4b9f92d…079d9d`), verified with
+  `build/verify-driver` for `tosiabunio/Oriel` and `io.github.tosiabunio.oriel`, size,
+  checksum, codesign, universal app and helper; it is the latest release (the first
+  with a two-digit RELEASE: `release.sh` and the updater compare each part as a
+  number). Reinstalled as fork build 48, "2026.10.10 (48)". The notes present phase 7;
+  upstream base still 0.13.3b.
