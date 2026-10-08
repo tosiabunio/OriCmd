@@ -1420,16 +1420,31 @@ extension FilePanelController: NSMenuItemValidation {
             rows.append([NSTextField(labelWithString: title)] + boxes)
         }
         let grid = NSGridView(views: rows)
-        grid.column(at: 0).xPlacement = .trailing
+        grid.column(at: 0).xPlacement = .leading
         for column in 1..<4 { grid.column(at: column).xPlacement = .center }
-        let stack = NSStackView(views: [grid, NSStackView(views: [hiddenBox, lockedBox]),
-                                        NSStackView(views: [dateBox, datePicker]), subfoldersBox])
+        grid.columnSpacing = 16
+        grid.rowSpacing = 6
+        // The date on a line of its own, as wide as its text with the seconds.
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .medium
+        let dateWidth = (formatter.string(from: datePicker.dateValue) as NSString)
+            .size(withAttributes: [.font: datePicker.font ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)]).width
+        datePicker.widthAnchor.constraint(greaterThanOrEqualToConstant: ceil(dateWidth) + 44).isActive = true
+        let dateLine = NSStackView(views: [datePicker])
+        dateLine.edgeInsets = NSEdgeInsets(top: 0, left: 22, bottom: 0, right: 0)
+        let flags = NSStackView(views: [hiddenBox, lockedBox])
+        flags.spacing = 16
+        let stack = NSStackView(views: [grid, flags, dateBox, dateLine, subfoldersBox])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
+        stack.setCustomSpacing(16, after: grid)
+        stack.setCustomSpacing(4, after: dateBox)
         stack.frame.size = stack.fittingSize
 
         let alert = NSAlert()
+        alert.icon = FileIcons.icon(for: items.map(\.url))
         alert.messageText = items.count == 1
             ? String(localized: "Change attributes of \u{201C}\(items[0].name)\u{201D}")
             : String(localized: "Change attributes of \(items.count) items")
