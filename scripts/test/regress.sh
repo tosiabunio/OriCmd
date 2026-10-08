@@ -48,6 +48,9 @@ UI_LANGUAGE=ru run escfind "alt+f7 wait wait wait escape wait"
 check "Esc closes Find Files" "$(nosheet escfind)"
 UI_LANGUAGE=ru run escsync "cmd:cm_SyncDirs wait wait wait escape wait"
 check "Esc closes Synchronize Directories" "$(nosheet escsync)"
+scripts/test/mkdata.sh
+run syncsum "cmd:cm_SyncDirs wait click:Compare wait wait wait"
+check "Synchronize sums up the comparison: directions, files compared, the size to copy" "grep -Eq '^[0-9]+ → · [0-9]+ ← · [0-9]+ ≠ · [0-9]+ files compared · [0-9.,]+ (B|KB|MB) to copy\$' build/shots/reg-syncsum-win1.txt"
 
 # Network shares (localhost only): a closed port is reported at once, a server that
 # accepts but never answers (nc) shows "Connecting…", and Esc cancels the mount.

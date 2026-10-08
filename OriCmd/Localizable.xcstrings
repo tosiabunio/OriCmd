@@ -591,12 +591,12 @@
         }
       }
     },
-    "%lld → , %lld ← , %lld ≠ , %lld files compared; %@ to copy": {
+    "%lld → · %lld ← · %lld ≠ · %lld files compared · %@ to copy": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$lld → , %2$lld ← , %3$lld ≠ , сравнено файлов: %4$lld; копировать %5$@"
+            "value": "%1$lld → · %2$lld ← · %3$lld ≠ · сравнено файлов: %4$lld · копировать %5$@"
           }
         }
       }
@@ -8451,12 +8451,12 @@
         }
       }
     },
-    "These are the defaults of the copy dialog; its “Options >>” change them for one operation.": {
+    "These are the defaults of the copy dialog; its options change them for one operation.": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Это значения по умолчанию для диалога копирования; кнопка «Параметры >>» в нём меняет их для одной операции."
+            "value": "Это значения по умолчанию для диалога копирования; его параметры меняют их для одной операции."
           }
         }
       }

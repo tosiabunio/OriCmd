@@ -163,9 +163,9 @@ final class SyncWindowController: NSWindowController {
         let toLeft = items.filter { $0.action == .toLeft }
         let different = items.count { $0.action == .different }
         let bytes = (toRight.compactMap(\.left) + toLeft.compactMap(\.right)).reduce(Int64(0)) { $0 + $1.size }
-        let size = ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+        let size = Settings.shortSize(bytes)
         statusLabel.stringValue = String(localized:
-            "\(toRight.count) → , \(toLeft.count) ← , \(different) ≠ , \(items.count) files compared; \(size) to copy")
+            "\(toRight.count) → · \(toLeft.count) ← · \(different) ≠ · \(items.count) files compared · \(size) to copy")
         syncButton.isEnabled = !(toRight.isEmpty && toLeft.isEmpty)
     }
 
