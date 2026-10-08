@@ -1123,3 +1123,41 @@ and overwrite question), `108bee3` (Compare), `993c32d` (plan and README).
   checksum, codesign, universal app and helper; it is the latest release. Reinstalled
   as fork build 46, "2026.10.9 (46)". The notes present phase 6; upstream base still
   0.13.3b.
+
+## Visual refresh phase 7 on 2026-10-08: dialogs
+
+The user asked to continue the visual upgrades after 2026.10.9. A third survey
+(scratchpad `survey7.sh`: copy/move/unpack dialogs, the delete questions, tabs, branch
+view, the simple prompts, Connect to Server, the network browser, Quick View, the
+Lister's table and pictures) found the dialogs dated. Branch `modern-dialogs`
+(worktree `build/p7`): `42e9245` (copy dialog, questions), `065c345` (Connect to
+Server), `cf0b63c` (Lister table, key hints), `901604f` (plan, README, all seven
+README screenshots regenerated). The user asked to install, push and release
+2026.10.10 once the tests passed.
+- Copy/move dialog, Modern only (`CopyDialog.heading`): `FileIcons.icon(for:)` (the
+  item's icon, a folder for several folders, the Finder's document stack for several
+  files) beside "Copy “x”" / "Copy 2 folders" (ru "Копирование: 2 папки"), the names
+  (`Prompt.names`) and From. `CopyDialog.mask` is "" in Modern, so the target is
+  the folder alone (`resolveTarget` treats "dir/" as "dir/*.*"). The F7/F8 buttons
+  are a star (`star.fill` + accent when listed; hidden title "Add to the Target
+  List") and `line.3.horizontal.decrease.circle` ("Filters"); the filter's
+  placeholder "All files"; `OverwriteMode.plainTitle` drops TC's "1. " (Settings →
+  Operations too); buttons sized to their titles (min 84): Options (a chevron,
+  shows and hides the options), Choose…, Queue (F2). Classic unchanged.
+- Questions: "Move “x” / 2 items to the Trash?", "Delete … immediately?", names of
+  several under the title, `Prompt.confirm(icon:)` with the items' icon; "%lld items"
+  (plural, ru объект/объекта/объектов) replaces "%lld files/folders" everywhere;
+  several existing items: "%lld items already exist. Replace them?". The unused
+  old keys were removed from the catalog.
+- `ServerAddressSheet`: `ListTableView` in a `ListBox` with `ListBox.button(.remove)`
+  and "No recent servers". The network browser's Connect… is in the trailing area.
+- `TableGridView`: `columnAutoresizingStyle = .noColumnAutoresizing`.
+  `FunctionKeyBar.Item.modernTitle`: "New Folder", "Quit" in Modern.
+- Tests: `click:Options` (was `Options_>>`) in regress.sh and screenshots.sh;
+  ux-copy.sh checks the new heading, the bare target and Russian; new regress
+  checks copyhead, copyclassic (Look classic keeps `*.*` and "Marked selection"),
+  trashq, norecent.
+- Validation: 382 of 382 regression checks (four new), the five UX suites, 11
+  accessibility checks, 13 core tests, localization, captures in light and dark, the
+  Russian copy dialog, the Classic dialog unchanged.
+- `main` = `local-build` = `901604f` plus this entry; installed as fork build 47.
