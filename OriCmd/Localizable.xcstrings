@@ -5361,6 +5361,16 @@
         }
       }
     },
+    "No recent servers": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет недавних серверов"
+          }
+        }
+      }
+    },
     "No saved connections": {
       "localizations": {
         "ru": {

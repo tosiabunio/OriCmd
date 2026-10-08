@@ -1,8 +1,8 @@
 import AppKit
 
 /// Connect to Server, in the manner of the Finder's: the address, the recent servers
-/// in a striped list under it (a click picks one, a double click connects, ↓ goes
-/// from the address to the list), and the sheet can be made taller.
+/// in a list box under it (a click picks one, a double click connects, ↓ goes from the
+/// address to the list, − removes one), and the sheet can be made taller.
 final class ServerAddressSheet: NSObject {
     private static let sizeKey = "ServerSheetSize"
     private static let minimumSize = NSSize(width: 460, height: 320)
@@ -10,8 +10,8 @@ final class ServerAddressSheet: NSObject {
     private let sheet = NSWindow(contentRect: NSRect(origin: .zero, size: minimumSize),
                                  styleMask: [.titled, .resizable], backing: .buffered, defer: false)
     private let field = NSTextField()
-    private let table = NSTableView()
-    private let removeButton = NSButton(title: "−", target: nil, action: nil)
+    private let table = ListTableView()
+    private lazy var removeButton = ListBox.button(.remove, target: self, selector: #selector(removeChosen(_:)))
     private var addresses: [String]
     private let onRemove: (String) -> Void
     private let completion: (String) -> Void
@@ -66,9 +66,7 @@ final class ServerAddressSheet: NSObject {
         column.resizingMask = .autoresizingMask
         table.addTableColumn(column)
         table.headerView = nil
-        table.style = .fullWidth
         table.rowHeight = 24
-        table.usesAlternatingRowBackgroundColors = true
         table.dataSource = self
         table.delegate = self
         table.target = self
@@ -77,15 +75,10 @@ final class ServerAddressSheet: NSObject {
         menu.addItem(withTitle: String(localized: "Remove from List"), action: #selector(removeChosen(_:)), keyEquivalent: "")
             .target = self
         table.menu = menu
-        let scrollView = NSScrollView()
-        scrollView.documentView = table
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .bezelBorder
-        scrollView.setContentHuggingPriority(.defaultLow, for: .vertical)
+        let list = ListBox(table, buttons: [removeButton])
+        list.placeholder = String(localized: "No recent servers")
+        list.setContentHuggingPriority(.defaultLow, for: .vertical)
 
-        removeButton.bezelStyle = .smallSquare
-        removeButton.target = self
-        removeButton.action = #selector(removeChosen(_:))
         removeButton.toolTip = String(localized: "Remove from List")
         removeButton.isEnabled = false
         let cancel = NSButton(title: String(localized: "Cancel"), target: self, action: #selector(cancel(_:)))
@@ -94,19 +87,19 @@ final class ServerAddressSheet: NSObject {
         connect.keyEquivalent = "\r"
         let spacer = NSView()
         spacer.setContentHuggingPriority(.init(1), for: .horizontal)
-        let buttons = NSStackView(views: [removeButton, spacer, cancel, connect])
+        let buttons = NSStackView(views: [spacer, cancel, connect])
 
-        let stack = NSStackView(views: [titleLabel, messageLabel, field, recentLabel, scrollView, buttons])
+        let stack = NSStackView(views: [titleLabel, messageLabel, field, recentLabel, list, buttons])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 8
         stack.setCustomSpacing(14, after: field)
-        stack.setCustomSpacing(14, after: scrollView)
+        stack.setCustomSpacing(14, after: list)
         stack.edgeInsets = NSEdgeInsets(top: 18, left: 20, bottom: 18, right: 20)
-        for view in [messageLabel, field, scrollView, buttons] {
+        for view in [messageLabel, field, list, buttons] {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -40).isActive = true
         }
-        scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 6 * 24 + 4).isActive = true
+        list.heightAnchor.constraint(greaterThanOrEqualToConstant: 6 * 24 + 30).isActive = true
         sheet.contentView = stack
         sheet.contentMinSize = Self.minimumSize
         sheet.defaultButtonCell = connect.cell as? NSButtonCell

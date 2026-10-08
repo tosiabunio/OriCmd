@@ -1252,7 +1252,7 @@ newline() { grep -nx 'New:' build/shots/reg-overwriteq-sheet2.txt | cut -d: -f1;
 check "the overwrite question compares the two files, the newer one marked" "grep -qx 'A file named “readme.txt” already exists' build/shots/reg-overwriteq-sheet2.txt && grep -qx 'Existing:' build/shots/reg-overwriteq-sheet2.txt && [ -n \"\$(newerline)\" ] && [ \"\$(newerline)\" -gt \"\$(newline)\" ]"
 # The modern look's copy dialog names what it copies beside its icon and leaves the
 # mask out of the target; the classic one keeps Total Commander's "*.*". The Trash
-# question names the items.
+# question names the items, and Connect to Server says when it has no recent servers.
 scripts/test/mkdata.sh
 run copyhead "home down space space f5 wait"
 check "the copy dialog names what it copies and leaves the mask out of the target" "grep -qx 'Copy 2 folders' build/shots/reg-copyhead-sheet.txt && grep -qx 'alpha · beta' build/shots/reg-copyhead-sheet.txt && grep -qx '\\[selected: .*/right/\\]' build/shots/reg-copyhead-sheet.txt"
@@ -1261,6 +1261,8 @@ run copyclassic "home down space space f5 wait"
 check "the classic copy dialog keeps Total Commander's *.* and wording" "grep -qx '\\[selected: .*/right/\\*\\.\\*\\]' build/shots/reg-copyclassic-sheet.txt && grep -qx 'Marked selection · 2 folders' build/shots/reg-copyclassic-sheet.txt"
 run trashq "home down space space f8 wait"
 check "the Trash question names the items it moves" "grep -qx 'Move 2 items to the Trash?' build/shots/reg-trashq-sheet.txt && grep -qx 'alpha · beta' build/shots/reg-trashq-sheet.txt"
+run norecent "cmd:connectToServer wait"
+check "Connect to Server says when it has no recent servers" "grep -qx 'No recent servers' build/shots/reg-norecent-sheet.txt"
 
 # Column sets: the Default columns (without Attr in the modern look), a set used by
 # itself in the folders matching its masks (and left there), a set chosen in Show →

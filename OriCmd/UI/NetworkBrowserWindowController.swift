@@ -67,7 +67,9 @@ final class NetworkBrowserWindowController: NSWindowController, NSTableViewDataS
         connect.keyEquivalent = "\r"
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        let buttons = NSStackView(views: [statusLabel, connect])
+        let buttons = NSStackView()
+        buttons.addView(statusLabel, in: .leading)
+        buttons.addView(connect, in: .trailing)
         let stack = NSStackView(views: [list, buttons])
         stack.orientation = .vertical
         stack.edgeInsets = NSEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
