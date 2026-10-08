@@ -30,6 +30,7 @@ final class PackDialog: NSObject, NSTextFieldDelegate {
     private let passwordField = NSSecureTextField()
     private let repeatField = NSSecureTextField()
     private let hint = NSTextField(labelWithString: "")
+    private var grid = NSGridView()
 
     private init(initial: String, itemCount: Int) {
         pathField = NSTextField(string: initial)
@@ -66,7 +67,7 @@ final class PackDialog: NSObject, NSTextFieldDelegate {
             field.widthAnchor.constraint(equalToConstant: 220).isActive = true
         }
 
-        let grid = NSGridView(views: [
+        grid = NSGridView(views: [
             [pathField, NSGridCell.emptyContentView],
             [NSTextField(labelWithString: String(localized: "Compression:")), compressionPopup],
             [NSGridCell.emptyContentView, moveBox],
@@ -144,6 +145,13 @@ final class PackDialog: NSObject, NSTextFieldDelegate {
         let differ = encrypts && !repeatField.stringValue.isEmpty && passwordField.stringValue != repeatField.stringValue
         hint.stringValue = encryptBox.state == .on && !isZip ? String(localized: "Only zip archives can be encrypted.")
             : differ ? String(localized: "The passwords differ.") : ""
+        // The password rows only while encrypting, the hint only when it says something.
+        let hidden = [encryptBox.state != .on, encryptBox.state != .on, hint.stringValue.isEmpty]
+        if zip([5, 6, 7], hidden).contains(where: { grid.row(at: $0).isHidden != $1 }) {
+            for (row, isHidden) in zip([5, 6, 7], hidden) { grid.row(at: row).isHidden = isHidden }
+            grid.frame.size = grid.fittingSize
+            alert.layout()
+        }
         alert.buttons.first?.isEnabled = !path.trimmingCharacters(in: .whitespaces).isEmpty
             && (!encrypts || (!passwordField.stringValue.isEmpty && passwordField.stringValue == repeatField.stringValue))
     }
