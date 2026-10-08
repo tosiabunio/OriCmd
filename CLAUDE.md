@@ -1212,3 +1212,33 @@ passed.
   checksum, codesign, universal app and helper; it is the latest release. Reinstalled
   as fork build 50, "2026.10.11 (50)". The notes present phase 8; upstream base still
   0.13.3b.
+
+## Visual refresh phase 9 on 2026-10-09: the panel header's type
+
+The user found the panel header clumsy ("different fonts, small size"): the path was
+drawn in the list's font (their Monaco 15) and the volume chip, counts, free space,
+column titles and tab titles in 11 pt SF. Branch `modern-header` (worktree `build/p9`):
+`87ad71e` (the header), `5de4ded` (plan, README, screenshots). The user asked to
+install, push and release 2026.10.12 once the tests passed.
+- `Theme.headerTitleSize` = the list font's size rounded, 12–18; `headerTitleFont`
+  (system), `headerChipFont` (−1), `headerDetailFont` (−2, at least 11),
+  `Theme.lineHeight(_:)`. Modern only; Classic keeps `Theme.panelFont` in the path and
+  `chromeFont` elsewhere.
+- `PathBar`: path and its edit field in `headerTitleFont`, the current folder in a
+  semibold system font (no more bold Monaco); `chipFont`/`chipIconSize` instance
+  properties; the info line and an info-line free space in `infoAttributes` (detail
+  font); `pathLineHeight` = line + 6, `infoLineHeight` = line + 1, heights 4 + path +
+  (info + 3 | 2): still 28/44 at 13 pt. `PathBar.pathLineCenter` places the loading
+  spinner (was 15/11).
+- `FileListHeaderView.height` = detail line + 8 (22 at 13 pt), titles in the detail
+  font, the chevron at size − 3. `FolderTabBar`: `font`, `height` = max(24, line +
+  10) for Mac-style tabs, `iconSize` = font + 3, `sideRoom` (room for icon or close
+  button) so large titles do not run into the icon.
+- The Settings → Colors preview's column titles use the same font and height.
+- Captures: scratchpad `survey9.sh` with `FONT=Monaco FSIZE=15` (writes
+  `PanelFontName`/`PanelFontSize` to the test suite).
+- Validation: 384 of 384 regression checks, the five UX suites, 11 accessibility
+  checks, 13 core tests, localization; captures at 12, 13, 15 and 18 pt, light and
+  dark, and the Classic look unchanged.
+- Installed as fork build 51 and pushed (`main` = `local-build` = this entry, with
+  `modern-header`).
