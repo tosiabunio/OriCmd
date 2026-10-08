@@ -1169,3 +1169,40 @@ README screenshots regenerated). The user asked to install, push and release
   with a two-digit RELEASE: `release.sh` and the updater compare each part as a
   number). Reinstalled as fork build 48, "2026.10.10 (48)". The notes present phase 7;
   upstream base still 0.13.3b.
+
+## Visual refresh phase 8 on 2026-10-08: the rest of the tools
+
+The user asked to continue the visual upgrades after 2026.10.10. A fourth survey
+(scratchpad `survey8.sh`: every tool window and dialog the earlier phases left, all
+Settings panes) found six spots. Branch `modern-tools` (worktree `build/p8`):
+`fc4a448` (Find Files), `4006087` (hex), `dfd5612` (attributes), `fd78973` (Compare),
+`6d0504f` (Pack), `2383946` (Synchronize, Settings note), `c8b43e9` (plan, README,
+screenshots: Compare, Synchronize and others recaptured). The user asked to install, push and release 2026.10.11 once the tests
+passed.
+- Find Files results stay a cell-based table whose value is the full path (window
+  dumps and every `[row]` check read it); `FoundFileCell` (`column.dataCell`, filled
+  in `willDisplayCell`) draws the icon (cached per path in `icons`, cleared on a new
+  search; by extension for archive entries), the name and the folder relative to
+  `query.root` in grey (white-ish on the emphasized selection).
+- Hex view: `shadeHexDump()` after `makePlain()` colors columns 0–7 secondary and,
+  in the text column (59), each "." whose byte is not 2E tertiary. The text and its
+  76-character lines are unchanged, so `findBytes` still maps offsets. A hex window
+  dump now has "[text colors: 3]".
+- Change Attributes (still an NSAlert): `alert.icon = FileIcons.icon(for:)`, grid
+  column 0 leading, the date picker on its own line at least as wide as a short
+  date + medium time in its font + 44.
+- Compare: `DifferenceRowView` (`rowViewForRow`): `interiorBackgroundStyle .normal`,
+  a 2 pt accent outline and a 4 pt leading bar (alpha 0.55 when not emphasized). A
+  translucent band was tried first: over the yellow of a changed line it read grey.
+- Pack: rows 5–6 (password, repeat) hidden unless Encrypt is on, row 7 (hint) while
+  empty; on a change `grid.frame.size = fittingSize` and `alert.layout()` resize the
+  open sheet.
+- Synchronize: `Settings.shortSize` and " · " separators; the Settings → Operations
+  note says "its options" (the old keys were removed from the catalog).
+- Checks: hex colors (3, on the existing listerhexbar run), syncsum (the summary's
+  form). Window dumps include hidden text fields, so Pack's hidden rows cannot be
+  checked by text.
+- Validation: 384 of 384 regression checks (two new), the five UX suites, 11
+  accessibility checks, 13 core tests, localization, captures in light and dark.
+- Installed as fork build 49 and pushed (`main` = `local-build` = this entry, with
+  `modern-tools`).
