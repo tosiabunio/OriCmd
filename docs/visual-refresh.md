@@ -6,7 +6,8 @@ deferred; phase 3 on branch `secondary-windows` (2026-10-07); the app icon on br
 `app-icon` (2026-10-07); phase 4, what phases 1 and 2 left over, on branch
 `ops-badge` (2026-10-07); phase 5, the tool windows, on branch `modern-polish`
 (2026-10-07); phase 6, thumbnails and copying, on branch `modern-details`
-(2026-10-08); phase 7, dialogs, on branch `modern-dialogs` (2026-10-08).
+(2026-10-08); phase 7, dialogs, on branch `modern-dialogs` (2026-10-08); phase 8, the
+rest of the tools, on branch `modern-tools` (2026-10-08).
 **Mockup:** [Today and proposed main window, interactive](https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP)
 (light and dark).
 
@@ -392,6 +393,43 @@ as it was: its wording, the mask, "+ F7", "+ F8", Options >>, Tree and F2 Queue 
 width, and the numbered modes. The questions and Connect to Server are the same in
 both looks.
 
+### Phase 8: the rest of the tools
+
+A fourth survey (2026-10-08) went through every tool window and dialog the earlier
+phases had left as they were: attributes, properties, counting, splitting,
+checksums, links, comments, packing, Find Files and its results, Multi-Rename,
+Synchronize, Compare, the Lister's text, hex and find bar, About, the command
+palette, Operations, the quick filter, the horizontal panels, the tree and every
+Settings pane.
+
+- **Find Files** listed its results as bare full paths, without icons.
+- **The Lister's hex view** drew the offsets, the bytes and the text alike, and
+  showed a line break as a full stop.
+- **Change Attributes** clipped its date (the seconds under the stepper) and set the
+  permissions grid apart from the rest.
+- **Compare** filled the chosen line with a solid blue in which the black text and
+  the change highlights were hard to read.
+- **Pack** kept two empty password fields and a gap under them while nothing was
+  encrypted.
+- **Synchronize** summed up as "4 → , 1 ← , 0 ≠ , 20 files compared; 341 bytes to copy",
+  and Settings → Operations still named "Options >>".
+
+1. **Find Files results** with each file's icon and name, and in grey the folder it
+   is in under the one searched (the row's value stays the whole path). Effort S.
+2. **The hex view**: the offsets in grey, and in the text column the dots that stand
+   for bytes with no character fainter than real full stops. The layout of the dump
+   (and finding bytes in it) is unchanged. Effort S.
+3. **Change Attributes** with the items' icon, the grid at the left edge and the date
+   on a line of its own, as wide as its text. Effort S.
+4. **Compare** outlines the chosen line in the accent color with a bar at its edge,
+   over the line's own color. Effort S.
+5. **Pack** shows the password rows only while Encrypt is on, the hint only when it
+   says something. Effort XS.
+6. **Synchronize** sums up as "4 → · 1 ← · 0 ≠ · 20 files compared · 341 B to copy";
+   the Settings note says "its options". Effort XS.
+
+**As built (phase 8).** As planned, in both looks.
+
 ## The Look setting
 
 The fork already has eight appearance switches: folder brackets, Mac-style tabs,
@@ -406,7 +444,8 @@ switches at once, and the individual switches stay below it. Test runs pin
 The plan is built except the deferred 2.1 and 2.2. New visual work starts from what
 using the Modern look shows, on its own branch from `main`, behind the Look setting
 where it changes how the classic panels look. Phase 6 built what the phase 5
-survey left; phase 7 what a third survey found in the dialogs.
+survey left; phase 7 what a third survey found in the dialogs; phase 8 what a fourth
+found in the remaining tools.
 
 ## Sources
 

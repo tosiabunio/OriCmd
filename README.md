@@ -57,6 +57,11 @@ keep working as always.
   icon and names. Connect to Server keeps its recent servers in a rounded list, the
   Lister's table columns are as wide as their texts, and the key hints say New Folder
   and Quit.
+- **Tools that read at a glance:** Find Files lists its results with their icons,
+  names and, in grey, their folders; the hex view greys the offsets and the dots that
+  stand for bytes with no character; Compare outlines the chosen line, keeping its
+  colors; Change Attributes shows the items' icon and the whole date; Pack shows the
+  password fields only when encrypting.
 - **Mac-style panels:** compact headers, folder icons and close buttons on tabs,
   key caps on function buttons, Finder-style sizes and status summaries, folder
   colors from Finder tags, and options for folder brackets and file extensions.
