@@ -1,4 +1,5 @@
 import AppKit
+import UniformTypeIdentifiers
 
 /// Alt+F7: Total Commander's "Find Files" dialog.
 final class FindFilesWindowController: NSWindowController {
@@ -83,6 +84,8 @@ final class FindFilesWindowController: NSWindowController {
         case group(String)
     }
     private var search: FileSearch?
+    /// The icons of the files found, by path.
+    private var icons: [String: NSImage] = [:]
     private var timer: Timer?
     private var onGoTo: ((FileSearch.Found) -> Void)?
     private var onFeed: ((_ results: [URL], _ root: URL, _ title: String) -> Void)?
@@ -133,6 +136,7 @@ final class FindFilesWindowController: NSWindowController {
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("path"))
         column.title = String(localized: "Found files")
         column.resizingMask = .autoresizingMask
+        column.dataCell = FoundFileCell(textCell: "")
         resultsTable.addTableColumn(column)
         resultsTable.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
         resultsTable.dataSource = self
@@ -563,6 +567,7 @@ final class FindFilesWindowController: NSWindowController {
         self.search = search
         results = []
         rows = []
+        icons = [:]
         resultsTable.reloadData()
         startButton.title = String(localized: "Stop")
         timer?.invalidate()
@@ -657,6 +662,72 @@ extension FindFilesWindowController: NSTableViewDataSource, NSTableViewDelegate 
 
     func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
         !self.tableView(tableView, isGroupRow: row)
+    }
+
+    /// A file found shows its icon and name, and in grey the folder it is in under the
+    /// one searched; the row's value stays the whole path.
+    func tableView(_ tableView: NSTableView, willDisplayCell cell: Any, for tableColumn: NSTableColumn?, row: Int) {
+        guard tableView === resultsTable, let cell = cell as? FoundFileCell, rows.indices.contains(row) else { return }
+        switch rows[row] {
+        case .group(let title):
+            cell.icon = nil
+            cell.name = title
+            cell.folder = ""
+        case .file(let found):
+            let path = found.path as NSString
+            cell.name = path.lastPathComponent
+            var folder = path.deletingLastPathComponent
+            if let root = search?.query.root.path {
+                let base = root.hasSuffix("/") ? root : root + "/"
+                folder = folder == root ? "" : folder.hasPrefix(base) ? String(folder.dropFirst(base.count)) : folder
+            }
+            cell.folder = folder
+            cell.icon = icon(of: found)
+        }
+    }
+
+    private func icon(of found: FileSearch.Found) -> NSImage {
+        if let icon = icons[found.path] { return icon }
+        let icon = found.entry == nil
+            ? NSWorkspace.shared.icon(forFile: found.url.path)
+            : NSWorkspace.shared.icon(for: UTType(filenameExtension: (found.path as NSString).pathExtension) ?? .data)
+        icons[found.path] = icon
+        return icon
+    }
+}
+
+/// Draws a file found as the Finder lists one: the icon, the name and the folder in
+/// grey (white over a chosen row).
+private final class FoundFileCell: NSTextFieldCell {
+    var icon: NSImage?
+    var name = ""
+    var folder = ""
+
+    override func drawInterior(withFrame frame: NSRect, in view: NSView) {
+        var rect = frame.insetBy(dx: 2, dy: 0)
+        if let icon {
+            icon.draw(in: NSRect(x: rect.minX, y: (rect.midY - 8).rounded(), width: 16, height: 16), from: .zero,
+                      operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+            rect.origin.x += 22
+            rect.size.width -= 22
+        }
+        let chosen = backgroundStyle == .emphasized
+        let style = NSMutableParagraphStyle()
+        style.lineBreakMode = .byTruncatingMiddle
+        let font = font ?? .systemFont(ofSize: NSFont.systemFontSize)
+        let text = NSMutableAttributedString(string: name, attributes: [
+            .font: font, .paragraphStyle: style,
+            .foregroundColor: chosen ? NSColor.alternateSelectedControlTextColor : NSColor.labelColor,
+        ])
+        if !folder.isEmpty {
+            text.append(NSAttributedString(string: "   " + folder, attributes: [
+                .font: font, .paragraphStyle: style,
+                .foregroundColor: chosen ? NSColor.alternateSelectedControlTextColor.withAlphaComponent(0.75) : NSColor.secondaryLabelColor,
+            ]))
+        }
+        let height = ceil(text.size().height)
+        text.draw(with: NSRect(x: rect.minX, y: (rect.midY - height / 2).rounded(), width: rect.width, height: height),
+                  options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine])
     }
 }
 
