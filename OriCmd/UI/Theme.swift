@@ -26,6 +26,17 @@ enum Theme {
 
     static let chromeFont = NSFont.systemFont(ofSize: 11)
 
+    /// The modern panel header's text is in the system font whatever the list's, and
+    /// in proportion to it: the path at the list's size (12–18 pt), the volume a point
+    /// smaller, the tabs, counts and column titles two points smaller (11 pt at least).
+    static var headerTitleSize: CGFloat { min(max(panelFont.pointSize.rounded(), 12), 18) }
+    static var headerTitleFont: NSFont { .systemFont(ofSize: headerTitleSize) }
+    static var headerChipFont: NSFont { .systemFont(ofSize: headerTitleSize - 1) }
+    static var headerDetailFont: NSFont { .systemFont(ofSize: max(headerTitleSize - 2, 11)) }
+
+    /// The height a line of `font` takes.
+    static func lineHeight(_ font: NSFont) -> CGFloat { ceil(font.ascender - font.descender) }
+
     /// Row height follows the panel font and the density: 22 pt for the standard
     /// 13 pt font, 19 pt for the compact 12 pt one.
     static var rowHeight: CGFloat {

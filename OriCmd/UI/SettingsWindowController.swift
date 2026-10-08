@@ -798,7 +798,7 @@ private final class PanelPreview: NSView {
     }
 
     private var heightConstraint: NSLayoutConstraint?
-    private var headerHeight: CGFloat { Settings.isModern ? 24 : 20 }
+    private var headerHeight: CGFloat { Settings.isModern ? FileListHeaderView.height + 2 : 20 }
     private var height: CGFloat { headerHeight + CGFloat(rows.count) * Theme.rowHeight + (Settings.isModern ? 6 : 2) }
 
     nonisolated override var isFlipped: Bool { true }
@@ -820,10 +820,13 @@ private final class PanelPreview: NSView {
             (String(localized: "Name"), left, .left), (String(localized: "Ext"), nameWidth, .left),
             (String(localized: "Size"), nameWidth + 50 - Theme.contentInset, .right),
         ]
+        let titleFont = modern ? Theme.headerDetailFont : Theme.chromeFont
+        let titleHeight = Theme.lineHeight(titleFont) + 2
         for (index, (title, x, alignment)) in columns.enumerated() {
             let sorted = modern && index == 0
-            draw(title, in: NSRect(x: x, y: (headerHeight - 16) / 2 + 1, width: alignment == .right ? 130 : 120, height: 16),
-                 font: sorted ? .systemFont(ofSize: 11, weight: .semibold) : Theme.chromeFont,
+            draw(title, in: NSRect(x: x, y: (headerHeight - titleHeight) / 2 + 1, width: alignment == .right ? 130 : 120,
+                                   height: titleHeight),
+                 font: sorted ? .systemFont(ofSize: titleFont.pointSize, weight: .semibold) : titleFont,
                  color: modern ? (sorted ? .labelColor : .secondaryLabelColor) : Theme.chromeText, alignment: alignment)
         }
         Theme.separator.setFill()

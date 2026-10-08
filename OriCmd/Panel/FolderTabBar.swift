@@ -9,7 +9,10 @@ final class FolderTabBar: NSView, NSDraggingSource {
     static let pasteboardType = NSPasteboard.PasteboardType("ru.themmag.OriCmd.tab")
 
     private static let maximumTabWidth: CGFloat = 180
-    static var height: CGFloat { Settings.macStyleTabs ? 24 : 20 }
+    /// Mac-style tabs follow the header's fonts in the modern look: 24 pt for a 13 pt list.
+    static var height: CGFloat { Settings.macStyleTabs ? max(24, Theme.lineHeight(font) + 10) : 20 }
+
+    private static var font: NSFont { Settings.isModern ? Theme.headerDetailFont : Theme.chromeFont }
 
     var titles: [String] = [] {
         didSet { needsDisplay = true }
@@ -71,16 +74,19 @@ final class FolderTabBar: NSView, NSDraggingSource {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byTruncatingTail
         paragraph.alignment = .center
-        return [.font: Theme.chromeFont, .foregroundColor: Theme.chromeText, .paragraphStyle: paragraph]
+        return [.font: Self.font, .foregroundColor: Theme.chromeText, .paragraphStyle: paragraph]
     }
 
-    private static let iconSize: CGFloat = 14
+    private static var iconSize: CGFloat { Settings.isModern ? font.pointSize + 3 : 14 }
     private static let closeSize: CGFloat = 14
+    /// The room on either side of a Mac-style tab's title: the icon on one, the close
+    /// button on the other.
+    private static var sideRoom: CGFloat { max(closeSize, iconSize) + 10 }
 
     private func tabRects() -> [NSRect] {
         let macStyle = Settings.macStyleTabs
         // An icon and a close button on either side of the title.
-        let extra: CGFloat = macStyle ? 2 * (Self.closeSize + 10) : 20
+        let extra: CGFloat = macStyle ? 2 * Self.sideRoom : 20
         var x: CGFloat = macStyle ? 4 : 2
         return titles.map { title in
             let width = min((title as NSString).size(withAttributes: attributes).width + extra, Self.maximumTabWidth)
@@ -112,7 +118,7 @@ final class FolderTabBar: NSView, NSDraggingSource {
             outline.line(to: NSPoint(x: rect.maxX - 0.5, y: rect.minY + 0.5))
             outline.line(to: NSPoint(x: rect.maxX - 0.5, y: rect.maxY))
             outline.stroke()
-            let textHeight = ceil(Theme.chromeFont.ascender - Theme.chromeFont.descender)
+            let textHeight = Theme.lineHeight(Self.font)
             (titles[index] as NSString).draw(
                 with: NSRect(x: rect.minX + 6, y: rect.midY - textHeight / 2, width: rect.width - 12, height: textHeight),
                 options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: attributes
@@ -164,8 +170,8 @@ final class FolderTabBar: NSView, NSDraggingSource {
             var attributes = attributes
             attributes[.foregroundColor] = textColor
             let title = titles[index] as NSString
-            let textHeight = ceil(Theme.chromeFont.ascender - Theme.chromeFont.descender)
-            let space = rect.insetBy(dx: Self.closeSize + 10, dy: 0)
+            let textHeight = Theme.lineHeight(Self.font)
+            let space = rect.insetBy(dx: Self.sideRoom, dy: 0)
             let titleWidth = min(title.size(withAttributes: attributes).width, space.width)
             // The icon goes just before the centred title.
             if icons.indices.contains(index) {

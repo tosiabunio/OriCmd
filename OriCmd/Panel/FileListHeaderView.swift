@@ -37,7 +37,8 @@ final class FileListHeaderView: NSView {
 
     nonisolated override var isFlipped: Bool { true }
     override var intrinsicContentSize: NSSize { NSSize(width: NSView.noIntrinsicMetric, height: Self.height) }
-    static var height: CGFloat { Settings.isModern ? 22 : 18 }
+    /// 22 pt for a 13 pt list in the modern look, following the header's fonts.
+    static var height: CGFloat { Settings.isModern ? Theme.lineHeight(Theme.headerDetailFont) + 8 : 18 }
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -101,20 +102,21 @@ final class FileListHeaderView: NSView {
     /// No separators; the sorted column in semibold with a chevron, Size aligned
     /// right as its values are.
     private func drawModernTitle(_ column: SortColumn, in cell: NSRect, sorted: Bool) {
-        let font = sorted ? NSFont.systemFont(ofSize: 11, weight: .semibold) : Theme.chromeFont
+        let size = Theme.headerDetailFont.pointSize
+        let font = sorted ? NSFont.systemFont(ofSize: size, weight: .semibold) : Theme.headerDetailFont
         let color = sorted || column == hovered ? NSColor.labelColor : NSColor.secondaryLabelColor
         let title = Self.titles[column]!
-        let size = (title as NSString).size(withAttributes: [.font: font])
+        let textSize = (title as NSString).size(withAttributes: [.font: font])
         let chevron: NSImage? = sorted ? NSImage(systemSymbolName: sortOrder.ascending ? "chevron.up" : "chevron.down",
                                                  accessibilityDescription: nil)?
-            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 8, weight: .semibold)
+            .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: size - 3, weight: .semibold)
                 .applying(NSImage.SymbolConfiguration(paletteColors: [color]))) : nil
         let chevronWidth = chevron.map { $0.size.width + 4 } ?? 0
-        let width = min(size.width, cell.width - 8 - chevronWidth)
+        let width = min(textSize.width, cell.width - 8 - chevronWidth)
         let x = column == .size ? cell.maxX - 4 - width - chevronWidth : cell.minX + 4
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byTruncatingTail
-        (title as NSString).draw(with: NSRect(x: x, y: (bounds.height - size.height) / 2, width: width, height: size.height),
+        (title as NSString).draw(with: NSRect(x: x, y: (bounds.height - textSize.height) / 2, width: width, height: textSize.height),
                                  options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine],
                                  attributes: [.font: font, .foregroundColor: color, .paragraphStyle: paragraph])
         if let chevron {

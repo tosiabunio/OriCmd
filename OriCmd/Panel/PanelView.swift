@@ -215,7 +215,7 @@ final class PanelView: NSView {
             headerHeight.constant = FileListHeaderView.height
         }
         headerView.needsDisplay = true
-        spinnerCenter.constant = Settings.isModern ? 15 : 11
+        spinnerCenter.constant = PathBar.pathLineCenter
         updateStatusRow()
     }
 

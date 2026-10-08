@@ -49,12 +49,12 @@ final class PathBar: NSView {
         didSet { needsDisplay = true }
     }
 
-    private static let placeSymbolSize: CGFloat = 14
+    private var placeSymbolSize: CGFloat { Theme.headerTitleSize + 1 }
 
     /// The place's symbol, in the accent color in the active panel and grey in the other.
     private var placeSymbol: NSImage? {
         let color = isActive ? NSColor.controlAccentColor : NSColor.secondaryLabelColor
-        let configuration = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
+        let configuration = NSImage.SymbolConfiguration(pointSize: Theme.headerTitleSize - 2, weight: .medium)
             .applying(NSImage.SymbolConfiguration(paletteColors: [color]))
         return NSImage(systemSymbolName: place.symbolName, accessibilityDescription: nil)?
             .withSymbolConfiguration(configuration)
@@ -109,13 +109,22 @@ final class PathBar: NSView {
 
     /// Where the path is: under the accent strip in the modern look.
     private var pathLine: NSRect {
-        isModern ? NSRect(x: 0, y: 4, width: bounds.width, height: 22) : bounds
+        isModern ? NSRect(x: 0, y: 4, width: bounds.width, height: Self.pathLineHeight) : bounds
     }
 
-    private var infoLine: NSRect { NSRect(x: 0, y: 26, width: bounds.width, height: 15) }
+    private var infoLine: NSRect {
+        NSRect(x: 0, y: 4 + Self.pathLineHeight, width: bounds.width, height: Self.infoLineHeight)
+    }
+
+    /// The modern look's lines follow the header's fonts: 22 and 15 pt for a 13 pt list.
+    private static var pathLineHeight: CGFloat { Theme.lineHeight(Theme.headerTitleFont) + 6 }
+    private static var infoLineHeight: CGFloat { Theme.lineHeight(Theme.headerDetailFont) + 1 }
+
+    /// The middle of the path's line, where a folder being read shows its spinner.
+    static var pathLineCenter: CGFloat { Settings.isModern ? 4 + pathLineHeight / 2 : 11 }
 
     static func height(compact: Bool, infoLine: Bool) -> CGFloat {
-        Settings.isModern ? (infoLine ? 44 : 28) : (compact ? 22 : 18)
+        Settings.isModern ? 4 + pathLineHeight + (infoLine ? infoLineHeight + 3 : 2) : (compact ? 22 : 18)
     }
 
     var onClick: (() -> Void)?
@@ -166,7 +175,7 @@ final class PathBar: NSView {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byTruncatingHead
         return [
-            .font: Theme.panelFont,
+            .font: isModern ? Theme.headerTitleFont : Theme.panelFont,
             .foregroundColor: isModern ? NSColor.secondaryLabelColor : isActive ? Theme.activeHeaderText : Theme.inactiveHeaderText,
             .paragraphStyle: paragraph,
         ]
@@ -177,10 +186,7 @@ final class PathBar: NSView {
     private func styled(_ text: String) -> NSMutableAttributedString {
         let string = NSMutableAttributedString(string: text, attributes: attributes)
         guard isModern else { return string }
-        let font = Theme.panelFont
-        let semibold = font.familyName == NSFont.systemFont(ofSize: font.pointSize).familyName
-            ? NSFont.systemFont(ofSize: font.pointSize, weight: .semibold)
-            : NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)
+        let semibold = NSFont.systemFont(ofSize: Theme.headerTitleSize, weight: .semibold)
         string.addAttributes([.font: semibold, .foregroundColor: NSColor.labelColor], range: currentFolderRange(in: text))
         return string
     }
@@ -217,17 +223,25 @@ final class PathBar: NSView {
         var placeSymbol: NSRect?
     }
 
-    private static let chipFont = NSFont.systemFont(ofSize: 11)
-    private static let chipIconSize: CGFloat = 14
+    private static let classicChipFont = NSFont.systemFont(ofSize: 11)
     private static let spinnerRoom: CGFloat = 22
 
+    /// The volume, the filter chip and the free space beside the path.
+    private var chipFont: NSFont { isModern ? Theme.headerChipFont : Self.classicChipFont }
+    private var chipIconSize: CGFloat { isModern ? chipFont.pointSize + 2 : 14 }
+
     private var chipAttributes: [NSAttributedString.Key: Any] {
-        [.font: Self.chipFont, .foregroundColor: isModern ? NSColor.labelColor : isActive ? Theme.activeHeaderText : Theme.inactiveHeaderText]
+        [.font: chipFont, .foregroundColor: isModern ? NSColor.labelColor : isActive ? Theme.activeHeaderText : Theme.inactiveHeaderText]
+    }
+
+    /// The counts and the free space on the second line.
+    private var infoAttributes: [NSAttributedString.Key: Any] {
+        [.font: Theme.headerDetailFont, .foregroundColor: NSColor.secondaryLabelColor]
     }
 
     /// The width of the volume button: icon, name and a chevron.
     private func volumeWidth(_ name: String) -> CGFloat {
-        6 + Self.chipIconSize + 4 + ceil((name as NSString).size(withAttributes: chipAttributes).width) + 4 + 8 + 6
+        6 + chipIconSize + 4 + ceil((name as NSString).size(withAttributes: chipAttributes).width) + 4 + 8 + 6
     }
 
     /// The width of the filter chip: a funnel and the mask.
@@ -261,9 +275,9 @@ final class PathBar: NSView {
         }
         var symbolRect: NSRect?
         if isModern {
-            symbolRect = NSRect(x: leading, y: line.midY - Self.placeSymbolSize / 2,
-                                width: Self.placeSymbolSize, height: Self.placeSymbolSize)
-            leading += Self.placeSymbolSize + 5
+            symbolRect = NSRect(x: leading, y: line.midY - placeSymbolSize / 2,
+                                width: placeSymbolSize, height: placeSymbolSize)
+            leading += placeSymbolSize + 5
         }
         if filterSummary != nil || (isCompact && filters) {
             let chipWidth = min(filterWidth, max(60, min(bounds.width * 0.60, trailing - leading - 24)))
@@ -271,7 +285,7 @@ final class PathBar: NSView {
             trailing = filterRect!.minX - 6
         }
         if isCompact {
-            let freeWidth = ceil((freeSpace as NSString).size(withAttributes: chipAttributes).width)
+            let freeWidth = ceil((freeSpace as NSString).size(withAttributes: hasInfoLine ? infoAttributes : chipAttributes).width)
             if hasInfoLine {
                 // Under the path, always shown.
                 if !freeSpace.isEmpty {
@@ -378,9 +392,9 @@ final class PathBar: NSView {
         let line = infoLine
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineBreakMode = .byTruncatingTail
-        let attributes: [NSAttributedString.Key: Any] = [.font: Self.chipFont, .foregroundColor: NSColor.secondaryLabelColor,
-                                                         .paragraphStyle: paragraph]
-        let textHeight = ceil(Self.chipFont.ascender - Self.chipFont.descender)
+        var attributes = infoAttributes
+        attributes[.paragraphStyle] = paragraph
+        let textHeight = Theme.lineHeight(Theme.headerDetailFont)
         let end = (layout.freeSpace?.minX ?? bounds.maxX) - 12
         (status as NSString).draw(with: NSRect(x: 7, y: line.midY - textHeight / 2, width: max(end - 7, 0), height: textHeight),
                                   options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: attributes)
@@ -390,7 +404,7 @@ final class PathBar: NSView {
     private func drawAccessories(_ layout: Layout) {
         let textColor = isModern ? NSColor.labelColor : isActive ? Theme.activeHeaderText : Theme.inactiveHeaderText
         let chipFill = isActive && !isModern ? NSColor.white.withAlphaComponent(0.18) : NSColor.quaternaryLabelColor
-        let textHeight = ceil(Self.chipFont.ascender - Self.chipFont.descender)
+        let textHeight = Theme.lineHeight(chipFont)
         func symbol(_ name: String, size: CGFloat, in rect: NSRect) {
             let configuration = NSImage.SymbolConfiguration(pointSize: size, weight: .semibold)
                 .applying(NSImage.SymbolConfiguration(paletteColors: [textColor.withAlphaComponent(0.8)]))
@@ -403,10 +417,10 @@ final class PathBar: NSView {
         if let rect = layout.volume, let volume {
             (hovered == .volume ? chipFill.withAlphaComponent(chipFill.alphaComponent * 1.8) : chipFill).setFill()
             NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4).fill()
-            volume.icon.draw(in: NSRect(x: rect.minX + 6, y: rect.midY - Self.chipIconSize / 2,
-                                        width: Self.chipIconSize, height: Self.chipIconSize),
+            volume.icon.draw(in: NSRect(x: rect.minX + 6, y: rect.midY - chipIconSize / 2,
+                                        width: chipIconSize, height: chipIconSize),
                              from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
-            let nameX = rect.minX + 6 + Self.chipIconSize + 4
+            let nameX = rect.minX + 6 + chipIconSize + 4
             (volume.name as NSString).draw(
                 with: NSRect(x: nameX, y: rect.midY - textHeight / 2, width: rect.maxX - nameX - 18, height: textHeight),
                 options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine], attributes: chipAttributes)
@@ -435,10 +449,11 @@ final class PathBar: NSView {
             }
         }
         if let rect = layout.freeSpace {
-            var attributes = chipAttributes
+            var attributes = hasInfoLine ? infoAttributes : chipAttributes
             attributes[.foregroundColor] = isModern ? NSColor.secondaryLabelColor : textColor.withAlphaComponent(0.7)
             if hovered == .driveInformation { attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue }
-            (freeSpace as NSString).draw(at: NSPoint(x: rect.minX, y: rect.midY - textHeight / 2), withAttributes: attributes)
+            let height = hasInfoLine ? Theme.lineHeight(Theme.headerDetailFont) : textHeight
+            (freeSpace as NSString).draw(at: NSPoint(x: rect.minX, y: rect.midY - height / 2), withAttributes: attributes)
         }
     }
 
@@ -597,7 +612,7 @@ final class PathBar: NSView {
     func beginEditing() {
         guard field == nil, let text = editableText?() else { return }
         let field = NSTextField(string: text)
-        field.font = Theme.panelFont
+        field.font = isModern ? Theme.headerTitleFont : Theme.panelFont
         field.focusRingType = .none
         field.cell?.isScrollable = true
         field.cell?.wraps = false
