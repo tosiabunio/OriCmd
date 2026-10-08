@@ -458,6 +458,29 @@ final class ListerWindowController: NSWindowController, NSWindowDelegate, NSText
         textView.textStorage?.setAttributes(plain, range: NSRange(location: 0, length: textView.textStorage?.length ?? 0))
     }
 
+    /// The hex dump's offsets in grey, and in its text column the dots standing for bytes
+    /// that are no characters fainter than real full stops.
+    private func shadeHexDump() {
+        guard let storage = textView.textStorage else { return }
+        let text = storage.string as NSString
+        let textColumn = 8 + 2 + 16 * 3 - 1 + 2
+        storage.beginEditing()
+        text.enumerateSubstrings(in: NSRange(location: 0, length: text.length), options: .byLines) { line, range, _, _ in
+            guard let line = line as NSString?, line.length > textColumn,
+                  UInt32(line.substring(to: 8), radix: 16) != nil else { return }
+            storage.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor,
+                                 range: NSRange(location: range.location, length: 8))
+            for index in 0..<min(16, line.length - textColumn) {
+                let byte = line.substring(with: NSRange(location: 10 + index * 3, length: 2))
+                if line.character(at: textColumn + index) == 0x2E, byte != "2E" {
+                    storage.addAttribute(.foregroundColor, value: NSColor.tertiaryLabelColor,
+                                         range: NSRange(location: range.location + textColumn + index, length: 1))
+                }
+            }
+        }
+        storage.endEditing()
+    }
+
     @objc private func highlightingChosen(_ sender: NSMenuItem) {
         toggleHighlighting()
     }
@@ -594,6 +617,7 @@ final class ListerWindowController: NSWindowController, NSWindowDelegate, NSText
                 }
                 textView.string = text
                 makePlain()
+                if mode == .hex { shadeHexDump() }
                 if mode == .hex, let pending = pendingSearch, let search {
                     pendingSearch = nil
                     findBytes(search, forward: pending.forward)

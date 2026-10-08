@@ -898,6 +898,7 @@ check "the Lister's title is the file's name, its folder and encoding below" "he
 check "the Lister's toolbar shows the text chosen and wrapping on" "grep -q '^listerMode: Text (1) ✓, Hex Dump (3), ' build/shots/reg-listerbar-toolbar.txt && grep -q '^listerOptions: Wrap Lines (W) ✓, ' build/shots/reg-listerbar-toolbar.txt"
 run listerhexbar "alt+c wait text:p1251 escape f3 wait wait 3 wait toolbar"
 check "in hex the Lister's toolbar shows Hex, the text's options off" "grep -q '^listerMode: Text (1), Hex Dump (3) ✓, ' build/shots/reg-listerhexbar-toolbar.txt && grep -q '^listerOptions: Wrap Lines (W) ✓ (off), ' build/shots/reg-listerhexbar-toolbar.txt"
+check "the hex dump's offsets are grey and its dots for bytes with no character fainter" "[ \"\$(colors listerhexbar)\" = 3 ]"
 # Lists in tool windows: an empty one says so in its middle; the symbol buttons below
 # it keep their names (+ is Add).
 run hotlistempty "cmd:configureHotlist wait"
