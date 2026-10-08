@@ -641,7 +641,7 @@ extension MainViewController: NSMenuItemValidation {
         let sourceText = sourceFolders.count == 1 ? (sourceFolders.first ?? source.directory.path)
             : String(localized: "Multiple folders")
         CopyDialog.show(kind: kind, files: items.count - folders, folders: folders,
-                        source: sourceText, names: items.map(\.name), marked: !source.listView.marked.isEmpty,
+                        source: sourceText, items: items.map(\.url), marked: !source.listView.marked.isEmpty,
                         target: Self.folderText(target.directory), selectedTargetFolders: targetFolders.count,
                         in: window) { [weak self] result in
             self?.transfer(result, items: items, from: source, targetFolders: result.toAllSelectedFolders ? targetFolders : [])
@@ -697,7 +697,7 @@ extension MainViewController: NSMenuItemValidation {
                                       to target: FilePanelController) {
         guard let window = view.window else { return }
         let what = items.count == 1 ? String(localized: "\u{201C}\(items[0].name)\u{201D}")
-            : String(localized: "\(items.count) files/folders")
+            : String(localized: "\(items.count) items")
         if let from = source.remote, let to = target.remote, source.archive == nil, target.archive == nil {
             Prompt.confirm(kind == .copy ? String(localized: "Copy \(what) to \(to.displayPath)?")
                                          : String(localized: "Move \(what) to \(to.displayPath)?"),
@@ -776,7 +776,7 @@ extension MainViewController: NSMenuItemValidation {
                                  in source: FilePanelController) {
         guard let window = view.window else { return }
         let what = items.count == 1 ? String(localized: "\u{201C}\(items[0].name)\u{201D}")
-            : String(localized: "\(items.count) files/folders")
+            : String(localized: "\(items.count) items")
         Prompt.text(String(localized: "Unpack"), message: String(localized: "Unpack \(what) to:"),
                     initial: Self.folderText(inactivePanel.directory), okTitle: String(localized: "Unpack"),
                     in: window) { [weak self] text in
@@ -801,7 +801,7 @@ extension MainViewController: NSMenuItemValidation {
         guard let window = view.window else { return }
         let target = inactivePanel
         let what = items.count == 1 ? String(localized: "\u{201C}\(items[0].name)\u{201D}")
-            : String(localized: "\(items.count) files/folders")
+            : String(localized: "\(items.count) items")
         let place = String(localized: "\u{201C}\(archive.url.lastPathComponent)\u{201D}")
         let existing = Set(target.listView.items.map(\.name)).intersection(items.map(\.name))
         Prompt.confirm(kind == .copy ? String(localized: "Pack \(what) into \(place)?")
@@ -966,9 +966,10 @@ extension MainViewController: NSMenuItemValidation {
                     unpack()
                     return
                 }
-                let what = existing.count == 1 ? String(localized: "\u{201C}\(existing[0])\u{201D}")
-                    : String(localized: "\(existing.count) files/folders")
-                Prompt.confirm(String(localized: "\(what) already exists. Replace?"),
+                let question = existing.count == 1
+                    ? String(localized: "\u{201C}\(existing[0])\u{201D} already exists. Replace?")
+                    : String(localized: "\(existing.count) items already exist. Replace them?")
+                Prompt.confirm(question,
                                okTitle: String(localized: "Overwrite"), in: window) {
                     unpack()
                 }
@@ -1032,7 +1033,7 @@ extension MainViewController: NSMenuItemValidation {
         let selection = NSRange(location: (initial as NSString).length - (name as NSString).length - 4,
                                 length: (name as NSString).length)
         let what = items.count == 1 ? String(localized: "\u{201C}\(items[0].name)\u{201D}")
-            : String(localized: "\(items.count) files/folders")
+            : String(localized: "\(items.count) items")
         PackDialog.show(title: String(localized: "Pack files"),
                         message: String(localized: "Pack \(what) to archive (.zip, .tar.gz, .tar.bz2, .tar.xz, .7z):"),
                         initial: initial, selection: selection, itemCount: items.count, in: window) { [weak self] choice in
@@ -1119,9 +1120,10 @@ extension MainViewController: NSMenuItemValidation {
             action()
             return
         }
-        let what = existing.count == 1 ? String(localized: "\u{201C}\(existing[0])\u{201D}")
-            : String(localized: "\(existing.count) files/folders")
-        Prompt.confirm(String(localized: "\(what) already exists. Replace?"), okTitle: String(localized: "Overwrite"),
+        let question = existing.count == 1
+            ? String(localized: "\u{201C}\(existing[0])\u{201D} already exists. Replace?")
+            : String(localized: "\(existing.count) items already exist. Replace them?")
+        Prompt.confirm(question, okTitle: String(localized: "Overwrite"),
                        in: window, completion: action)
     }
 

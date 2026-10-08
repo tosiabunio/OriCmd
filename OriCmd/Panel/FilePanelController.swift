@@ -1432,7 +1432,7 @@ extension FilePanelController: NSMenuItemValidation {
         let alert = NSAlert()
         alert.messageText = items.count == 1
             ? String(localized: "Change attributes of \u{201C}\(items[0].name)\u{201D}")
-            : String(localized: "Change attributes of \(items.count) files/folders")
+            : String(localized: "Change attributes of \(items.count) items")
         alert.accessoryView = stack
         alert.addButton(withTitle: String(localized: "Apply"))
         alert.addCancelButton()
@@ -2109,30 +2109,35 @@ extension FilePanelController: NSMenuItemValidation {
         }
         let what = items.count == 1
             ? String(localized: "\u{201C}\(items[0].name)\u{201D}")
-            : String(localized: "the selected \(items.count) files/folders")
+            : String(localized: "\(items.count) items")
+        // The names of several under the question, before what it says.
+        func message(_ text: String = "") -> String {
+            [items.count > 1 ? Prompt.names(items.map(\.name)) : "", text].filter { !$0.isEmpty }.joined(separator: "\n")
+        }
+        let icon = remote == nil && archive == nil ? FileIcons.icon(for: items.map(\.url)) : nil
         if let remote {
             Prompt.confirm(String(localized: "Delete \(what) from the server?"),
-                           message: String(localized: "This cannot be undone."),
+                           message: message(String(localized: "This cannot be undone.")),
                            okTitle: String(localized: "Delete"), destructive: true, in: window) { [weak self] in
                 self?.runOnServer(selecting: nil) { try await remote.fileSystem.delete(items, in: remote.path) }
             }
         } else if let archive {
             Prompt.confirm(String(localized: "Delete \(what) from the archive?"),
-                           message: String(localized: "This cannot be undone."),
+                           message: message(String(localized: "This cannot be undone.")),
                            okTitle: String(localized: "Delete"), destructive: true, in: window) { [weak self] in
                 self?.applyArchiveEdit(.delete(items.map { archive.path(of: $0.name) }))
             }
         } else if permanently {
-            Prompt.confirm(String(localized: "Do you really want to permanently delete \(what)?"),
-                           message: String(localized: "Nothing goes to the Trash: this cannot be undone."),
-                           okTitle: String(localized: "Delete"), destructive: true, in: window) { [weak self] in
+            Prompt.confirm(String(localized: "Delete \(what) immediately?"),
+                           message: message(String(localized: "Nothing goes to the Trash: this cannot be undone.")),
+                           okTitle: String(localized: "Delete"), destructive: true, icon: icon, in: window) { [weak self] in
                 self?.performDelete(items.map(\.url), permanently: true)
             }
         } else if !Settings.confirmsMoveToTrash {
             performDelete(items.map(\.url), permanently: false)
         } else {
-            Prompt.confirm(String(localized: "Do you really want to move \(what) to the Trash?"),
-                           okTitle: String(localized: "Move to Trash"), in: window) { [weak self] in
+            Prompt.confirm(String(localized: "Move \(what) to the Trash?"), message: message(),
+                           okTitle: String(localized: "Move to Trash"), icon: icon, in: window) { [weak self] in
                 self?.performDelete(items.map(\.url), permanently: false)
             }
         }

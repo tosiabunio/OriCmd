@@ -17,6 +17,11 @@ nonisolated enum OverwriteMode: Int, CaseIterable, Sendable {
         case .copySmaller: String(localized: "8. Copy all smaller files (overwrite larger)")
         }
     }
+
+    /// The title without Total Commander's number, as the modern look lists the modes.
+    var plainTitle: String {
+        String(title.drop { $0.isNumber || $0 == "." || $0 == " " })
+    }
 }
 
 /// The settings of one copy or move, from the F5/F6 dialog.

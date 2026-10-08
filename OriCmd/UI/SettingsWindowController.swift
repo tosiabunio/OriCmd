@@ -668,7 +668,7 @@ private final class OperationsPane: SettingsPane {
     override func build() {
         section(String(localized: "Copy and move (F5 / F6)"))
         for mode in OverwriteMode.allCases {
-            overwritePopUp.addItem(withTitle: mode.title)
+            overwritePopUp.addItem(withTitle: Settings.isModern ? mode.plainTitle : mode.title)
         }
         overwritePopUp.selectItem(at: Settings.copyOverwriteMode.rawValue - 1)
         overwritePopUp.target = self

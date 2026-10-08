@@ -159,6 +159,7 @@ enum Prompt {
         message: String = "",
         okTitle: String,
         destructive: Bool = false,
+        icon: NSImage? = nil,
         in window: NSWindow,
         completion: @escaping () -> Void
     ) {
@@ -166,6 +167,7 @@ enum Prompt {
         alert.messageText = title
         alert.informativeText = message
         alert.alertStyle = destructive ? .critical : .warning
+        if let icon { alert.icon = icon }
         let ok = alert.addButton(withTitle: okTitle)
         ok.hasDestructiveAction = destructive
         alert.addCancelButton()
@@ -180,6 +182,13 @@ enum Prompt {
             // to confirm anyway.
             ok.keyEquivalent = "\r"
         }
+    }
+
+    /// Names on one line: the first three, then how many more.
+    static func names(_ names: [String]) -> String {
+        var line = names.prefix(3).joined(separator: " · ")
+        if names.count > 3 { line += " · " + String(localized: "and \(names.count - 3) more") }
+        return line
     }
 
     static func info(_ title: String, message: String, in window: NSWindow?) {

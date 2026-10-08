@@ -2,7 +2,9 @@ import AppKit
 
 /// Total Commander's F5 / F6 dialog: the target with a name mask ("*.*"),
 /// "Only files of this type", Verify, one row of buttons (Copy or Move, F2 Queue, Tree,
-/// Cancel, Options >>) and, under Options, the overwrite mode and more.
+/// Cancel, Options >>) and, under Options, the overwrite mode and more. The modern look
+/// names what is copied beside its icon, leaves the mask out of the target until one is
+/// typed and shows the list buttons as symbols.
 ///
 /// Keys: Return confirms, F2 queue, F7 adds/removes the target in the target list,
 /// F8 filter menu, ⌃D directory hotlist, Esc cancels. Right click on OK or
@@ -61,15 +63,18 @@ final class CopyDialog: NSObject {
 
     /// Shows the dialog as a sheet of `window`. `target` is the folder (ending in "/");
     /// `selectedTargetFolders` is the number of folders marked in the target panel.
-    static func show(kind: TransferJob.Kind, files: Int, folders: Int, source: String, names: [String], marked: Bool,
+    static func show(kind: TransferJob.Kind, files: Int, folders: Int, source: String, items: [URL], marked: Bool,
                      target: String, selectedTargetFolders: Int,
                      in window: NSWindow, completion: @escaping (Result) -> Void) {
         let dialog = CopyDialog(kind: kind, completion: completion)
         current = dialog
-        dialog.present(files: files, folders: folders, source: source, names: names, marked: marked,
+        dialog.present(files: files, folders: folders, source: source, items: items, marked: marked,
                        target: target, selectedTargetFolders: selectedTargetFolders,
                        in: window)
     }
+
+    /// The name mask a target folder gets: Total Commander's "*.*", none in the modern look.
+    private static var mask: String { Settings.isModern ? "" : "*.*" }
 
     private init(kind: TransferJob.Kind, completion: @escaping (Result) -> Void) {
         self.kind = kind
@@ -79,9 +84,11 @@ final class CopyDialog: NSObject {
 
     // MARK: - Layout
 
-    private func present(files: Int, folders: Int, source: String, names: [String], marked: Bool,
+    private func present(files: Int, folders: Int, source: String, items: [URL], marked: Bool,
                          target: String, selectedTargetFolders: Int, in window: NSWindow) {
         parent = window
+        let modern = Settings.isModern
+        let names = items.map(\.lastPathComponent)
         let message = NSTextField(labelWithString: kind == .copy
             ? String(localized: "copy.button", defaultValue: "Copy") : String(localized: "move.button", defaultValue: "Move"))
         message.font = .boldSystemFont(ofSize: 15)
@@ -90,9 +97,7 @@ final class CopyDialog: NSObject {
         if folders > 0 { counts.append(String(localized: "\(folders) folders")) }
         let scope = marked ? String(localized: "Marked selection") : String(localized: "Item under cursor")
         let selection = NSTextField(labelWithString: scope + " · " + counts.joined(separator: ", "))
-        var preview = names.prefix(3).joined(separator: " · ")
-        if names.count > 3 { preview += " · " + String(localized: "and \(names.count - 3) more") }
-        let previewLabel = NSTextField(labelWithString: preview)
+        let previewLabel = NSTextField(labelWithString: Prompt.names(names))
         previewLabel.lineBreakMode = .byTruncatingMiddle
         previewLabel.toolTip = names.joined(separator: "\n")
         let from = NSTextField(labelWithString: String(localized: "From: \(source)"))
@@ -103,7 +108,7 @@ final class CopyDialog: NSObject {
         optionsSummary.textColor = .secondaryLabelColor
         optionsSummary.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
 
-        targetBox.stringValue = target + "*.*"
+        targetBox.stringValue = target + Self.mask
         targetBox.completes = false
         targetBox.numberOfVisibleItems = 12
         targetBox.delegate = self
@@ -118,8 +123,14 @@ final class CopyDialog: NSObject {
         filterButton.action = #selector(showFilterMenu(_:))
         filterButton.keyEquivalent = Self.functionKey(8)
         filterButton.toolTip = String(localized: "Saved filters and examples (F8)")
+        if modern {
+            filterButton.image = NSImage(systemSymbolName: "line.3.horizontal.decrease.circle", accessibilityDescription: nil)
+            filterButton.title = String(localized: "Filters")
+            filterBox.placeholderString = String(localized: "All files")
+        }
         for button in [targetListButton, filterButton] {
-            button.widthAnchor.constraint(equalToConstant: 58).isActive = true
+            if modern { button.imagePosition = .imageOnly }
+            button.widthAnchor.constraint(equalToConstant: modern ? 36 : 58).isActive = true
             // They have F7 / F8; Tab goes straight from the target to the filter.
             button.refusesFirstResponder = true
         }
@@ -147,7 +158,19 @@ final class CopyDialog: NSObject {
         }
         let buttons = [okButton, queueButton, treeButton, cancelButton, optionsButton]
         for button in buttons {
-            button.widthAnchor.constraint(equalToConstant: Self.buttonWidth).isActive = true
+            // The modern look sizes them to their titles, as Mac dialogs do.
+            if modern {
+                button.widthAnchor.constraint(greaterThanOrEqualToConstant: 84).isActive = true
+            } else {
+                button.widthAnchor.constraint(equalToConstant: Self.buttonWidth).isActive = true
+            }
+        }
+        if modern {
+            optionsButton.title = String(localized: "Options")
+            optionsButton.imagePosition = .imageTrailing
+            queueButton.title = String(localized: "Queue")
+            queueButton.toolTip = String(localized: "Add to the queue of operations (F2)")
+            treeButton.title = String(localized: "Choose…")
         }
         // As in Mac dialogs: the default button last on the right, Cancel before it and
         // the queue beside them; the other actions at the left.
@@ -161,8 +184,10 @@ final class CopyDialog: NSObject {
 
         let spacer = NSView()
         spacer.setContentHuggingPriority(.init(1), for: .horizontal)
-        let stack = NSStackView(views: [
-            message, selection, previewLabel, from,
+        let header = modern
+            ? [heading(counts: counts.joined(separator: ", "), items: items, preview: previewLabel, from: from)]
+            : [message, selection, previewLabel, from]
+        let stack = NSStackView(views: header + [
             NSTextField(labelWithString: String(localized: "To:")),
             row(targetBox, targetListButton),
             NSTextField(labelWithString: String(localized: "Only files of this type:")),
@@ -176,6 +201,7 @@ final class CopyDialog: NSObject {
         stack.alignment = .leading
         stack.spacing = 8
         stack.setCustomSpacing(12, after: optionsSummary)
+        if modern, let heading = header.first { stack.setCustomSpacing(16, after: heading) }
         stack.setCustomSpacing(14, after: buttonRow)
         stack.edgeInsets = NSEdgeInsets(top: 16, left: 20, bottom: 18, right: 20)
         for view in stack.arrangedSubviews where view !== message {
@@ -189,7 +215,11 @@ final class CopyDialog: NSObject {
         panel.autorecalculatesKeyViewLoop = true
         panel.keyHandler = { [weak self] event in self?.handleKey(event) ?? false }
         advanced.isHidden = !store.bool(forKey: Key.pinned)
-        optionsButton.isHidden = !advanced.isHidden
+        if modern {
+            updateOptionsButton()
+        } else {
+            optionsButton.isHidden = !advanced.isHidden
+        }
         panel.setContentSize(stack.fittingSize)
 
         updateOptionsSummary()
@@ -197,6 +227,39 @@ final class CopyDialog: NSObject {
         DispatchQueue.main.async { [targetBox] in
             targetBox.currentEditor()?.selectAll(nil)
         }
+    }
+
+    /// The modern look's top: the icon of what is copied, "Copy “name”" or "Copy 3 files"
+    /// (`counts`) beside it, the names of several under it and the folder they come from.
+    private func heading(counts: String, items: [URL], preview: NSTextField, from: NSTextField) -> NSView {
+        let icon = NSImageView(image: FileIcons.icon(for: items))
+        icon.imageScaling = .scaleProportionallyUpOrDown
+        icon.widthAnchor.constraint(equalToConstant: 48).isActive = true
+        icon.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        let title: String
+        if items.count == 1 {
+            let name = items[0].lastPathComponent
+            title = kind == .copy ? String(localized: "Copy \u{201C}\(name)\u{201D}") : String(localized: "Move \u{201C}\(name)\u{201D}")
+        } else {
+            title = kind == .copy ? String(localized: "Copy \(counts)") : String(localized: "Move \(counts)")
+        }
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = .boldSystemFont(ofSize: 15)
+        titleLabel.lineBreakMode = .byTruncatingMiddle
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        preview.textColor = .secondaryLabelColor
+        from.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        let lines = NSStackView(views: [titleLabel] + (items.count > 1 ? [preview] : []) + [from])
+        lines.orientation = .vertical
+        lines.alignment = .leading
+        lines.spacing = 3
+        for line in lines.arrangedSubviews {
+            line.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        }
+        let heading = NSStackView(views: [icon, lines])
+        heading.alignment = .centerY
+        heading.spacing = 12
+        return heading
     }
 
     private func buildAdvanced(selectedTargetFolders: Int) {
@@ -211,7 +274,7 @@ final class CopyDialog: NSObject {
         pinButton.action = #selector(togglePin(_:))
 
         for mode in OverwriteMode.allCases {
-            overwritePopUp.addItem(withTitle: mode.title)
+            overwritePopUp.addItem(withTitle: Settings.isModern ? mode.plainTitle : mode.title)
         }
         overwritePopUp.selectItem(at: Settings.copyOverwriteMode.rawValue - 1)
         overwritePopUp.target = self
@@ -285,7 +348,7 @@ final class CopyDialog: NSObject {
     @objc private func optionsChanged(_ sender: Any?) { updateOptionsSummary(); resize() }
 
     private func updateOptionsSummary() {
-        let mode = overwritePopUp.titleOfSelectedItem ?? OverwriteMode.ask.title
+        let mode = overwritePopUp.titleOfSelectedItem ?? OverwriteMode.ask.plainTitle
         var parts = [String(localized: "Existing files: \(mode)")]
         let filter = filterBox.stringValue.trimmingCharacters(in: .whitespaces)
         if !filter.isEmpty { parts.append(String(localized: "Only: \(filter)")) }
@@ -321,12 +384,20 @@ final class CopyDialog: NSObject {
         let saved = Self.list(Key.targetList)
         let history = Self.list(Key.targetHistory).filter { !saved.contains($0) }
         targetBox.removeAllItems()
-        targetBox.addItems(withObjectValues: (saved + history).map { $0 + "*.*" })
+        targetBox.addItems(withObjectValues: (saved + history).map { $0 + Self.mask })
         updateTargetListButton()
     }
 
     private func updateTargetListButton() {
-        targetListButton.title = Self.list(Key.targetList).contains(targetFolder) ? "− F7" : "+ F7"
+        let listed = Self.list(Key.targetList).contains(targetFolder)
+        if Settings.isModern {
+            targetListButton.title = listed ? String(localized: "Remove from the Target List") : String(localized: "Add to the Target List")
+            targetListButton.image = NSImage(systemSymbolName: listed ? "star.fill" : "star", accessibilityDescription: nil)
+            targetListButton.imagePosition = .imageOnly
+            targetListButton.contentTintColor = listed ? .controlAccentColor : nil
+        } else {
+            targetListButton.title = listed ? "− F7" : "+ F7"
+        }
     }
 
     private func reloadFilterItems() {
@@ -447,8 +518,8 @@ final class CopyDialog: NSObject {
 
     private func setTargetFolder(_ path: String) {
         let text = targetBox.stringValue
-        let mask = text.lastIndex(of: "/").map { String(text[text.index(after: $0)...]) } ?? "*.*"
-        targetBox.stringValue = (path.hasSuffix("/") ? path : path + "/") + (mask.isEmpty ? "*.*" : mask)
+        let mask = text.lastIndex(of: "/").map { String(text[text.index(after: $0)...]) } ?? Self.mask
+        targetBox.stringValue = (path.hasSuffix("/") ? path : path + "/") + (mask.isEmpty ? Self.mask : mask)
         updateTargetListButton()
     }
 
@@ -480,11 +551,24 @@ final class CopyDialog: NSObject {
         }
     }
 
+    /// Options >> shows the options; the modern look's Options shows or hides them.
     @objc private func expand(_ sender: Any?) {
-        advanced.isHidden = false
-        optionsButton.isHidden = true
+        let shows = !Settings.isModern || advanced.isHidden
+        advanced.isHidden = !shows
+        if Settings.isModern {
+            updateOptionsButton()
+        } else {
+            optionsButton.isHidden = true
+        }
         resize()
-        panel.makeFirstResponder(overwritePopUp)
+        if shows { panel.makeFirstResponder(overwritePopUp) }
+    }
+
+    /// The modern look's Options: a chevron down while the options are hidden, up while shown.
+    private func updateOptionsButton() {
+        optionsButton.image = NSImage(systemSymbolName: advanced.isHidden ? "chevron.down" : "chevron.up",
+                                      accessibilityDescription: nil)?
+            .withSymbolConfiguration(.init(pointSize: 10, weight: .semibold))
     }
 
     @objc private func togglePin(_ sender: NSButton) {

@@ -61,16 +61,6 @@
         }
       }
     },
-    "%@ already exists. Replace?": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ уже существует. Заменить?"
-          }
-        }
-      }
-    },
     "%@ bytes": {
       "localizations": {
         "ru": {
@@ -355,16 +345,6 @@
         }
       }
     },
-    "%lld files/folders": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "объектов: %lld"
-          }
-        }
-      }
-    },
     "%lld folders": {
       "localizations": {
         "en": {
@@ -423,6 +403,68 @@
           "stringUnit": {
             "state": "translated",
             "value": "найдено: %1$lld, просмотрено: %2$lld"
+          }
+        }
+      }
+    },
+    "%lld items": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld объекта"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld объектов"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld объект"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld объекта"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items already exist. Replace them?": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Объекты уже существуют (%lld). Заменить?"
           }
         }
       }
@@ -779,6 +821,26 @@
         }
       }
     },
+    "Add to the Target List": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить в список целей"
+          }
+        }
+      }
+    },
+    "Add to the queue of operations (F2)": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить в очередь операций (F2)"
+          }
+        }
+      }
+    },
     "Add “%@”": {
       "localizations": {
         "ru": {
@@ -905,6 +967,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Все контрольные суммы совпадают"
+          }
+        }
+      }
+    },
+    "All files": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Все файлы"
           }
         }
       }
@@ -1659,7 +1731,7 @@
         }
       }
     },
-    "Change attributes of %lld files/folders": {
+    "Change attributes of %lld items": {
       "localizations": {
         "ru": {
           "stringUnit": {
@@ -2289,6 +2361,16 @@
         }
       }
     },
+    "Copy %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Копирование: %@"
+          }
+        }
+      }
+    },
     "Copy %@ to %@?": {
       "localizations": {
         "ru": {
@@ -2485,6 +2567,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Копировать во все выделенные папки целевой панели"
+          }
+        }
+      }
+    },
+    "Copy “%@”": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Копировать «%@»"
           }
         }
       }
@@ -2809,6 +2901,16 @@
         }
       }
     },
+    "Delete %@ immediately?": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить %@ безвозвратно?"
+          }
+        }
+      }
+    },
     "Delete Permanently": {
       "localizations": {
         "ru": {
@@ -2905,26 +3007,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Отключиться"
-          }
-        }
-      }
-    },
-    "Do you really want to move %@ to the Trash?": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Переместить %@ в Корзину?"
-          }
-        }
-      }
-    },
-    "Do you really want to permanently delete %@?": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Удалить %@ безвозвратно?"
           }
         }
       }
@@ -3675,6 +3757,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Фильтр"
+          }
+        }
+      }
+    },
+    "Filters": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Фильтры"
           }
         }
       }
@@ -4849,6 +4941,16 @@
         }
       }
     },
+    "Move %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перемещение: %@"
+          }
+        }
+      }
+    },
     "Move %@ into %@?": {
       "localizations": {
         "ru": {
@@ -4865,6 +4967,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Переместить %1$@ в %2$@?"
+          }
+        }
+      }
+    },
+    "Move %@ to the Trash?": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переместить %@ в Корзину?"
           }
         }
       }
@@ -4915,6 +5027,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Переместить в архив (удалить исходные)"
+          }
+        }
+      }
+    },
+    "Move “%@”": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переместить «%@»"
           }
         }
       }
@@ -5619,6 +5741,16 @@
         }
       }
     },
+    "Options": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Параметры"
+          }
+        }
+      }
+    },
     "Options >>": {
       "localizations": {
         "ru": {
@@ -6109,6 +6241,16 @@
         }
       }
     },
+    "Queue": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В очередь"
+          }
+        }
+      }
+    },
     "Queue (F2)": {
       "localizations": {
         "ru": {
@@ -6385,6 +6527,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Убрать из списка"
+          }
+        }
+      }
+    },
+    "Remove from the Target List": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Убрать из списка целей"
           }
         }
       }
@@ -9527,16 +9679,6 @@
         }
       }
     },
-    "the selected %lld files/folders": {
-      "localizations": {
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "выбранные объекты (%lld)"
-          }
-        }
-      }
-    },
     "triangles: %lld": {
       "localizations": {
         "ru": {
@@ -9583,6 +9725,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "«%@» уже существует."
+          }
+        }
+      }
+    },
+    "“%@” already exists. Replace?": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» уже существует. Заменить?"
           }
         }
       }

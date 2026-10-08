@@ -279,7 +279,7 @@ run older "alt+n wait text:otes escape f5 wait enter wait wait"
 check "F5 overwrite mode: only older targets" "[ \"\$(cat $R/notes.md)\" = old ]"
 
 scripts/test/mkdata.sh; mkdir $R/d1 $R/d2
-run allfolders "tab home down space space tab alt+n wait text:otes escape f5 wait click:Options_>> wait click:Copy_to_all_2_selected_folders_in_the_target_panel enter wait wait wait"
+run allfolders "tab home down space space tab alt+n wait text:otes escape f5 wait click:Options wait click:Copy_to_all_2_selected_folders_in_the_target_panel enter wait wait wait"
 check "F5 to all selected target folders" "cmp -s $L/notes.md $R/d1/notes.md && cmp -s $L/notes.md $R/d2/notes.md"
 
 # Data safety: the same file under another path, a file meeting a folder.
@@ -320,7 +320,7 @@ dsprep; run dsskip "home down f5 wait enter wait wait"
 check "F5 leaves out .DS_Store inside folders" "[ -f $R/alpha/inside.txt ] && [ ! -e $R/alpha/.DS_Store ]"
 dsprep; run dspaste "home down cmd+c tab cmd+v wait wait wait"
 check "Pasting leaves out .DS_Store inside folders" "[ -f $R/alpha/inside.txt ] && [ ! -e $R/alpha/.DS_Store ]"
-dsprep; run dskeep "home down f5 wait click:Options_>> wait set:copySkipDSStore=off enter wait wait"
+dsprep; run dskeep "home down f5 wait click:Options wait set:copySkipDSStore=off enter wait wait"
 check "F5 with .DS_Store not skipped copies it" "cmp -s $L/alpha/.DS_Store $R/alpha/.DS_Store"
 dsprep; defaults write ru.themmag.OriCmd.tests CopySkipDSStore -bool false
 run dskeepset "home down f5 wait enter wait wait"
@@ -1250,6 +1250,17 @@ run overwriteq "alt+r wait text:eadme escape f5 wait enter wait wait"
 newerline() { grep -n ' · newer$' build/shots/reg-overwriteq-sheet2.txt | cut -d: -f1; }
 newline() { grep -nx 'New:' build/shots/reg-overwriteq-sheet2.txt | cut -d: -f1; }
 check "the overwrite question compares the two files, the newer one marked" "grep -qx 'A file named “readme.txt” already exists' build/shots/reg-overwriteq-sheet2.txt && grep -qx 'Existing:' build/shots/reg-overwriteq-sheet2.txt && [ -n \"\$(newerline)\" ] && [ \"\$(newerline)\" -gt \"\$(newline)\" ]"
+# The modern look's copy dialog names what it copies beside its icon and leaves the
+# mask out of the target; the classic one keeps Total Commander's "*.*". The Trash
+# question names the items.
+scripts/test/mkdata.sh
+run copyhead "home down space space f5 wait"
+check "the copy dialog names what it copies and leaves the mask out of the target" "grep -qx 'Copy 2 folders' build/shots/reg-copyhead-sheet.txt && grep -qx 'alpha · beta' build/shots/reg-copyhead-sheet.txt && grep -qx '\\[selected: .*/right/\\]' build/shots/reg-copyhead-sheet.txt"
+defaults write ru.themmag.OriCmd.tests Look classic
+run copyclassic "home down space space f5 wait"
+check "the classic copy dialog keeps Total Commander's *.* and wording" "grep -qx '\\[selected: .*/right/\\*\\.\\*\\]' build/shots/reg-copyclassic-sheet.txt && grep -qx 'Marked selection · 2 folders' build/shots/reg-copyclassic-sheet.txt"
+run trashq "home down space space f8 wait"
+check "the Trash question names the items it moves" "grep -qx 'Move 2 items to the Trash?' build/shots/reg-trashq-sheet.txt && grep -qx 'alpha · beta' build/shots/reg-trashq-sheet.txt"
 
 # Column sets: the Default columns (without Attr in the modern look), a set used by
 # itself in the folders matching its masks (and left there), a set chosen in Show →

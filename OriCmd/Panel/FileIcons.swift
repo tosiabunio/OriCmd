@@ -24,6 +24,15 @@ enum FileIcons {
         }
     }
 
+    /// The large icon of what an operation acts on: the item's own, a folder for several
+    /// folders, the Finder's stack of documents for several files.
+    static func icon(for urls: [URL]) -> NSImage {
+        if urls.count > 1, urls.allSatisfy({ (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true }) {
+            return NSWorkspace.shared.icon(for: .folder)
+        }
+        return NSWorkspace.shared.icon(forFiles: urls.map(\.path)) ?? NSWorkspace.shared.icon(for: .data)
+    }
+
     private static var tintedFolders: [String: NSImage] = [:]
 
     /// The folder icon in the color of a tag (a label number) at `size`, its shading kept,
