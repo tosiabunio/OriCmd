@@ -49,6 +49,14 @@ keep working as always.
   left; the overwrite question compares the two files (size, date, folder) and says
   which is newer. In the Modern look thumbnails are drawn as the Finder draws them,
   documents as pages and pictures with a border.
+- **Dialogs that name what they act on:** in the Modern look the copy and move
+  dialog shows the icon and name of what it copies ("Copy “notes.txt”", "Copy 2
+  folders") and the target folder without the `*.*` mask, with a star for the
+  target list and a filter button. The delete questions ask as the Finder does
+  ("Move 2 items to the Trash?", "Delete “notes.txt” immediately?") with the items'
+  icon and names. Connect to Server keeps its recent servers in a rounded list, the
+  Lister's table columns are as wide as their texts, and the key hints say New Folder
+  and Quit.
 - **Mac-style panels:** compact headers, folder icons and close buttons on tabs,
   key caps on function buttons, Finder-style sizes and status summaries, folder
   colors from Finder tags, and options for folder brackets and file extensions.
@@ -105,7 +113,7 @@ The screenshots show this fork's interface with its default settings.
 
 | | |
 |---|---|
-| ![Copy dialog](docs/screenshots/en/copy-dialog.png)<br>Copy (`F5`): source, destination and scope, file type filter, overwrite modes | ![Settings](docs/screenshots/en/settings.png)<br>Settings with a panel preview |
+| ![Copy dialog](docs/screenshots/en/copy-dialog.png)<br>Copy (`F5`): what is copied and from where, the target, a file type filter, overwrite modes | ![Settings](docs/screenshots/en/settings.png)<br>Settings with a panel preview |
 | ![Compare by content](docs/screenshots/en/compare.png)<br>Compare files by content | ![Multi-Rename Tool](docs/screenshots/en/multi-rename.png)<br>Multi-Rename Tool (`Ctrl+M`) |
 | ![Synchronize directories](docs/screenshots/en/sync.png)<br>Synchronize directories | ![Dark theme](docs/screenshots/en/main-dark.png)<br>Dark theme |
 
@@ -425,23 +433,24 @@ that takes more than 5 seconds is stopped (the text stays plain).
 
 - **Target** with a name mask: `folder/*.*` keeps the names, `folder/*.bak`
   changes the extension, `folder/new_*.*` adds a prefix; without a mask and for a
-  single file it is the new name. The drop-down list holds the target list and
-  recent paths; `F7` (the "+ F7" button) adds the current folder to the target
-  list or removes it, `⌃D` picks a folder from the directory hotlist, "Tree"
-  chooses a folder.
+  single file it is the new name. The Modern look shows the folder alone (the same
+  as `*.*`) and names what is copied at the top, with its icon. The drop-down list
+  holds the target list and recent paths; `F7` (the star, "+ F7" in the Classic
+  look) adds the current folder to the target list or removes it, `⌃D` picks a
+  folder from the directory hotlist, "Choose…" ("Tree") chooses a folder.
 - **Only files of this type:** `*.jpg *.png` copies only such files (in
   subfolders too); exclusions come after `|`: `*.* | *.bak .git/ node_modules/`;
   a name ending in `/` is a folder at any depth (`src/` — only the `src` folders,
   with everything inside). Folders left empty by the filter are not created.
-  `F8` (the "+ F8" button) — saved filters and examples.
+  `F8` (the filter button, "+ F8" in the Classic look) — saved filters and examples.
 - **Copy extended attributes and ACLs** (tags, Finder comments, access
   rights); **Verify** compares every copied file with the original.
-- Buttons, in the order of Mac dialogs: **Options >>** and **Tree** at the left;
-  **F2 Queue** — the operation joins the queue and runs one at a time in its own
+- Buttons, in the order of Mac dialogs: **Options** and **Choose…** at the left;
+  **Queue** (`F2`) — the operation joins the queue and runs one at a time in its own
   progress window — **Cancel** (`Esc`) and **Copy**/**Move** (`Return`) at the
-  right. Right-click Copy or F2 Queue to move instead of copying (and the other
+  right. The Classic look names them **Options >>**, **Tree** and **F2 Queue**. Right-click Copy or F2 Queue to move instead of copying (and the other
   way round).
-- **Options >>**: overwrite mode (ask, overwrite all, skip all, overwrite older,
+- **Options**: overwrite mode (ask, overwrite all, skip all, overwrite older,
   auto-rename the copied or the existing files — `name(2).ext`, copy larger or
   smaller ones), skip unreadable files, overwrite/delete locked files, skip
   `.DS_Store` (on by default: Finder's view settings inside the folders are not

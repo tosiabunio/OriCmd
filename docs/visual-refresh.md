@@ -6,7 +6,7 @@ deferred; phase 3 on branch `secondary-windows` (2026-10-07); the app icon on br
 `app-icon` (2026-10-07); phase 4, what phases 1 and 2 left over, on branch
 `ops-badge` (2026-10-07); phase 5, the tool windows, on branch `modern-polish`
 (2026-10-07); phase 6, thumbnails and copying, on branch `modern-details`
-(2026-10-08).
+(2026-10-08); phase 7, dialogs, on branch `modern-dialogs` (2026-10-08).
 **Mockup:** [Today and proposed main window, interactive](https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP)
 (light and dark).
 
@@ -351,6 +351,47 @@ Classic look keeps both as before. Short sizes that read the same for two differ
 files show their bytes in the overwrite question. The speed is measured over the last
 three seconds and left out while the copy is paused or before it has run a second.
 
+### Phase 7: dialogs
+
+A third survey (2026-10-08) pictured the windows and states the first two had not:
+the copy and move dialog, the delete questions, unpacking, the branch view, tabs,
+the simple prompts (select files, new file, hard link, encode), Connect to Server
+and the network browser, Quick View, and the Lister's table and picture views.
+
+- **The copy and move dialog** (`F5`/`F6`), the one opened most, was still Total
+  Commander's: "Copy" over "Item under cursor · 1 file" and the name, the target
+  ending in `*.*`, buttons titled "+ F7" and "+ F8", the overwrite modes numbered
+  ("1. Ask user"), and five buttons of one width.
+- **The delete questions** asked "Do you really want to move the selected 2
+  files/folders to the Trash?", with no names and the app's icon; other questions
+  said "2 files/folders" too.
+- **Connect to Server** kept its recent servers in a sunken striped frame with a
+  square − button, blank when there were none; the network browser put Connect…
+  beside its status.
+- **The Lister's table** stretched its last column over the window, so a number in
+  it sat at the far edge. **The key hints** said "NewFolder" and "Exit".
+
+The simple prompts are standard alerts and stay; Quick View is Quick Look's own.
+
+1. **The copy and move dialog** in the Modern look: the icon of what is copied and
+   "Copy “notes.txt”" or "Copy 2 folders" beside it, the names of several and the
+   source folder under it; the target folder without `*.*` (a mask typed after it
+   still renames); a star for the target list and a filter symbol for `F8`, "All
+   files" in the empty filter; the modes without numbers; Options (showing and
+   hiding the options), Choose… and Queue sized to their titles. Effort M.
+2. **Questions that name their items**: "Move “notes.txt” to the Trash?", "Move 2
+   items to the Trash?", "Delete … immediately?" with the names of several under the
+   title and the items' icon; "2 items" wherever "2 files/folders" was. Effort S.
+3. **Connect to Server** keeps its recent servers in a `ListBox` with − and "No
+   recent servers"; the network browser's Connect… goes to the trailing edge. Effort S.
+4. **The Lister's table** columns keep the width of their texts; **the key hints**
+   say New Folder and Quit in the Modern look. Effort XS.
+
+**As built (phase 7).** As planned. The Classic look keeps Total Commander's dialog
+as it was: its wording, the mask, "+ F7", "+ F8", Options >>, Tree and F2 Queue at one
+width, and the numbered modes. The questions and Connect to Server are the same in
+both looks.
+
 ## The Look setting
 
 The fork already has eight appearance switches: folder brackets, Mac-style tabs,
@@ -365,7 +406,7 @@ switches at once, and the individual switches stay below it. Test runs pin
 The plan is built except the deferred 2.1 and 2.2. New visual work starts from what
 using the Modern look shows, on its own branch from `main`, behind the Look setting
 where it changes how the classic panels look. Phase 6 built what the phase 5
-survey left.
+survey left; phase 7 what a third survey found in the dialogs.
 
 ## Sources
 

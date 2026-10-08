@@ -45,7 +45,7 @@ publish() {
 # The English set for README.md.
 for UI in en; do
   case $UI in
-    en) LOCALE=en_GB; OPTIONS="Options_>>"; COMPARE=Compare; MASK="Holiday_[C]" ;;
+    en) LOCALE=en_GB; OPTIONS="Options"; COMPARE=Compare; MASK="Holiday_[C]" ;;
   esac
   shot main $P $D/Downloads \
     "cmd+t wait home down enter wait ctrl+tab wait alt+l wait text:ICENSE escape insert alt+p wait text:ackage escape insert alt+r wait text:EADME escape wait"
