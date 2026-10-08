@@ -25,6 +25,8 @@ final class TableGridView: NSView, NSTableViewDataSource, NSTableViewDelegate {
         grid.allowsColumnReordering = false
         grid.rowHeight = 20
         grid.style = .plain
+        // Each column as wide as its texts, as in Numbers; the last one does not fill the rest.
+        grid.columnAutoresizingStyle = .noColumnAutoresizing
         grid.copyRows = { [weak self] rows in self?.text(ofRows: rows) ?? "" }
         scrollView.documentView = grid
         scrollView.hasVerticalScroller = true

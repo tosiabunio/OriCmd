@@ -10,6 +10,10 @@ final class FunctionKeyBar: NSView {
         let key: String
         let title: String
         let command: Command
+        /// The Mac's word where Total Commander's differs ("Quit" for "Exit").
+        var modernTitle: String?
+
+        var shownTitle: String { Settings.isModern ? modernTitle ?? title : title }
     }
 
     static let defaultItems: [Item] = [
@@ -17,9 +21,11 @@ final class FunctionKeyBar: NSView {
         Item(key: "F4", title: String(localized: "fkey.edit", defaultValue: "Edit"), command: .edit),
         Item(key: "F5", title: String(localized: "fkey.copy", defaultValue: "Copy"), command: .copy),
         Item(key: "F6", title: String(localized: "fkey.move", defaultValue: "Move"), command: .renMov),
-        Item(key: "F7", title: String(localized: "fkey.newFolder", defaultValue: "NewFolder"), command: .mkDir),
+        Item(key: "F7", title: String(localized: "fkey.newFolder", defaultValue: "NewFolder"), command: .mkDir,
+             modernTitle: String(localized: "New Folder")),
         Item(key: "F8", title: String(localized: "fkey.delete", defaultValue: "Delete"), command: .delete),
-        Item(key: "⌘Q", title: String(localized: "fkey.exit", defaultValue: "Exit"), command: .exit),
+        Item(key: "⌘Q", title: String(localized: "fkey.exit", defaultValue: "Exit"), command: .exit,
+             modernTitle: String(localized: "Quit")),
     ]
 
     var items: [Item] = FunctionKeyBar.defaultItems {
@@ -49,7 +55,7 @@ final class FunctionKeyBar: NSView {
     }
 
     private func hintWidth(_ item: Item, titles: Bool) -> CGFloat {
-        hintKeyWidth(item) + (titles ? 4 + ceil((item.title as NSString).size(withAttributes: [.font: Self.hintFont]).width) : 0)
+        hintKeyWidth(item) + (titles ? 4 + ceil((item.shownTitle as NSString).size(withAttributes: [.font: Self.hintFont]).width) : 0)
     }
 
     private func compactWidth(titles: Bool) -> CGFloat {
@@ -86,8 +92,8 @@ final class FunctionKeyBar: NSView {
             }
             guard titles else { continue }
             let attributes: [NSAttributedString.Key: Any] = [.font: Self.hintFont, .foregroundColor: NSColor.secondaryLabelColor]
-            let size = (item.title as NSString).size(withAttributes: attributes)
-            (item.title as NSString).draw(at: NSPoint(x: rect.minX + keyWidth + 4, y: rect.midY - size.height / 2),
+            let size = (item.shownTitle as NSString).size(withAttributes: attributes)
+            (item.shownTitle as NSString).draw(at: NSPoint(x: rect.minX + keyWidth + 4, y: rect.midY - size.height / 2),
                                           withAttributes: attributes)
         }
     }
@@ -115,7 +121,7 @@ final class FunctionKeyBar: NSView {
                 drawKeyCap(item, in: cell, attributes: attributes)
                 continue
             }
-            let label = "\(item.key) \(item.title)" as NSString
+            let label = "\(item.key) \(item.shownTitle)" as NSString
             let size = label.size(withAttributes: attributes)
             label.draw(
                 at: NSPoint(x: cell.midX - size.width / 2, y: cell.midY - size.height / 2),
@@ -138,7 +144,7 @@ final class FunctionKeyBar: NSView {
             .font: Self.keyCapFont,
             .foregroundColor: NSColor.secondaryLabelColor,
         ]
-        let key = item.key as NSString, title = item.title as NSString
+        let key = item.key as NSString, title = item.shownTitle as NSString
         let keySize = key.size(withAttributes: keyAttributes)
         let titleSize = title.size(withAttributes: attributes)
         let capWidth = max(ceil(keySize.width) + 14, 24), capHeight: CGFloat = 18, gap: CGFloat = 7

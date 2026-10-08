@@ -5191,6 +5191,16 @@
         }
       }
     },
+    "New Folder": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новая папка"
+          }
+        }
+      }
+    },
     "New Folder…": {
       "localizations": {
         "ru": {
@@ -6347,6 +6357,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Быстрый поиск:"
+          }
+        }
+      }
+    },
+    "Quit": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выйти"
           }
         }
       }
