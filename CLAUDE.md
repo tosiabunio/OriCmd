@@ -1240,5 +1240,11 @@ install, push and release 2026.10.12 once the tests passed.
 - Validation: 384 of 384 regression checks, the five UX suites, 11 accessibility
   checks, 13 core tests, localization; captures at 12, 13, 15 and 18 pt, light and
   dark, and the Classic look unchanged.
-- Installed as fork build 51 and pushed (`main` = `local-build` = this entry, with
-  `modern-header`).
+- Installed as fork build 51 and pushed (`main` = `local-build` = `08e03f1`, with
+  `modern-header`), then `scripts/release.sh 2026.10.12` (release commit `23ebeca`,
+  internal build 28): https://github.com/tosiabunio/Oriel/releases/tag/v2026.10.12 has
+  `Oriel-2026.10.12.dmg` (8,909,880 bytes, SHA-256 `e4778513…69c671`), verified with
+  `build/verify-driver` for `tosiabunio/Oriel` and `io.github.tosiabunio.oriel`, size,
+  checksum, codesign, universal app and helper; it is the latest release. Reinstalled
+  as fork build 52, "2026.10.12 (52)". The notes present phase 9; upstream base still
+  0.13.3b.
