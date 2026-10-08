@@ -139,7 +139,8 @@ final class MainViewController: NSViewController {
         operationsDidChange(nil)
     }
 
-    static let bottomBarHeight: CGFloat = 34
+    /// 34 pt, taller with the larger hints of a larger panel font.
+    static var bottomBarHeight: CGFloat { max(34, FunctionKeyBar.compactHeight + 10) }
 
     /// The command line, the function keys and Operations: rows under the panels in
     /// Total Commander's look, side by side in one bar in the modern one.
@@ -177,7 +178,6 @@ final class MainViewController: NSViewController {
                 bottomSeparator.leadingAnchor.constraint(equalTo: root.leadingAnchor),
                 bottomSeparator.trailingAnchor.constraint(equalTo: root.trailingAnchor),
                 commandLineHeight, roomForCommands,
-                functionKeyBar.heightAnchor.constraint(equalToConstant: 24),
             ]
         } else {
             for area in [NSStackView.Gravity.leading, .center, .trailing] {
@@ -266,6 +266,7 @@ final class MainViewController: NSViewController {
         functionKeyBarHeight.constant = Settings.showsFunctionKeys ? FunctionKeyBar.height : 0
         functionKeyBar.invalidateIntrinsicContentSize()
         functionKeyBar.needsDisplay = true
+        commandLine.view.applyLook()
         commandLine.view.directory = activePanel.directory
         updateBottomBar()
     }
@@ -273,6 +274,12 @@ final class MainViewController: NSViewController {
     #if DEBUG
     /// The Operations button under the panels, if shown (for test runs).
     var operationsButtonTitle: String? { operationsButton.isHidden ? nil : operationsButton.title }
+
+    /// The key hints with `modifiers` held, as "⇧F5 Copy Here" (for test runs).
+    func keyHints(holding modifiers: NSEvent.ModifierFlags) -> [String] {
+        functionKeyBar.modifiers = modifiers
+        return functionKeyBar.shownItems.map { "\($0.key) \($0.shownTitle)" }
+    }
     #endif
 
     /// The modern bar leaves Operations to the toolbar's button, which counts them in

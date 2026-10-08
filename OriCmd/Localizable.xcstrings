@@ -2461,6 +2461,16 @@
         }
       }
     },
+    "Copy Here": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Копия здесь"
+          }
+        }
+      }
+    },
     "Copy Names": {
       "localizations": {
         "ru": {
@@ -2907,6 +2917,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Удалить %@ безвозвратно?"
+          }
+        }
+      }
+    },
+    "Delete Now": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить сразу"
           }
         }
       }
@@ -4591,6 +4611,16 @@
         }
       }
     },
+    "Left Drive": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Диск слева"
+          }
+        }
+      }
+    },
     "Left Volume List": {
       "localizations": {
         "ru": {
@@ -4627,6 +4657,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Светлая"
+          }
+        }
+      }
+    },
+    "Link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ссылка"
           }
         }
       }
@@ -5187,6 +5227,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Новое соединение"
+          }
+        }
+      }
+    },
+    "New File": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новый файл"
           }
         }
       }
@@ -6851,6 +6901,16 @@
         }
       }
     },
+    "Right Drive": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Диск справа"
+          }
+        }
+      }
+    },
     "Right Volume List": {
       "localizations": {
         "ru": {
@@ -8037,6 +8097,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Терминал: перейти в папку панели"
+          }
+        }
+      }
+    },
+    "Test": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить"
           }
         }
       }

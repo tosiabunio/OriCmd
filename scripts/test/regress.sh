@@ -891,6 +891,14 @@ defaults delete ru.themmag.OriCmd.tests-original 2>/dev/null
 scripts/test/mkdata.sh; cp $L/readme.txt $R/readme.txt
 run opsbadge "alt+r wait text:eadme escape f5 wait enter wait wait toolbar"
 check "Operations in the toolbar counts a running copy, the bottom bar leaves it to the toolbar" "grep -qx 'cm_Operations badge 1' build/shots/reg-opsbadge-toolbar.txt && grep -qx 'bottom: hidden' build/shots/reg-opsbadge-toolbar.txt"
+# Holding a modifier, the key hints show what the function keys do with it, from the
+# key bindings (a customized one too); the Modern look's own words for F7 and ⌘Q.
+run hintshift "wait hints:shift wait"
+run hintcontrol "wait hints:control wait"
+check "holding Shift, the key hints show the Shift commands" "grep -qx '⇧F5 Copy Here' build/shots/reg-hintshift-hints.txt && grep -qx '⇧F8 Delete Now' build/shots/reg-hintshift-hints.txt && ! grep -q '^F3 ' build/shots/reg-hintshift-hints.txt"
+check "holding Control, the key hints show the sort orders" "[ \"\$(head -1 build/shots/reg-hintcontrol-hints.txt)\" = '⌃F3 Name' ]"
+run hintnone "wait hints:none wait"
+check "with no modifier the hints are the plain keys, in Mac words" "grep -qx 'F7 New Folder' build/shots/reg-hintnone-hints.txt && grep -qx '⌘Q Quit' build/shots/reg-hintnone-hints.txt"
 run opsnotoolbar "cmd:toggleToolbarShown wait alt+r wait text:eadme escape f5 wait enter wait wait toolbar"
 check "with the toolbar hidden the bottom bar shows Operations again" "grep -qx 'bottom: Operations: 1 running' build/shots/reg-opsnotoolbar-toolbar.txt"
 # The Lister names the file in its title, its folder and encoding below, and has its

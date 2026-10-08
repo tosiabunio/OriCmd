@@ -236,6 +236,15 @@ enum DebugAutomation {
                     let lines = root.isSidebarShown ? root.sidebar.rowsDescription : ["hidden"]
                     try? lines.joined(separator: "\n")
                         .write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-sidebar.txt"), atomically: true, encoding: .utf8)
+                } else if token.hasPrefix("hints:"), let snapshot, let main = window.mainViewController {
+                    // `hints:shift` (option, control, none): the key bar with those keys held,
+                    // its hints to <snapshot>-hints.txt, a line each.
+                    let names: [String: NSEvent.ModifierFlags] = ["shift": .shift, "option": .option, "control": .control]
+                    let held = token.dropFirst(6).split(separator: "+").reduce(into: NSEvent.ModifierFlags()) {
+                        $0.formUnion(names[String($1)] ?? [])
+                    }
+                    try? main.keyHints(holding: held).joined(separator: "\n")
+                        .write(toFile: snapshot.replacingOccurrences(of: ".png", with: "-hints.txt"), atomically: true, encoding: .utf8)
                 } else if token == "toolbar", let snapshot {
                     // The frontmost window's toolbar items ("cm_Operations badge 2"; a segmented
                     // control's segments by their tooltips, ✓ when selected, "(off)" when disabled),
