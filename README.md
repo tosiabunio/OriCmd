@@ -65,7 +65,8 @@ keep working as always.
 - **Mac-style panels:** compact headers, folder icons and close buttons on tabs,
   key caps on function buttons, Finder-style sizes and status summaries, folder
   colors from Finder tags, and options for folder brackets and file extensions.
-  Column widths can be dragged in the header.
+  Column widths can be dragged in the header. In the Modern look the header is in
+  the system font whatever font the list uses, its sizes in proportion to the list's.
 - **Drive information:** click the free-space or total-capacity readout to open
   Finder's information window for the panel's volume, in either header layout.
 - **Clear selection and filters:** checkmarks distinguish marked items from the

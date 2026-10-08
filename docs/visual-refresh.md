@@ -7,7 +7,8 @@ deferred; phase 3 on branch `secondary-windows` (2026-10-07); the app icon on br
 `ops-badge` (2026-10-07); phase 5, the tool windows, on branch `modern-polish`
 (2026-10-07); phase 6, thumbnails and copying, on branch `modern-details`
 (2026-10-08); phase 7, dialogs, on branch `modern-dialogs` (2026-10-08); phase 8, the
-rest of the tools, on branch `modern-tools` (2026-10-08).
+rest of the tools, on branch `modern-tools` (2026-10-08); phase 9, the panel header's
+type, on branch `modern-header` (2026-10-09).
 **Mockup:** [Today and proposed main window, interactive](https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP)
 (light and dark).
 
@@ -430,6 +431,26 @@ Settings pane.
 
 **As built (phase 8).** As planned, in both looks.
 
+### Phase 9: the panel header's type
+
+The user found the panel header clumsy: different fonts, small sizes. It drew the
+path in the list's own font (Monaco 15 pt in the user's settings), and the volume,
+the counts and free space, the column titles and the tab titles in an 11 pt system
+font, so next to 15 pt rows the header mixed two families at two unrelated sizes.
+
+1. **One family.** In the Modern look every part of the header is in the system
+   font, whatever font the list uses; the list keeps its own.
+2. **Sizes in proportion to the list.** The path takes the list's size (12–18 pt),
+   the volume a point less, the tabs, the counts and free space and the column
+   titles two points less (11 pt at least). For the default 13 pt list this is the
+   old 13 and 11 pt, with the volume at 12 pt; for a 15 pt list, 15, 14 and 13 pt.
+3. **Heights from the fonts.** The path line, the counts line, the column titles and
+   the Mac-style tabs are as tall as their text needs (the same 22, 15, 22 and 24 pt
+   as before at 13 pt), and a tab leaves room for an icon that grows with the text.
+
+**As built (phase 9).** As planned; the Settings preview draws its column titles the
+same way. The Classic look keeps the list's font in the path and 11 pt elsewhere.
+
 ## The Look setting
 
 The fork already has eight appearance switches: folder brackets, Mac-style tabs,
@@ -445,7 +466,7 @@ The plan is built except the deferred 2.1 and 2.2. New visual work starts from w
 using the Modern look shows, on its own branch from `main`, behind the Look setting
 where it changes how the classic panels look. Phase 6 built what the phase 5
 survey left; phase 7 what a third survey found in the dialogs; phase 8 what a fourth
-found in the remaining tools.
+found in the remaining tools; phase 9 the header's type, at the user's request.
 
 ## Sources
 
