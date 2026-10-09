@@ -1306,3 +1306,11 @@ The user asked to install, push and release 2026.10.14 once the tests passed.
   showed in captures). With the pointer moved off it, both header-drag checks passed.
   A real pointer over the test window can disturb synthetic header drags.
 - Installed as fork build 55 (`38dff60`).
+- Pushed (`main` = `local-build` = `f211bac`, with `modern-rows`), then
+  `scripts/release.sh 2026.10.14` (release commit `e98575b`, internal build 30):
+  https://github.com/tosiabunio/Oriel/releases/tag/v2026.10.14 has
+  `Oriel-2026.10.14.dmg` (8,926,046 bytes, SHA-256 `fbb7ca19…0593ce`), verified with
+  `build/verify-driver` for `tosiabunio/Oriel` and `io.github.tosiabunio.oriel`, size,
+  checksum, codesign, universal app and helper; it is the latest release. Reinstalled
+  as fork build 56, "2026.10.14 (56)". The notes present phase 11; upstream base still
+  0.13.3b.
