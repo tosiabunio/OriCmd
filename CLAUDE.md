@@ -1285,3 +1285,24 @@ install, push and release 2026.10.13 once the tests passed.
   checksum, codesign, universal app and helper; it is the latest release. Reinstalled
   as fork build 54, "2026.10.13 (54)". The notes present phase 10; upstream base still
   0.13.3b.
+
+## Visual refresh phase 11 on 2026-10-09: the rows' icons
+
+The user asked to continue after 2026.10.13. With their Monaco 15 (25 pt rows) the
+16 pt icons looked a size too small next to the larger header and bottom bar. Branch
+`modern-rows` (worktree `build/p11`): `8f073a0` (the icons), `38dff60` (plan, README).
+The user asked to install, push and release 2026.10.14 once the tests passed.
+- `Theme.rowIconSize`: Modern = row height − 6, rounded, 16–24 (16 for the standard
+  22 pt and compact rows, so the README screenshots are unchanged); Classic 16.
+  `FileListView` uses it for the icon rect (the checkmark at 0.69 of it), the room
+  before the name in Full and Brief (`rowIconSize + 4`), the inline rename field's
+  indent and the Brief column's width.
+- Captures: scratchpad `survey11.sh` (`FONT=Monaco FSIZE=15`, 18 pt, Brief, rename,
+  Classic).
+- Validation: 387 of 387 regression checks, the five UX suites, 11 accessibility
+  checks, 13 core tests, localization. "Dragging the edge of Name widens the next
+  column" first failed (Ext 4–5 pt wider than asked), also with phase 10's released
+  build; the user's mouse pointer rested over the test window (a toolbar tooltip
+  showed in captures). With the pointer moved off it, both header-drag checks passed.
+  A real pointer over the test window can disturb synthetic header drags.
+- Installed as fork build 55 (`38dff60`).
