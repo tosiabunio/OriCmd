@@ -1248,3 +1248,34 @@ install, push and release 2026.10.12 once the tests passed.
   checksum, codesign, universal app and helper; it is the latest release. Reinstalled
   as fork build 52, "2026.10.12 (52)". The notes present phase 9; upstream base still
   0.13.3b.
+
+## Visual refresh phase 10 on 2026-10-09: the bottom bar
+
+The user asked to continue after 2026.10.12. With their Monaco 15 the bottom bar had
+the header's mismatch (prompt, command and hints at 11 pt), and plan 2.4's modifier
+hints were never built. Branch `modern-bottom` (worktree `build/p10`): `d6c2ffb`
+(the bar and the hints), `62cda9d` (plan, README, screenshots). The user asked to
+install, push and release 2026.10.13 once the tests passed.
+- `CommandLineView.applyLook()` (from init and `applyLayoutSettings`): Modern prompt
+  in `Theme.headerDetailFont`, `secondaryLabelColor`; field in
+  `monospacedSystemFont(ofSize: detail size)`, regular control size from 13 pt;
+  `CommandLineView.height` = max(26, line + 12) in Modern.
+- `FunctionKeyBar`: `hintFont`/`hintKeyFont` = detail font, `keyCapFont` = detail − 1
+  in Modern (10 in Classic), `hintCapHeight` = line + 4, `compactHeight` = max(24,
+  cap + 8); `MainViewController.bottomBarHeight` = max(34, compactHeight + 10) and the
+  fixed 24 pt key bar constraint was dropped (the intrinsic height serves).
+- Modifier hints: `FunctionKeyBar.modifiers` (a local `.flagsChanged` monitor while in
+  a window; [] when its window resigns key or while `firstResponder is NSText`),
+  `shownItems` = `items(for:)`: commands whose `KeyBindings.shortcut` is F1–F12 with
+  exactly the held ⇧⌥⌃⌘, by key, titled by `Command.hintTitle` (short words); plain
+  items when none. Drawing, widths and clicks use `shownItems`; the compact
+  intrinsic width is max(plain, shown) so the command line never jumps.
+- Test action `hints:shift|option|control|none` → `<snapshot>-hints.txt` ("⇧F5 Copy
+  Here"), through `MainViewController.keyHints(holding:)` (DEBUG). Checks hintshift,
+  hintcontrol, hintnone.
+- 3.1's segmented options for Compare/Synchronize were dropped (recorded in the plan).
+- Validation: 387 of 387 regression checks (three new), the five UX suites, 11
+  accessibility checks, 13 core tests, localization; captures at 13 and 15 pt, the
+  three modifier sets and the Classic look.
+- Installed as fork build 53 and pushed (`main` = `local-build` = this entry, with
+  `modern-bottom`).
