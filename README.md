@@ -33,7 +33,8 @@ keep working as always.
   free space), the usual folders, the directory hotlist and the Finder's color tags
   (a tag lists its files in the active panel; `⌃⌘S` or the toolbar button shows or
   hides the sidebar); the command line, the function keys as compact hints and
-  Operations share one bar under the panels. Operations also has a toolbar button
+  Operations share one bar under the panels. Holding `⇧`, `⌥` or `⌃` the hints show
+  what the function keys do with it (`⇧F5` Copy Here, `⌃F3` sort by name…). Operations also has a toolbar button
   whose badge counts what runs or waits (macOS 26), and the header shows a symbol
   for the folder, archive, server or search results before the path.
 - **Tool windows as Mac windows:** the Lister (`F3`) is titled with the file's name
@@ -513,7 +514,9 @@ opens the place in the active panel, whose place stays highlighted; right-click 
 place for the same menu as a drive button's. While the sidebar is shown the drive
 buttons are hidden. The command line, the function keys (as compact hints, only the
 keys when the titles do not fit) and Operations then share one bar under the
-panels.
+panels, its text in proportion to the list's font as the header's is (the command in
+the system's monospaced font). Holding a modifier key shows the function keys'
+commands with it, as the key bindings have them (both looks).
 
 ### Servers (SFTP, FTP)
 

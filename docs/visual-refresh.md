@@ -8,7 +8,8 @@ deferred; phase 3 on branch `secondary-windows` (2026-10-07); the app icon on br
 (2026-10-07); phase 6, thumbnails and copying, on branch `modern-details`
 (2026-10-08); phase 7, dialogs, on branch `modern-dialogs` (2026-10-08); phase 8, the
 rest of the tools, on branch `modern-tools` (2026-10-08); phase 9, the panel header's
-type, on branch `modern-header` (2026-10-09).
+type, on branch `modern-header` (2026-10-09); phase 10, the bottom bar, on branch
+`modern-bottom` (2026-10-09).
 **Mockup:** [Today and proposed main window, interactive](https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP)
 (light and dark).
 
@@ -451,6 +452,28 @@ font, so next to 15 pt rows the header mixed two families at two unrelated sizes
 **As built (phase 9).** As planned; the Settings preview draws its column titles the
 same way. The Classic look keeps the list's font in the path and 11 pt elsewhere.
 
+### Phase 10: the bottom bar
+
+After the header, the bar under the panels showed the same mismatch: the prompt, the
+command typed and the key hints were 11 pt whatever the list's size, the command in a
+proportional font. And 2.4's key hints with their modifiers had not been built.
+
+1. **The bar's type follows the header's** (Modern): the prompt in grey and the key
+   hints at the header's detail size (11 pt for a 13 pt list, 13 pt for a 15 pt one),
+   the key caps a point smaller, the command in the system's monospaced font at that
+   size; the field, the caps and the bar grow with them. Effort S.
+2. **Modifier hints** (both looks): holding `⇧`, `⌥` or `⌃` the bar shows the
+   commands those keys give the function keys, read from the key bindings (⇧F2
+   Compare, ⇧F4 New File, ⇧F5 Copy Here, ⇧F6 Rename, ⇧F8 Delete Now; ⌥F1/F2 the
+   drive menus, ⌥F5 Pack, ⌥F7 Find, ⌥F9 Unpack, ⌥F10 Tree; ⌃F3–F7 the sort orders),
+   and a click runs them. Not while typing in a field, where Shift makes capitals.
+   No function key has a ⌘ command, so ⌘ shows the plain keys. Effort S.
+
+**As built (phase 10).** As planned. The bar keeps at least the plain keys' width,
+so a modifier never moves the command line. 3.1's segmented options in Compare and
+Synchronize were reconsidered and dropped: their checkboxes say what each option
+does, which symbols in a segmented control would not.
+
 ## The Look setting
 
 The fork already has eight appearance switches: folder brackets, Mac-style tabs,
@@ -466,7 +489,8 @@ The plan is built except the deferred 2.1 and 2.2. New visual work starts from w
 using the Modern look shows, on its own branch from `main`, behind the Look setting
 where it changes how the classic panels look. Phase 6 built what the phase 5
 survey left; phase 7 what a third survey found in the dialogs; phase 8 what a fourth
-found in the remaining tools; phase 9 the header's type, at the user's request.
+found in the remaining tools; phase 9 the header's type, at the user's request;
+phase 10 the bottom bar's type and the modifier hints.
 
 ## Sources
 
