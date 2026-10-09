@@ -209,12 +209,12 @@ final class FileListView: NSView {
         if viewMode == .thumbnails {
             frame = NSRect(x: row.minX, y: row.minY + Self.thumbnailSize + 8, width: row.width, height: rowHeight + 2)
         } else if viewMode == .brief {
-            let indent: CGFloat = Settings.isModern ? 23 : 20
+            let indent = (Settings.isModern ? 3 : 0) + Theme.rowIconSize + 4
             frame.origin.x += indent
             frame.size.width -= indent
         } else {
-            frame.origin.x += 20
-            frame.size.width -= 20
+            frame.origin.x += Theme.rowIconSize + 4
+            frame.size.width -= Theme.rowIconSize + 4
         }
         let field = NSTextField(frame: frame)
         field.stringValue = item.name
@@ -423,7 +423,7 @@ final class FileListView: NSView {
     private func updateBriefColumnWidth() {
         guard viewMode == .brief else { return }
         let longest = items.map(displayName).max { $0.count < $1.count } ?? ""
-        let width = (longest as NSString).size(withAttributes: [.font: Theme.panelFont]).width + 36
+        let width = (longest as NSString).size(withAttributes: [.font: Theme.panelFont]).width + 16 + Theme.rowIconSize + 4
         briefColumnWidth = min(max(width, 100), 360).rounded()
     }
 
@@ -556,13 +556,14 @@ final class FileListView: NSView {
     }
 
     private func drawIcon(for item: FileItem, in rect: NSRect) {
-        let iconRect = NSRect(x: rect.minX + 3, y: rect.minY + (rowHeight - 16) / 2, width: 16, height: 16)
+        let size = Theme.rowIconSize
+        let iconRect = NSRect(x: rect.minX + 3, y: rect.minY + ((rowHeight - size) / 2).rounded(), width: size, height: size)
         FileIcons.icon(for: item).draw(
             in: iconRect,
             from: .zero, operation: .sourceOver, fraction: item.isHidden ? 0.5 : 1,
             respectFlipped: true, hints: nil
         )
-        drawSelectionMarker(for: item, in: iconRect)
+        drawSelectionMarker(for: item, in: iconRect, size: (size * 0.69).rounded())
     }
 
     /// A checkmark gives marked items a shape as well as a text color.
@@ -601,7 +602,7 @@ final class FileListView: NSView {
         // Inside the rounded highlight of the modern look.
         let content = Settings.isModern ? rect.insetBy(dx: 3, dy: 0) : rect
         drawIcon(for: item, in: content)
-        drawText(displayName(item), in: content.divided(atDistance: 20, from: .minXEdge).remainder,
+        drawText(displayName(item), in: content.divided(atDistance: Theme.rowIconSize + 4, from: .minXEdge).remainder,
                  font: Theme.font(marked: marked.contains(item.name)), color: color)
         drawInactiveCursorFrame(row, in: rect)
     }
@@ -710,7 +711,8 @@ final class FileListView: NSView {
     /// goes: with extensions after names (see Settings) it takes the Ext column too.
     private func nameAndExtension(of item: FileItem, layout: ColumnLayout, y: CGFloat,
                                   font: NSFont) -> (name: String, ext: String, nameRect: NSRect) {
-        let nameRect = layout.rect(for: .name, y: y, height: rowHeight).divided(atDistance: 20, from: .minXEdge).remainder
+        let nameRect = layout.rect(for: .name, y: y, height: rowHeight)
+            .divided(atDistance: Theme.rowIconSize + 4, from: .minXEdge).remainder
         guard Settings.extensionDisplay == .withName || !layout.contains(.ext) else {
             return (Settings.panelName(item.baseName, isFolder: item.isFolder), item.fileExtension, nameRect)
         }

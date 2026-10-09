@@ -45,6 +45,12 @@ enum Theme {
         return max(ceil(font.ascender - font.descender + font.leading) + padding, 16)
     }
 
+    /// A row's icon: 16 pt, and in the modern look as large as the row allows (16 pt for
+    /// the standard 22 pt rows, up to 24 pt), so a larger list font gets larger icons.
+    static var rowIconSize: CGFloat {
+        Settings.isModern ? min(max((rowHeight - 6).rounded(), 16), 24) : 16
+    }
+
     /// In the modern look rows are rounded and inset from the list's edges: the
     /// highlight by `rowInset`, the columns a little further, by `contentInset`.
     static var rowInset: CGFloat { Settings.isModern ? 6 : 0 }
