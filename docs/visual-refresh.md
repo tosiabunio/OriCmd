@@ -9,7 +9,8 @@ deferred; phase 3 on branch `secondary-windows` (2026-10-07); the app icon on br
 (2026-10-08); phase 7, dialogs, on branch `modern-dialogs` (2026-10-08); phase 8, the
 rest of the tools, on branch `modern-tools` (2026-10-08); phase 9, the panel header's
 type, on branch `modern-header` (2026-10-09); phase 10, the bottom bar, on branch
-`modern-bottom` (2026-10-09).
+`modern-bottom` (2026-10-09); phase 11, the rows' icons, on branch `modern-rows`
+(2026-10-09).
 **Mockup:** [Today and proposed main window, interactive](https://claude.ai/artifact/CBd66sFhHtoyH7Bkzt2BeP)
 (light and dark).
 
@@ -474,6 +475,20 @@ so a modifier never moves the command line. 3.1's segmented options in Compare a
 Synchronize were reconsidered and dropped: their checkboxes say what each option
 does, which symbols in a segmented control would not.
 
+### Phase 11: the rows' icons
+
+The header and the bottom bar follow the list's font since phases 9 and 10; the rows'
+icons did not. They stayed 16 pt beside the text, and with a 15 pt list (25 pt rows)
+they looked a size too small, as the Finder's do when its text is made larger but its
+icons are not.
+
+1. **Icons as large as the row allows** (Modern): the row's height less 6 pt, from 16
+   pt (the standard 22 pt rows, unchanged) to 24 pt, in the Full and Brief views; the
+   room before the name, the inline rename field, the Brief column's width and the
+   checkmark on a marked item follow. Effort S.
+
+**As built (phase 11).** As planned; the Classic look keeps 16 pt icons.
+
 ## The Look setting
 
 The fork already has eight appearance switches: folder brackets, Mac-style tabs,
@@ -490,7 +505,7 @@ using the Modern look shows, on its own branch from `main`, behind the Look sett
 where it changes how the classic panels look. Phase 6 built what the phase 5
 survey left; phase 7 what a third survey found in the dialogs; phase 8 what a fourth
 found in the remaining tools; phase 9 the header's type, at the user's request;
-phase 10 the bottom bar's type and the modifier hints.
+phase 10 the bottom bar's type and the modifier hints; phase 11 the rows' icons.
 
 ## Sources
 
